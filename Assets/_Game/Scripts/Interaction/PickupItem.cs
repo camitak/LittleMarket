@@ -17,14 +17,19 @@ public class PickupItem : MonoBehaviour, IInteractable
         rb = GetComponent<Rigidbody>();
     }
 
-    public string GetInteractionPrompt()
+    public string GetInteractionPrompt(PlayerInteraction  player)
     {
-        if (productData == null)
+        if (player.GetHeldItem() != null)
         {
-            return "[E] Pick up item";
+            return "Hands is full";
         }
 
-        return "[E] Pick up " + productData.ProductName;
+        if (productData == null)
+        {
+            return "[E] Pick up Item";
+        }
+        
+        return "[E] Pick up " +  productData.ProductName;
     }
 
     public void Interact(PlayerInteraction player)

@@ -3,39 +3,72 @@ using UnityEngine;
 public class ShelfSlot : MonoBehaviour, IInteractable
 {
     [Header("Shelf Rules")]
-    [SerializeField]
-    private ProductCategory acceptedCategory = ProductCategory.Cereal;
+    [SerializeField] private ProductData acceptedProduct;
 
     private PickupItem storedItem;
 
-    public string GetInteractionPrompt()
+    public string GetInteractionPrompt(PlayerInteraction player)
     {
+        // The slot already contains a product.
         if (storedItem != null)
         {
+            if (player.GetHeldItem() != null)
+            {
+                return "Hands full";
+            }
+
             return "[E] Pick up " + storedItem.GetItemName();
         }
 
-        return "[E] Stock item";
+        // The slot has not been configured in the Inspector.
+        if (acceptedProduct == null)
+        {
+            return "Shelf slot not configured";
+        }
+
+        PickupItem heldItem = player.GetHeldItem();
+
+        // Empty slot, but the player isn't carrying anything.
+        if (heldItem == null)
+        {
+            return "Empty - " + acceptedProduct.ProductName;
+        }
+
+        ProductData heldProduct = heldItem.GetProductData();
+
+        if (heldProduct == null)
+        {
+            return "This item cannot be stocked here";
+        }
+
+        // The player is carrying the wrong product.
+        if (heldProduct != acceptedProduct)
+        {
+            return "This slot is for " + acceptedProduct.ProductName;
+        }
+
+        // Correct product.
+        return "[E] Stock " + acceptedProduct.ProductName;
     }
 
     public void Interact(PlayerInteraction player)
     {
-        // CASE 1:
-        // There is already a product in this slot.
         if (storedItem != null)
         {
             TryRemoveStoredItem(player);
             return;
         }
 
-        // CASE 2:
-        // The slot is empty, so try to stock
-        // whatever the player is currently holding.
         TryStoreHeldItem(player);
     }
 
     private void TryStoreHeldItem(PlayerInteraction player)
     {
+        if (acceptedProduct == null)
+        {
+            return;
+        }
+
         PickupItem heldItem = player.GetHeldItem();
 
         if (heldItem == null)
@@ -43,14 +76,14 @@ public class ShelfSlot : MonoBehaviour, IInteractable
             return;
         }
 
-        ProductData productData = heldItem.GetProductData();
+        ProductData heldProduct = heldItem.GetProductData();
 
-        if (productData == null)
+        if (heldProduct == null)
         {
             return;
         }
 
-        if (productData.Category != acceptedCategory)
+        if (heldProduct != acceptedProduct)
         {
             return;
         }
@@ -72,8 +105,6 @@ public class ShelfSlot : MonoBehaviour, IInteractable
 
     private void TryRemoveStoredItem(PlayerInteraction player)
     {
-        // The player cannot pick up another product
-        // if they are already carrying something.
         if (player.GetHeldItem() != null)
         {
             return;

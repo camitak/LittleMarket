@@ -1801,6 +1801,10 @@ PrefabInstance:
     m_TransformParent: {fileID: 0}
     m_Modifications:
     - target: {fileID: 1060167468770235413, guid: b2ab179c58af96d479747fad85aed525, type: 3}
+      propertyPath: acceptedProduct
+      value: 
+      objectReference: {fileID: 11400000, guid: e2d539f48d3851d43aff9653666653a3, type: 2}
+    - target: {fileID: 1060167468770235413, guid: b2ab179c58af96d479747fad85aed525, type: 3}
       propertyPath: acceptedCategory
       value: 0
       objectReference: {fileID: 0}
@@ -1844,10 +1848,34 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 1352348362251811348, guid: b2ab179c58af96d479747fad85aed525, type: 3}
+      propertyPath: m_Name
+      value: Slot_Strawberry_01
+      objectReference: {fileID: 0}
+    - target: {fileID: 3046213625299195560, guid: b2ab179c58af96d479747fad85aed525, type: 3}
+      propertyPath: acceptedProduct
+      value: 
+      objectReference: {fileID: 11400000, guid: 3391820c701e1fc4181638a9a2a82308, type: 2}
+    - target: {fileID: 3457331461783563248, guid: b2ab179c58af96d479747fad85aed525, type: 3}
+      propertyPath: m_Name
+      value: Slot_Honey_01
+      objectReference: {fileID: 0}
+    - target: {fileID: 3837043004271950274, guid: b2ab179c58af96d479747fad85aed525, type: 3}
+      propertyPath: acceptedProduct
+      value: 
+      objectReference: {fileID: 11400000, guid: 3391820c701e1fc4181638a9a2a82308, type: 2}
+    - target: {fileID: 4661067243534627180, guid: b2ab179c58af96d479747fad85aed525, type: 3}
+      propertyPath: m_Name
+      value: Slot_Strawberry_02
+      objectReference: {fileID: 0}
     - target: {fileID: 5191368394742514984, guid: b2ab179c58af96d479747fad85aed525, type: 3}
       propertyPath: m_Name
       value: Shelf
       objectReference: {fileID: 0}
+    - target: {fileID: 5491406873839152957, guid: b2ab179c58af96d479747fad85aed525, type: 3}
+      propertyPath: acceptedProduct
+      value: 
+      objectReference: {fileID: 11400000, guid: e2d539f48d3851d43aff9653666653a3, type: 2}
     - target: {fileID: 5825871848133253286, guid: b2ab179c58af96d479747fad85aed525, type: 3}
       propertyPath: m_LocalRotation.w
       value: 0
@@ -1883,6 +1911,10 @@ PrefabInstance:
     - target: {fileID: 8475187380509673549, guid: b2ab179c58af96d479747fad85aed525, type: 3}
       propertyPath: m_LocalEulerAnglesHint.y
       value: 180
+      objectReference: {fileID: 0}
+    - target: {fileID: 8549030928161687386, guid: b2ab179c58af96d479747fad85aed525, type: 3}
+      propertyPath: m_Name
+      value: Slot_Honey_02
       objectReference: {fileID: 0}
     - target: {fileID: 8948756267523962495, guid: b2ab179c58af96d479747fad85aed525, type: 3}
       propertyPath: m_LocalRotation.w
@@ -1919,11 +1951,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 7074999438107108619, guid: 8514d5c6f60c5cb4b9ddc5fd17db009b, type: 3}
       propertyPath: m_LocalPosition.y
-      value: 1
+      value: 0.407
       objectReference: {fileID: 0}
     - target: {fileID: 7074999438107108619, guid: 8514d5c6f60c5cb4b9ddc5fd17db009b, type: 3}
       propertyPath: m_LocalPosition.z
-      value: 2
+      value: 0.262
       objectReference: {fileID: 0}
     - target: {fileID: 7074999438107108619, guid: 8514d5c6f60c5cb4b9ddc5fd17db009b, type: 3}
       propertyPath: m_LocalRotation.w
@@ -1976,7 +2008,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 6310615963883164939, guid: f2a65b7c7b8379144a767b2ad0c769e3, type: 3}
       propertyPath: m_LocalPosition.y
-      value: 1
+      value: 0.26
       objectReference: {fileID: 0}
     - target: {fileID: 6310615963883164939, guid: f2a65b7c7b8379144a767b2ad0c769e3, type: 3}
       propertyPath: m_LocalPosition.z

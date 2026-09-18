@@ -22,10 +22,14 @@ public class PlayerInteraction : MonoBehaviour
     private void HandleInteractionInput()
     {
         if (Keyboard.current == null)
+        {
             return;
+        }
 
         if (!Keyboard.current.eKey.wasPressedThisFrame)
+        {
             return;
+        }
 
         if (heldItem != null)
         {
@@ -59,7 +63,7 @@ public class PlayerInteraction : MonoBehaviour
             if (interactable != null)
             {
                 interactionUI.ShowPrompt(
-                    interactable.GetInteractionPrompt()
+                    interactable.GetInteractionPrompt(this)
                 );
 
                 return;
@@ -97,16 +101,20 @@ public class PlayerInteraction : MonoBehaviour
             if (interactable != null)
             {
                 interactable.Interact(this);
+
                 return true;
             }
         }
+
         return false;
     }
 
     public void TryPickUp(PickupItem item)
     {
         if (heldItem != null)
+        {
             return;
+        }
 
         heldItem = item;
 
@@ -116,7 +124,9 @@ public class PlayerInteraction : MonoBehaviour
     private void DropHeldItem()
     {
         if (heldItem == null)
+        {
             return;
+        }
 
         heldItem.Drop();
 
