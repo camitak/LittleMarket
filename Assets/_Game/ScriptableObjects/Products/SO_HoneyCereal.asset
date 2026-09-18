@@ -1,0 +1,21 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 04d13059c56a5de46ba3c54c05eecfb5, type: 3}
+  m_Name: SO_HoneyCereal
+  m_EditorClassIdentifier: Assembly-CSharp::ProductData
+  productName: Honey Stars
+  productID: cereal_honey
+  category: 0
+  icon: {fileID: 0}
+  description: Crunchy golden stars with just enough honey to make mornings better.
+  buyPrice: 1.1
+  sellPrice: 2.3
