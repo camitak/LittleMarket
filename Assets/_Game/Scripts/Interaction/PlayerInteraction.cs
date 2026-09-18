@@ -109,16 +109,23 @@ public class PlayerInteraction : MonoBehaviour
         return false;
     }
 
-    public void TryPickUp(PickupItem item)
+    public bool TryPickUp(PickupItem item)
     {
+        if (item == null)
+        {
+            return false;
+        }
+
         if (heldItem != null)
         {
-            return;
+            return false;
         }
 
         heldItem = item;
 
         heldItem.PickUp(holdPoint);
+
+        return true;
     }
 
     private void DropHeldItem()

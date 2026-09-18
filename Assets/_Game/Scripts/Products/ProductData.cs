@@ -13,6 +13,9 @@ public class ProductData : ScriptableObject
     [SerializeField] private Sprite icon;
     [TextArea]
     [SerializeField] private string description; 
+
+    [Header("World")]
+    [SerializeField] private PickupItem worldPrefab;
     
 
     [Header("Economy")]
@@ -28,6 +31,8 @@ public class ProductData : ScriptableObject
     public Sprite Icon => icon;
 
     public string Description => description;
+    
+    public PickupItem WorldPrefab => worldPrefab;
 
     public float BuyPrice => buyPrice;
 

@@ -17,5 +17,6 @@ MonoBehaviour:
   category: 0
   icon: {fileID: 0}
   description: Crunchy golden stars with just enough honey to make mornings better.
+  worldPrefab: {fileID: 3546816923845545867, guid: 8514d5c6f60c5cb4b9ddc5fd17db009b, type: 3}
   buyPrice: 1.1
   sellPrice: 2.3
