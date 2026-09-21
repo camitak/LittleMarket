@@ -122,4 +122,24 @@ public class ShelfSlot : MonoBehaviour, IInteractable
 
         storedItem = null;
     }
+    public bool TryTakeItemForCustomer(
+        Transform carryPoint,
+        out PickupItem takenItem
+    )
+    {
+        takenItem = null;
+
+        if (storedItem == null)
+        {
+            return false;
+        }
+
+        PickupItem itemToTake = storedItem;
+
+        itemToTake.PickUp(carryPoint);
+
+        takenItem = itemToTake;
+
+        return true;
+    }
 }
