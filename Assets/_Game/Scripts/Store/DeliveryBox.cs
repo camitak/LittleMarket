@@ -103,4 +103,11 @@ public class DeliveryBox : MonoBehaviour, IInteractable
             Destroy(spawnedItem.gameObject);
         }
     }
+
+    public void Configure(ProductData newProductData, int newQuantity)
+    {
+        productData = newProductData;
+        quantity = Mathf.Max(0, newQuantity);
+        isOpen = false;
+    }
 }
