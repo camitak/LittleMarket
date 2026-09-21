@@ -4,36 +4,40 @@ using UnityEngine.AI;
 [RequireComponent(typeof(NavMeshAgent))]
 public class CustomerController : MonoBehaviour
 {
-    [Header("Shopping")]
-    [SerializeField] private ShelfSlot targetShelfSlot;
-    [SerializeField] private Transform shoppingPoint;
-
-    [Header("Exit")]
-    [SerializeField] private Transform exitPoint;
-
     [Header("References")]
     [SerializeField] private Transform carryPoint;
 
     private NavMeshAgent agent;
 
+    private ProductData desiredProduct;
+    private ShelfRegistry shelfRegistry;
+    private Transform exitPoint;
+
+    private ShelfSlot targetShelfSlot;
+
     private CustomerState currentState;
 
     private PickupItem carriedItem;
+
+    private bool isConfigured;
 
     private void Awake()
     {
         agent = GetComponent<NavMeshAgent>();
     }
 
-    private void Start()
-    {
-        BeginShopping();
-    }
-
     private void Update()
     {
+        if (!isConfigured)
+        {
+            return;
+        }
+
         switch (currentState)
         {
+            case CustomerState.SearchingForProduct:
+                break;
+
             case CustomerState.WalkingToProduct:
                 UpdateWalkingToProduct();
                 break;
@@ -51,13 +55,72 @@ public class CustomerController : MonoBehaviour
         }
     }
 
-    private void BeginShopping()
+    public void Configure(
+        ProductData newDesiredProduct,
+        ShelfRegistry newShelfRegistry,
+        Transform newExitPoint
+    )
     {
-        currentState = CustomerState.WalkingToProduct;
+        desiredProduct = newDesiredProduct;
+        shelfRegistry = newShelfRegistry;
+        exitPoint = newExitPoint;
 
-        agent.SetDestination(
-            shoppingPoint.position
-        );
+        isConfigured = true;
+
+        SearchForProduct();
+    }
+
+    private void SearchForProduct()
+    {
+        currentState = CustomerState.SearchingForProduct;
+
+        if (desiredProduct == null)
+        {
+            BeginLeaving();
+            return;
+        }
+
+        if (shelfRegistry == null)
+        {
+            BeginLeaving();
+            return;
+        }
+
+        bool foundProduct =
+            shelfRegistry.TryFindStockedSlot(
+                desiredProduct,
+                out ShelfSlot foundSlot
+            );
+
+        if (!foundProduct)
+        {
+            BeginLeaving();
+            return;
+        }
+
+        targetShelfSlot = foundSlot;
+
+        Transform shoppingPoint =
+            targetShelfSlot.CustomerStandPoint;
+
+        if (shoppingPoint == null)
+        {
+            BeginLeaving();
+            return;
+        }
+
+        currentState =
+            CustomerState.WalkingToProduct;
+
+        bool destinationAccepted =
+            agent.SetDestination(
+                shoppingPoint.position
+            );
+
+        if (!destinationAccepted)
+        {
+            BeginLeaving();
+        }
     }
 
     private void UpdateWalkingToProduct()
@@ -67,32 +130,55 @@ public class CustomerController : MonoBehaviour
             return;
         }
 
-        currentState = CustomerState.TakingProduct;
+        currentState =
+            CustomerState.TakingProduct;
     }
 
     private void TakeProduct()
     {
+        if (targetShelfSlot == null)
+        {
+            SearchForProduct();
+            return;
+        }
+
         bool tookProduct =
             targetShelfSlot.TryTakeItemForCustomer(
                 carryPoint,
                 out PickupItem item
             );
 
-        if (tookProduct)
+        if (!tookProduct)
         {
-            carriedItem = item;
+            SearchForProduct();
+            return;
         }
+
+        carriedItem = item;
 
         BeginLeaving();
     }
 
     private void BeginLeaving()
     {
-        currentState = CustomerState.WalkingToExit;
+        currentState =
+            CustomerState.WalkingToExit;
 
-        agent.SetDestination(
-            exitPoint.position
-        );
+        if (exitPoint == null)
+        {
+            FinishVisit();
+            return;
+        }
+
+        bool destinationAccepted =
+            agent.SetDestination(
+                exitPoint.position
+            );
+
+        if (!destinationAccepted)
+        {
+            FinishVisit();
+        }
     }
 
     private void UpdateWalkingToExit()

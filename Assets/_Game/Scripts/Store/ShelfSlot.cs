@@ -5,11 +5,15 @@ public class ShelfSlot : MonoBehaviour, IInteractable
     [Header("Shelf Rules")]
     [SerializeField] private ProductData acceptedProduct;
 
+    [Header("Customer")]
+    [SerializeField] private Transform customerStandPoint;
+
     private PickupItem storedItem;
+
+    public Transform CustomerStandPoint => customerStandPoint;
 
     public string GetInteractionPrompt(PlayerInteraction player)
     {
-        // The slot already contains a product.
         if (storedItem != null)
         {
             if (player.GetHeldItem() != null)
@@ -20,7 +24,6 @@ public class ShelfSlot : MonoBehaviour, IInteractable
             return "[E] Pick up " + storedItem.GetItemName();
         }
 
-        // The slot has not been configured in the Inspector.
         if (acceptedProduct == null)
         {
             return "Shelf slot not configured";
@@ -28,7 +31,6 @@ public class ShelfSlot : MonoBehaviour, IInteractable
 
         PickupItem heldItem = player.GetHeldItem();
 
-        // Empty slot, but the player isn't carrying anything.
         if (heldItem == null)
         {
             return "Empty - " + acceptedProduct.ProductName;
@@ -41,13 +43,11 @@ public class ShelfSlot : MonoBehaviour, IInteractable
             return "This item cannot be stocked here";
         }
 
-        // The player is carrying the wrong product.
         if (heldProduct != acceptedProduct)
         {
             return "This slot is for " + acceptedProduct.ProductName;
         }
 
-        // Correct product.
         return "[E] Stock " + acceptedProduct.ProductName;
     }
 
@@ -122,6 +122,22 @@ public class ShelfSlot : MonoBehaviour, IInteractable
 
         storedItem = null;
     }
+
+    public bool ContainsProduct(ProductData productData)
+    {
+        if (storedItem == null)
+        {
+            return false;
+        }
+
+        if (productData == null)
+        {
+            return false;
+        }
+
+        return storedItem.GetProductData() == productData;
+    }
+
     public bool TryTakeItemForCustomer(
         Transform carryPoint,
         out PickupItem takenItem
