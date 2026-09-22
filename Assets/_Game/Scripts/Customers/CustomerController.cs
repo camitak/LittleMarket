@@ -167,8 +167,6 @@ public class CustomerController : MonoBehaviour
             return;
         }
 
-        // Check again because the queue may have
-        // filled while this customer was walking.
         if (checkoutQueue == null)
         {
             BeginLeaving();
@@ -200,9 +198,6 @@ public class CustomerController : MonoBehaviour
 
         if (!joinedQueue)
         {
-            // Safety fallback:
-            // don't let the customer leave with
-            // an unpaid product.
             carriedItem.Drop();
             carriedItem = null;
 
@@ -252,6 +247,54 @@ public class CustomerController : MonoBehaviour
 
         currentState =
             CustomerState.WaitingInCheckoutQueue;
+    }
+
+    public bool IsReadyForCheckout()
+    {
+        return currentState ==
+               CustomerState.WaitingInCheckoutQueue;
+    }
+
+    public ProductData GetCarriedProductData()
+    {
+        if (carriedItem == null)
+        {
+            return null;
+        }
+
+        return carriedItem.GetProductData();
+    }
+
+    public bool CompleteCheckout()
+    {
+        if (!IsReadyForCheckout())
+        {
+            return false;
+        }
+
+        if (carriedItem == null)
+        {
+            return false;
+        }
+
+        if (checkoutQueue != null)
+        {
+            CheckoutQueue previousQueue =
+                checkoutQueue;
+
+            checkoutQueue = null;
+
+            previousQueue.LeaveQueue(this);
+        }
+
+        Destroy(carriedItem.gameObject);
+
+        carriedItem = null;
+        assignedQueuePoint = null;
+
+        BeginLeaving();
+
+        return true;
     }
 
     private void BeginLeaving()

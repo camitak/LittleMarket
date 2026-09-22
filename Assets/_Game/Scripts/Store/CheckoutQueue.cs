@@ -72,6 +72,16 @@ public class CheckoutQueue : MonoBehaviour
         UpdateCustomerDestinations();
     }
 
+    public CustomerController GetFrontCustomer()
+    {
+        if (customers.Count == 0)
+        {
+            return null;
+        }
+
+        return customers[0];
+    }
+
     private void UpdateCustomerDestinations()
     {
         for (int i = 0; i < customers.Count; i++)
