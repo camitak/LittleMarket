@@ -11,6 +11,7 @@ public class CustomerController : MonoBehaviour
 
     private ProductData desiredProduct;
     private ShelfRegistry shelfRegistry;
+    private CheckoutQueue checkoutQueue;
     private Transform exitPoint;
 
     private ShelfSlot targetShelfSlot;
@@ -18,6 +19,8 @@ public class CustomerController : MonoBehaviour
     private CustomerState currentState;
 
     private PickupItem carriedItem;
+
+    private Transform assignedQueuePoint;
 
     private bool isConfigured;
 
@@ -46,6 +49,13 @@ public class CustomerController : MonoBehaviour
                 TakeProduct();
                 break;
 
+            case CustomerState.WalkingToCheckout:
+                UpdateWalkingToCheckout();
+                break;
+
+            case CustomerState.WaitingInCheckoutQueue:
+                break;
+
             case CustomerState.WalkingToExit:
                 UpdateWalkingToExit();
                 break;
@@ -58,11 +68,13 @@ public class CustomerController : MonoBehaviour
     public void Configure(
         ProductData newDesiredProduct,
         ShelfRegistry newShelfRegistry,
+        CheckoutQueue newCheckoutQueue,
         Transform newExitPoint
     )
     {
         desiredProduct = newDesiredProduct;
         shelfRegistry = newShelfRegistry;
+        checkoutQueue = newCheckoutQueue;
         exitPoint = newExitPoint;
 
         isConfigured = true;
@@ -72,7 +84,8 @@ public class CustomerController : MonoBehaviour
 
     private void SearchForProduct()
     {
-        currentState = CustomerState.SearchingForProduct;
+        currentState =
+            CustomerState.SearchingForProduct;
 
         if (desiredProduct == null)
         {
@@ -81,6 +94,18 @@ public class CustomerController : MonoBehaviour
         }
 
         if (shelfRegistry == null)
+        {
+            BeginLeaving();
+            return;
+        }
+
+        if (checkoutQueue == null)
+        {
+            BeginLeaving();
+            return;
+        }
+
+        if (!checkoutQueue.HasSpace)
         {
             BeginLeaving();
             return;
@@ -142,6 +167,20 @@ public class CustomerController : MonoBehaviour
             return;
         }
 
+        // Check again because the queue may have
+        // filled while this customer was walking.
+        if (checkoutQueue == null)
+        {
+            BeginLeaving();
+            return;
+        }
+
+        if (!checkoutQueue.HasSpace)
+        {
+            BeginLeaving();
+            return;
+        }
+
         bool tookProduct =
             targetShelfSlot.TryTakeItemForCustomer(
                 carryPoint,
@@ -156,7 +195,63 @@ public class CustomerController : MonoBehaviour
 
         carriedItem = item;
 
-        BeginLeaving();
+        bool joinedQueue =
+            checkoutQueue.TryJoinQueue(this);
+
+        if (!joinedQueue)
+        {
+            // Safety fallback:
+            // don't let the customer leave with
+            // an unpaid product.
+            carriedItem.Drop();
+            carriedItem = null;
+
+            BeginLeaving();
+        }
+    }
+
+    public void SetQueueDestination(
+        Transform queuePoint
+    )
+    {
+        if (queuePoint == null)
+        {
+            return;
+        }
+
+        assignedQueuePoint = queuePoint;
+
+        currentState =
+            CustomerState.WalkingToCheckout;
+
+        bool destinationAccepted =
+            agent.SetDestination(
+                queuePoint.position
+            );
+
+        if (!destinationAccepted)
+        {
+            BeginLeaving();
+        }
+    }
+
+    private void UpdateWalkingToCheckout()
+    {
+        if (!HasReachedDestination())
+        {
+            return;
+        }
+
+        agent.ResetPath();
+
+        if (assignedQueuePoint != null)
+        {
+            transform.rotation =
+                assignedQueuePoint.rotation;
+        }
+
+        currentState =
+            CustomerState.WaitingInCheckoutQueue;
     }
 
     private void BeginLeaving()
@@ -209,7 +304,13 @@ public class CustomerController : MonoBehaviour
 
     private void FinishVisit()
     {
-        currentState = CustomerState.Finished;
+        currentState =
+            CustomerState.Finished;
+
+        if (checkoutQueue != null)
+        {
+            checkoutQueue.LeaveQueue(this);
+        }
 
         if (carriedItem != null)
         {

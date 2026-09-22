@@ -15,6 +15,9 @@ public class CustomerSpawner : MonoBehaviour
     private ShelfRegistry shelfRegistry;
 
     [SerializeField]
+    private CheckoutQueue checkoutQueue;
+
+    [SerializeField]
     private Transform customerSpawnPoint;
 
     [SerializeField]
@@ -50,6 +53,11 @@ public class CustomerSpawner : MonoBehaviour
             return;
         }
 
+        if (checkoutQueue == null)
+        {
+            return;
+        }
+
         if (customerSpawnPoint == null)
         {
             return;
@@ -70,6 +78,7 @@ public class CustomerSpawner : MonoBehaviour
         customer.Configure(
             testProduct,
             shelfRegistry,
+            checkoutQueue,
             customerExitPoint
         );
     }
