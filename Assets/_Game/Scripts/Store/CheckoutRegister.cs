@@ -5,9 +5,14 @@ public class CheckoutRegister :
     IInteractable
 {
     [Header("References")]
-    [SerializeField] private CheckoutQueue checkoutQueue;
+    [SerializeField]
+    private CheckoutQueue checkoutQueue;
 
-    [SerializeField] private StoreEconomy storeEconomy;
+    [SerializeField]
+    private StoreEconomy storeEconomy;
+
+    [SerializeField]
+    private CheckoutFeedback checkoutFeedback;
 
     public string GetInteractionPrompt(
         PlayerInteraction player
@@ -96,8 +101,18 @@ public class CheckoutRegister :
             return;
         }
 
+        float saleAmount =
+            product.SellPrice;
+
         storeEconomy.AddMoney(
-            product.SellPrice
+            saleAmount
         );
+
+        if (checkoutFeedback != null)
+        {
+            checkoutFeedback.PlaySaleFeedback(
+                saleAmount
+            );
+        }
     }
 }

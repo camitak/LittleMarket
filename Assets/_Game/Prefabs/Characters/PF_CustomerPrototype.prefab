@@ -100,10 +100,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9a8ee858e054c914f9dc3964709410a3, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::CustomerController
-  targetShelfSlot: {fileID: 0}
-  shoppingPoint: {fileID: 0}
-  exitPoint: {fileID: 0}
   carryPoint: {fileID: 8638457312831298862}
+  visual: {fileID: 6794779590699774044}
 --- !u!1 &5696178109681276074
 GameObject:
   m_ObjectHideFlags: 0

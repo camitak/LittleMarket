@@ -1,3 +1,4 @@
+using System.Collections;
 using UnityEngine;
 using UnityEngine.AI;
 
@@ -6,13 +7,16 @@ public class CustomerController : MonoBehaviour
 {
     [Header("References")]
     [SerializeField] private Transform carryPoint;
-
+    [SerializeField] private Transform visual;
+    
     private NavMeshAgent agent;
 
     private ProductData desiredProduct;
     private ShelfRegistry shelfRegistry;
     private CheckoutQueue checkoutQueue;
     private Transform exitPoint;
+    private Vector3 visualBaseScale;
+    private Coroutine happyReactionRoutine;
 
     private ShelfSlot targetShelfSlot;
 
@@ -27,6 +31,11 @@ public class CustomerController : MonoBehaviour
     private void Awake()
     {
         agent = GetComponent<NavMeshAgent>();
+
+        if (visual != null)
+        {
+            visualBaseScale = visual.localScale;
+        }
     }
 
     private void Update()
@@ -291,7 +300,7 @@ public class CustomerController : MonoBehaviour
 
         carriedItem = null;
         assignedQueuePoint = null;
-
+        PlayHappyReaction();
         BeginLeaving();
 
         return true;
@@ -361,5 +370,60 @@ public class CustomerController : MonoBehaviour
         }
 
         Destroy(gameObject);
+    }
+    
+    private void PlayHappyReaction()
+    {
+        if (visual == null)
+        {
+            return;
+        }
+
+        if (happyReactionRoutine != null)
+        {
+            StopCoroutine(
+                happyReactionRoutine
+            );
+        }
+
+        happyReactionRoutine =
+            StartCoroutine(
+                HappyBounceRoutine()
+            );
+    }
+
+    private IEnumerator HappyBounceRoutine()
+    {
+        float duration = 0.35f;
+
+        float elapsed = 0f;
+
+        while (elapsed < duration)
+        {
+            elapsed += Time.deltaTime;
+
+            float t =
+                Mathf.Clamp01(
+                    elapsed / duration
+                );
+
+            float scaleMultiplier =
+                1f
+                + 0.12f
+                * Mathf.Sin(
+                    t * Mathf.PI
+                );
+
+            visual.localScale =
+                visualBaseScale
+                * scaleMultiplier;
+
+            yield return null;
+        }
+
+        visual.localScale =
+            visualBaseScale;
+
+        happyReactionRoutine = null;
     }
 }
