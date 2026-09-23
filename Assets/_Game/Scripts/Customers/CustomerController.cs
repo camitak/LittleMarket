@@ -1,4 +1,5 @@
 using System.Collections;
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.AI;
 
@@ -6,27 +7,33 @@ using UnityEngine.AI;
 public class CustomerController : MonoBehaviour
 {
     [Header("References")]
-    [SerializeField] private Transform carryPoint;
+    [SerializeField] private Transform[] carrySlots;
+
     [SerializeField] private Transform visual;
-    
+
     private NavMeshAgent agent;
 
-    private ProductData desiredProduct;
+    private ProductData[] shoppingList;
     private ShelfRegistry shelfRegistry;
     private CheckoutQueue checkoutQueue;
     private Transform exitPoint;
-    private Vector3 visualBaseScale;
-    private Coroutine happyReactionRoutine;
 
     private ShelfSlot targetShelfSlot;
 
     private CustomerState currentState;
 
-    private PickupItem carriedItem;
+    private List<PickupItem> carriedItems =
+        new List<PickupItem>();
+
+    private int currentShoppingIndex;
 
     private Transform assignedQueuePoint;
 
     private bool isConfigured;
+
+    private Vector3 visualBaseScale;
+
+    private Coroutine happyReactionRoutine;
 
     private void Awake()
     {
@@ -34,7 +41,8 @@ public class CustomerController : MonoBehaviour
 
         if (visual != null)
         {
-            visualBaseScale = visual.localScale;
+            visualBaseScale =
+                visual.localScale;
         }
     }
 
@@ -58,6 +66,10 @@ public class CustomerController : MonoBehaviour
                 TakeProduct();
                 break;
 
+            case CustomerState.WaitingForCheckoutSpace:
+                TryJoinCheckoutQueue();
+                break;
+
             case CustomerState.WalkingToCheckout:
                 UpdateWalkingToCheckout();
                 break;
@@ -75,46 +87,61 @@ public class CustomerController : MonoBehaviour
     }
 
     public void Configure(
-        ProductData newDesiredProduct,
+        ProductData[] newShoppingList,
         ShelfRegistry newShelfRegistry,
         CheckoutQueue newCheckoutQueue,
         Transform newExitPoint
     )
     {
-        desiredProduct = newDesiredProduct;
+        shoppingList = newShoppingList;
         shelfRegistry = newShelfRegistry;
         checkoutQueue = newCheckoutQueue;
         exitPoint = newExitPoint;
 
+        currentShoppingIndex = 0;
+
         isConfigured = true;
 
-        SearchForProduct();
+        SearchForNextProduct();
     }
 
-    private void SearchForProduct()
+    private void SearchForNextProduct()
     {
         currentState =
             CustomerState.SearchingForProduct;
 
-        if (desiredProduct == null)
+        if (shoppingList == null)
         {
             BeginLeaving();
+            return;
+        }
+
+        if (shoppingList.Length == 0)
+        {
+            BeginLeaving();
+            return;
+        }
+
+        if (currentShoppingIndex
+            >= shoppingList.Length)
+        {
+            BeginCheckout();
+            return;
+        }
+
+        ProductData desiredProduct =
+            shoppingList[currentShoppingIndex];
+
+        if (desiredProduct == null)
+        {
+            currentShoppingIndex++;
+
+            SearchForNextProduct();
+
             return;
         }
 
         if (shelfRegistry == null)
-        {
-            BeginLeaving();
-            return;
-        }
-
-        if (checkoutQueue == null)
-        {
-            BeginLeaving();
-            return;
-        }
-
-        if (!checkoutQueue.HasSpace)
         {
             BeginLeaving();
             return;
@@ -128,7 +155,12 @@ public class CustomerController : MonoBehaviour
 
         if (!foundProduct)
         {
-            BeginLeaving();
+            // Product is unavailable.
+            // Skip it and continue shopping.
+            currentShoppingIndex++;
+
+            SearchForNextProduct();
+
             return;
         }
 
@@ -139,7 +171,10 @@ public class CustomerController : MonoBehaviour
 
         if (shoppingPoint == null)
         {
-            BeginLeaving();
+            currentShoppingIndex++;
+
+            SearchForNextProduct();
+
             return;
         }
 
@@ -172,7 +207,63 @@ public class CustomerController : MonoBehaviour
     {
         if (targetShelfSlot == null)
         {
-            SearchForProduct();
+            SearchForNextProduct();
+            return;
+        }
+
+        Transform carrySlot =
+            GetNextCarrySlot();
+
+        if (carrySlot == null)
+        {
+            BeginCheckout();
+            return;
+        }
+
+        bool tookProduct =
+            targetShelfSlot.TryTakeItemForCustomer(
+                carrySlot,
+                out PickupItem item
+            );
+
+        if (!tookProduct)
+        {
+            // Another customer may have taken it.
+            // Search again for the SAME shopping-list item.
+            SearchForNextProduct();
+            return;
+        }
+
+        carriedItems.Add(item);
+
+        currentShoppingIndex++;
+
+        SearchForNextProduct();
+    }
+
+    private Transform GetNextCarrySlot()
+    {
+        if (carrySlots == null)
+        {
+            return null;
+        }
+
+        int nextIndex =
+            carriedItems.Count;
+
+        if (nextIndex >= carrySlots.Length)
+        {
+            return null;
+        }
+
+        return carrySlots[nextIndex];
+    }
+
+    private void BeginCheckout()
+    {
+        if (carriedItems.Count == 0)
+        {
+            BeginLeaving();
             return;
         }
 
@@ -182,36 +273,30 @@ public class CustomerController : MonoBehaviour
             return;
         }
 
-        if (!checkoutQueue.HasSpace)
+        TryJoinCheckoutQueue();
+    }
+
+    private void TryJoinCheckoutQueue()
+    {
+        if (checkoutQueue == null)
         {
             BeginLeaving();
             return;
         }
-
-        bool tookProduct =
-            targetShelfSlot.TryTakeItemForCustomer(
-                carryPoint,
-                out PickupItem item
-            );
-
-        if (!tookProduct)
-        {
-            SearchForProduct();
-            return;
-        }
-
-        carriedItem = item;
 
         bool joinedQueue =
             checkoutQueue.TryJoinQueue(this);
 
         if (!joinedQueue)
         {
-            carriedItem.Drop();
-            carriedItem = null;
+            currentState =
+                CustomerState.WaitingForCheckoutSpace;
 
-            BeginLeaving();
+            return;
         }
+
+        // CheckoutQueue calls SetQueueDestination()
+        // when the customer successfully joins.
     }
 
     public void SetQueueDestination(
@@ -264,14 +349,40 @@ public class CustomerController : MonoBehaviour
                CustomerState.WaitingInCheckoutQueue;
     }
 
-    public ProductData GetCarriedProductData()
+    public int GetCarriedItemCount()
     {
-        if (carriedItem == null)
+        return carriedItems.Count;
+    }
+
+    public float GetCheckoutTotal()
+    {
+        float total = 0f;
+
+        for (int i = 0;
+             i < carriedItems.Count;
+             i++)
         {
-            return null;
+            PickupItem item =
+                carriedItems[i];
+
+            if (item == null)
+            {
+                continue;
+            }
+
+            ProductData productData =
+                item.GetProductData();
+
+            if (productData == null)
+            {
+                continue;
+            }
+
+            total +=
+                productData.SellPrice;
         }
 
-        return carriedItem.GetProductData();
+        return total;
     }
 
     public bool CompleteCheckout()
@@ -281,7 +392,7 @@ public class CustomerController : MonoBehaviour
             return false;
         }
 
-        if (carriedItem == null)
+        if (carriedItems.Count == 0)
         {
             return false;
         }
@@ -296,11 +407,27 @@ public class CustomerController : MonoBehaviour
             previousQueue.LeaveQueue(this);
         }
 
-        Destroy(carriedItem.gameObject);
+        for (int i = 0;
+             i < carriedItems.Count;
+             i++)
+        {
+            PickupItem item =
+                carriedItems[i];
 
-        carriedItem = null;
+            if (item == null)
+            {
+                continue;
+            }
+
+            Destroy(item.gameObject);
+        }
+
+        carriedItems.Clear();
+
         assignedQueuePoint = null;
+
         PlayHappyReaction();
+
         BeginLeaving();
 
         return true;
@@ -364,14 +491,24 @@ public class CustomerController : MonoBehaviour
             checkoutQueue.LeaveQueue(this);
         }
 
-        if (carriedItem != null)
+        for (int i = 0;
+             i < carriedItems.Count;
+             i++)
         {
-            Destroy(carriedItem.gameObject);
+            PickupItem item =
+                carriedItems[i];
+
+            if (item != null)
+            {
+                Destroy(item.gameObject);
+            }
         }
+
+        carriedItems.Clear();
 
         Destroy(gameObject);
     }
-    
+
     private void PlayHappyReaction()
     {
         if (visual == null)

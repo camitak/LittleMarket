@@ -8,7 +8,7 @@ public class CustomerSpawner : MonoBehaviour
     private CustomerController customerPrefab;
 
     [SerializeField]
-    private ProductData testProduct;
+    private ProductData[] testShoppingList;
 
     [Header("Store")]
     [SerializeField]
@@ -43,7 +43,12 @@ public class CustomerSpawner : MonoBehaviour
             return;
         }
 
-        if (testProduct == null)
+        if (testShoppingList == null)
+        {
+            return;
+        }
+
+        if (testShoppingList.Length == 0)
         {
             return;
         }
@@ -76,7 +81,7 @@ public class CustomerSpawner : MonoBehaviour
             );
 
         customer.Configure(
-            testProduct,
+            testShoppingList,
             shelfRegistry,
             checkoutQueue,
             customerExitPoint

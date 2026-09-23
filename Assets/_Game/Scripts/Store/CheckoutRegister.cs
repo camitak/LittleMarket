@@ -41,18 +41,23 @@ public class CheckoutRegister :
             return "Customer approaching checkout";
         }
 
-        ProductData product =
-            customer.GetCarriedProductData();
+        int itemCount =
+            customer.GetCarriedItemCount();
 
-        if (product == null)
+        if (itemCount <= 0)
         {
-            return "Customer has no product";
+            return "Customer has no products";
         }
 
-        return "[E] Scan "
-               + product.ProductName
+        float total =
+            customer.GetCheckoutTotal();
+
+        return "[E] Checkout "
+               + itemCount
+               + " item"
+               + (itemCount == 1 ? "" : "s")
                + " - £"
-               + product.SellPrice.ToString("0.00");
+               + total.ToString("0.00");
     }
 
     public void Interact(PlayerInteraction player)
@@ -85,10 +90,10 @@ public class CheckoutRegister :
             return;
         }
 
-        ProductData product =
-            customer.GetCarriedProductData();
+        float saleAmount =
+            customer.GetCheckoutTotal();
 
-        if (product == null)
+        if (saleAmount <= 0f)
         {
             return;
         }
@@ -100,9 +105,6 @@ public class CheckoutRegister :
         {
             return;
         }
-
-        float saleAmount =
-            product.SellPrice;
 
         storeEconomy.AddMoney(
             saleAmount
