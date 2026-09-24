@@ -7,16 +7,14 @@ public class OrderingUI : MonoBehaviour
     [Header("UI")]
     [SerializeField] private GameObject orderingPanel;
 
-    [SerializeField] private TMP_Text productNameText;
-    [SerializeField] private TMP_Text priceText;
     [SerializeField] private TMP_Text statusText;
 
-    [SerializeField] private Button orderButton;
     [SerializeField] private Button closeButton;
 
-    [Header("Order")]
-    [SerializeField] private ProductData productData;
+    [SerializeField]
+    private OrderCatalogEntry[] catalogEntries;
 
+    [Header("Order")]
     [Min(1)]
     [SerializeField] private int quantityPerBox = 4;
 
@@ -40,7 +38,8 @@ public class OrderingUI : MonoBehaviour
 
     private void Awake()
     {
-        orderButton.onClick.AddListener(OrderProduct);
+        SetupCatalogButtons();
+
         closeButton.onClick.AddListener(Close);
 
         orderingPanel.SetActive(false);
@@ -55,7 +54,7 @@ public class OrderingUI : MonoBehaviour
 
         isOpen = true;
 
-        UpdateProductDisplay();
+        RefreshCatalogDisplay();
 
         statusText.text = "";
 
@@ -88,37 +87,127 @@ public class OrderingUI : MonoBehaviour
         Cursor.visible = false;
     }
 
-    private void OrderProduct()
+    private void SetupCatalogButtons()
+    {
+        if (catalogEntries == null)
+        {
+            return;
+        }
+
+        for (int i = 0;
+             i < catalogEntries.Length;
+             i++)
+        {
+            OrderCatalogEntry entry =
+                catalogEntries[i];
+
+            if (entry == null)
+            {
+                continue;
+            }
+
+            ProductData product =
+                entry.ProductData;
+
+            Button button =
+                entry.OrderButton;
+
+            if (product == null ||
+                button == null)
+            {
+                continue;
+            }
+
+            button.onClick.AddListener(
+                () => OrderProduct(product)
+            );
+        }
+    }
+
+    private void RefreshCatalogDisplay()
+    {
+        if (catalogEntries == null)
+        {
+            return;
+        }
+
+        for (int i = 0;
+             i < catalogEntries.Length;
+             i++)
+        {
+            OrderCatalogEntry entry =
+                catalogEntries[i];
+
+            if (entry == null)
+            {
+                continue;
+            }
+
+            entry.RefreshDisplay(
+                quantityPerBox
+            );
+        }
+    }
+
+    private void OrderProduct(
+        ProductData productData
+    )
     {
         if (productData == null)
         {
-            statusText.text = "Product not configured.";
+            statusText.text =
+                "Product not configured.";
+
             return;
         }
 
         if (deliveryBoxPrefab == null)
         {
-            statusText.text = "Delivery box not configured.";
+            statusText.text =
+                "Delivery box not configured.";
+
+            return;
+        }
+
+        if (deliverySpawnPoint == null)
+        {
+            statusText.text =
+                "Delivery point not configured.";
+
+            return;
+        }
+
+        if (storeEconomy == null)
+        {
+            statusText.text =
+                "Store economy not configured.";
+
             return;
         }
 
         float orderCost =
-            productData.BuyPrice * quantityPerBox;
+            productData.BuyPrice
+            * quantityPerBox;
 
         bool purchaseSucceeded =
-            storeEconomy.TrySpend(orderCost);
+            storeEconomy.TrySpend(
+                orderCost
+            );
 
         if (!purchaseSucceeded)
         {
-            statusText.text = "Not enough money.";
+            statusText.text =
+                "Not enough money.";
+
             return;
         }
 
-        DeliveryBox newDelivery = Instantiate(
-            deliveryBoxPrefab,
-            deliverySpawnPoint.position,
-            deliverySpawnPoint.rotation
-        );
+        DeliveryBox newDelivery =
+            Instantiate(
+                deliveryBoxPrefab,
+                deliverySpawnPoint.position,
+                deliverySpawnPoint.rotation
+            );
 
         newDelivery.Configure(
             productData,
@@ -126,28 +215,12 @@ public class OrderingUI : MonoBehaviour
         );
 
         statusText.text =
-            "Order placed! Delivery has arrived.";
-    }
-
-    private void UpdateProductDisplay()
-    {
-        if (productData == null)
-        {
-            productNameText.text = "No product";
-            priceText.text = "";
-            return;
-        }
-
-        float orderCost =
-            productData.BuyPrice * quantityPerBox;
-
-        productNameText.text =
-            productData.ProductName;
-
-        priceText.text =
-            "Box of "
+            "Ordered "
             + quantityPerBox
-            + " - £"
-            + orderCost.ToString("0.00");
+            + " x "
+            + productData.ProductName
+            + " for £"
+            + orderCost.ToString("0.00")
+            + ".";
     }
 }
