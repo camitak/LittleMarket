@@ -13,7 +13,9 @@ public class DeliveryBox : MonoBehaviour, IInteractable
 
     private bool isOpen;
 
-    public string GetInteractionPrompt(PlayerInteraction player)
+    public string GetInteractionPrompt(
+        PlayerInteraction player
+    )
     {
         if (productData == null)
         {
@@ -32,7 +34,12 @@ public class DeliveryBox : MonoBehaviour, IInteractable
 
         if (quantity <= 0)
         {
-            return "Delivery box empty";
+            if (player.GetHeldItem() != null)
+            {
+                return "Put down item to remove box";
+            }
+
+            return "[E] Remove empty box";
         }
 
         if (player.GetHeldItem() != null)
@@ -47,7 +54,9 @@ public class DeliveryBox : MonoBehaviour, IInteractable
                + " left)";
     }
 
-    public void Interact(PlayerInteraction player)
+    public void Interact(
+        PlayerInteraction player
+    )
     {
         if (!isOpen)
         {
@@ -57,6 +66,13 @@ public class DeliveryBox : MonoBehaviour, IInteractable
 
         if (quantity <= 0)
         {
+            if (player.GetHeldItem() != null)
+            {
+                return;
+            }
+
+            Destroy(gameObject);
+
             return;
         }
 
@@ -83,16 +99,21 @@ public class DeliveryBox : MonoBehaviour, IInteractable
         isOpen = true;
     }
 
-    private void DispenseItem(PlayerInteraction player)
+    private void DispenseItem(
+        PlayerInteraction player
+    )
     {
-        PickupItem spawnedItem = Instantiate(
-            productData.WorldPrefab,
-            spawnPoint.position,
-            spawnPoint.rotation
-        );
+        PickupItem spawnedItem =
+            Instantiate(
+                productData.WorldPrefab,
+                spawnPoint.position,
+                spawnPoint.rotation
+            );
 
         bool pickupSucceeded =
-            player.TryPickUp(spawnedItem);
+            player.TryPickUp(
+                spawnedItem
+            );
 
         if (pickupSucceeded)
         {
@@ -100,14 +121,25 @@ public class DeliveryBox : MonoBehaviour, IInteractable
         }
         else
         {
-            Destroy(spawnedItem.gameObject);
+            Destroy(
+                spawnedItem.gameObject
+            );
         }
     }
 
-    public void Configure(ProductData newProductData, int newQuantity)
+    public void Configure(
+        ProductData newProductData,
+        int newQuantity
+    )
     {
         productData = newProductData;
-        quantity = Mathf.Max(0, newQuantity);
+
+        quantity =
+            Mathf.Max(
+                0,
+                newQuantity
+            );
+
         isOpen = false;
     }
 }

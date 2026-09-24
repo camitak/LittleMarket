@@ -20,7 +20,7 @@ public class OrderingUI : MonoBehaviour
 
     [SerializeField] private DeliveryBox deliveryBoxPrefab;
 
-    [SerializeField] private Transform deliverySpawnPoint;
+    [SerializeField] private DeliveryZone deliveryZone;
 
     [Header("Store")]
     [SerializeField] private StoreEconomy storeEconomy;
@@ -169,10 +169,10 @@ public class OrderingUI : MonoBehaviour
             return;
         }
 
-        if (deliverySpawnPoint == null)
+        if (deliveryZone == null)
         {
             statusText.text =
-                "Delivery point not configured.";
+                "Delivery zone not configured.";
 
             return;
         }
@@ -181,6 +181,15 @@ public class OrderingUI : MonoBehaviour
         {
             statusText.text =
                 "Store economy not configured.";
+
+            return;
+        }
+
+        if (!deliveryZone.HasSpace)
+        {
+            statusText.text =
+                "Delivery area full. "
+                + "Remove an empty box.";
 
             return;
         }
@@ -202,17 +211,29 @@ public class OrderingUI : MonoBehaviour
             return;
         }
 
-        DeliveryBox newDelivery =
-            Instantiate(
+        bool deliveryCreated =
+            deliveryZone.TryCreateDelivery(
                 deliveryBoxPrefab,
-                deliverySpawnPoint.position,
-                deliverySpawnPoint.rotation
+                productData,
+                quantityPerBox,
+                out DeliveryBox newDelivery
             );
 
-        newDelivery.Configure(
-            productData,
-            quantityPerBox
-        );
+        if (!deliveryCreated)
+        {
+            // Something unexpected failed after payment.
+            // Refund the order so money and deliveries
+            // stay synchronized.
+            storeEconomy.AddMoney(
+                orderCost
+            );
+
+            statusText.text =
+                "Delivery failed. "
+                + "Order was refunded.";
+
+            return;
+        }
 
         statusText.text =
             "Ordered "
