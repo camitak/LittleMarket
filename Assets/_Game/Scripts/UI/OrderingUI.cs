@@ -5,14 +5,20 @@ using UnityEngine.UI;
 public class OrderingUI : MonoBehaviour
 {
     [Header("UI")]
-    [SerializeField] private GameObject orderingPanel;
-
-    [SerializeField] private TMP_Text statusText;
-
-    [SerializeField] private Button closeButton;
+    [SerializeField]
+    private GameObject orderingPanel;
 
     [SerializeField]
-    private OrderCatalogEntry[] catalogEntries;
+    private TMP_Text statusText;
+
+    [SerializeField]
+    private Button closeButton;
+
+    [SerializeField]
+    private Transform productListContent;
+
+    [SerializeField]
+    private OrderingProductRow productRowPrefab;
 
     [Header("Catalog")]
     [SerializeField]
@@ -20,21 +26,28 @@ public class OrderingUI : MonoBehaviour
 
     [Header("Order")]
     [Min(1)]
-    [SerializeField] private int quantityPerBox = 4;
+    [SerializeField]
+    private int quantityPerBox = 4;
 
-    [SerializeField] private DeliveryBox deliveryBoxPrefab;
+    [SerializeField]
+    private DeliveryBox deliveryBoxPrefab;
 
-    [SerializeField] private DeliveryZone deliveryZone;
+    [SerializeField]
+    private DeliveryZone deliveryZone;
 
     [Header("Store")]
-    [SerializeField] private StoreEconomy storeEconomy;
+    [SerializeField]
+    private StoreEconomy storeEconomy;
 
     [Header("Player")]
-    [SerializeField] private PlayerController playerController;
+    [SerializeField]
+    private PlayerController playerController;
 
-    [SerializeField] private PlayerInteraction playerInteraction;
+    [SerializeField]
+    private PlayerInteraction playerInteraction;
 
-    [SerializeField] private InteractionUI interactionUI;
+    [SerializeField]
+    private InteractionUI interactionUI;
 
     private bool isOpen;
 
@@ -42,11 +55,11 @@ public class OrderingUI : MonoBehaviour
 
     private void Awake()
     {
-        RefreshCatalogEntries();
+        closeButton.onClick.AddListener(
+            Close
+        );
 
-        SetupCatalogButtons();
-
-        closeButton.onClick.AddListener(Close);
+        BuildCatalogRows();
 
         orderingPanel.SetActive(false);
     }
@@ -60,8 +73,6 @@ public class OrderingUI : MonoBehaviour
 
         isOpen = true;
 
-        RefreshCatalogEntries();
-
         statusText.text = "";
 
         orderingPanel.SetActive(true);
@@ -71,7 +82,9 @@ public class OrderingUI : MonoBehaviour
         playerController.enabled = false;
         playerInteraction.enabled = false;
 
-        Cursor.lockState = CursorLockMode.None;
+        Cursor.lockState =
+            CursorLockMode.None;
+
         Cursor.visible = true;
     }
 
@@ -89,104 +102,53 @@ public class OrderingUI : MonoBehaviour
         playerController.enabled = true;
         playerInteraction.enabled = true;
 
-        Cursor.lockState = CursorLockMode.Locked;
+        Cursor.lockState =
+            CursorLockMode.Locked;
+
         Cursor.visible = false;
     }
 
-    private void RefreshCatalogEntries()
+    private void BuildCatalogRows()
     {
-        if (catalogEntries == null)
+        if (productListContent == null)
         {
             return;
         }
 
-        for (int i = 0;
-             i < catalogEntries.Length;
-             i++)
-        {
-            OrderCatalogEntry entry =
-                catalogEntries[i];
-
-            if (entry == null)
-            {
-                continue;
-            }
-
-            ProductData product = null;
-
-            if (productCatalog != null)
-            {
-                product =
-                    productCatalog.GetProduct(i);
-            }
-
-            entry.SetProductData(
-                product
-            );
-
-            entry.RefreshDisplay(
-                quantityPerBox
-            );
-        }
-    }
-
-    private void SetupCatalogButtons()
-    {
-        if (catalogEntries == null)
+        if (productRowPrefab == null)
         {
             return;
         }
 
-        for (int i = 0;
-             i < catalogEntries.Length;
-             i++)
-        {
-            OrderCatalogEntry entry =
-                catalogEntries[i];
-
-            if (entry == null)
-            {
-                continue;
-            }
-
-            Button button =
-                entry.OrderButton;
-
-            if (button == null)
-            {
-                continue;
-            }
-
-            int capturedIndex = i;
-
-            button.onClick.AddListener(
-                () => OrderCatalogProduct(
-                    capturedIndex
-                )
-            );
-        }
-    }
-
-    private void OrderCatalogProduct(
-        int catalogIndex
-    )
-    {
         if (productCatalog == null)
         {
-            statusText.text =
-                "Product catalog not configured.";
-
             return;
         }
 
-        ProductData productData =
-            productCatalog.GetProduct(
-                catalogIndex
-            );
+        for (int i = 0;
+             i < productCatalog.ProductCount;
+             i++)
+        {
+            ProductData productData =
+                productCatalog.GetProduct(i);
 
-        OrderProduct(
-            productData
-        );
+            if (productData == null)
+            {
+                continue;
+            }
+
+            OrderingProductRow newRow =
+                Instantiate(
+                    productRowPrefab,
+                    productListContent
+                );
+
+            newRow.Configure(
+                productData,
+                quantityPerBox,
+                OrderProduct
+            );
+        }
     }
 
     private void OrderProduct(
