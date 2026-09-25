@@ -3257,7 +3257,7 @@ GameObject:
   - component: {fileID: 1117834527}
   - component: {fileID: 1117834528}
   - component: {fileID: 1117834529}
-  - component: {fileID: 1117834530}
+  - component: {fileID: 1117834531}
   m_Layer: 0
   m_Name: StoreSystems
   m_TagString: Untagged
@@ -3311,7 +3311,7 @@ MonoBehaviour:
   - {fileID: 1099261238}
   - {fileID: 805521331}
   - {fileID: 579210214}
---- !u!114 &1117834530
+--- !u!114 &1117834531
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -3320,13 +3320,19 @@ MonoBehaviour:
   m_GameObject: {fileID: 1117834526}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 24ea26cdfd8b7df49a985c27846b89b1, type: 3}
+  m_Script: {fileID: 11500000, guid: 6607fbddd256d894e871624ce254bf7d, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::CustomerSpawner
+  m_EditorClassIdentifier: Assembly-CSharp::CustomerFlow
   customerPrefab: {fileID: 6094999287884776231, guid: afa41f4c77175db43ba1b48a4c6afe87, type: 3}
-  testShoppingList:
+  availableProducts:
   - {fileID: 11400000, guid: e2d539f48d3851d43aff9653666653a3, type: 2}
   - {fileID: 11400000, guid: 3391820c701e1fc4181638a9a2a82308, type: 2}
+  initialSpawnDelay: 3
+  minSpawnInterval: 6
+  maxSpawnInterval: 10
+  maxCustomersInStore: 5
+  minItemsPerCustomer: 1
+  maxItemsPerCustomer: 2
   shelfRegistry: {fileID: 1117834529}
   checkoutQueue: {fileID: 450375791}
   customerSpawnPoint: {fileID: 771365055}
@@ -5637,7 +5643,7 @@ Transform:
   m_GameObject: {fileID: 2017232664}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 6.01, y: -0, z: 0.29}
+  m_LocalPosition: {x: 7.02, y: -0, z: 3.368}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
