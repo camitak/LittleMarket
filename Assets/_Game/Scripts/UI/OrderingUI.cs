@@ -14,6 +14,10 @@ public class OrderingUI : MonoBehaviour
     [SerializeField]
     private OrderCatalogEntry[] catalogEntries;
 
+    [Header("Catalog")]
+    [SerializeField]
+    private StoreProductCatalog productCatalog;
+
     [Header("Order")]
     [Min(1)]
     [SerializeField] private int quantityPerBox = 4;
@@ -38,6 +42,8 @@ public class OrderingUI : MonoBehaviour
 
     private void Awake()
     {
+        RefreshCatalogEntries();
+
         SetupCatalogButtons();
 
         closeButton.onClick.AddListener(Close);
@@ -54,7 +60,7 @@ public class OrderingUI : MonoBehaviour
 
         isOpen = true;
 
-        RefreshCatalogDisplay();
+        RefreshCatalogEntries();
 
         statusText.text = "";
 
@@ -87,6 +93,43 @@ public class OrderingUI : MonoBehaviour
         Cursor.visible = false;
     }
 
+    private void RefreshCatalogEntries()
+    {
+        if (catalogEntries == null)
+        {
+            return;
+        }
+
+        for (int i = 0;
+             i < catalogEntries.Length;
+             i++)
+        {
+            OrderCatalogEntry entry =
+                catalogEntries[i];
+
+            if (entry == null)
+            {
+                continue;
+            }
+
+            ProductData product = null;
+
+            if (productCatalog != null)
+            {
+                product =
+                    productCatalog.GetProduct(i);
+            }
+
+            entry.SetProductData(
+                product
+            );
+
+            entry.RefreshDisplay(
+                quantityPerBox
+            );
+        }
+    }
+
     private void SetupCatalogButtons()
     {
         if (catalogEntries == null)
@@ -106,47 +149,44 @@ public class OrderingUI : MonoBehaviour
                 continue;
             }
 
-            ProductData product =
-                entry.ProductData;
-
             Button button =
                 entry.OrderButton;
 
-            if (product == null ||
-                button == null)
+            if (button == null)
             {
                 continue;
             }
 
+            int capturedIndex = i;
+
             button.onClick.AddListener(
-                () => OrderProduct(product)
+                () => OrderCatalogProduct(
+                    capturedIndex
+                )
             );
         }
     }
 
-    private void RefreshCatalogDisplay()
+    private void OrderCatalogProduct(
+        int catalogIndex
+    )
     {
-        if (catalogEntries == null)
+        if (productCatalog == null)
         {
+            statusText.text =
+                "Product catalog not configured.";
+
             return;
         }
 
-        for (int i = 0;
-             i < catalogEntries.Length;
-             i++)
-        {
-            OrderCatalogEntry entry =
-                catalogEntries[i];
-
-            if (entry == null)
-            {
-                continue;
-            }
-
-            entry.RefreshDisplay(
-                quantityPerBox
+        ProductData productData =
+            productCatalog.GetProduct(
+                catalogIndex
             );
-        }
+
+        OrderProduct(
+            productData
+        );
     }
 
     private void OrderProduct(
@@ -221,9 +261,6 @@ public class OrderingUI : MonoBehaviour
 
         if (!deliveryCreated)
         {
-            // Something unexpected failed after payment.
-            // Refund the order so money and deliveries
-            // stay synchronized.
             storeEconomy.AddMoney(
                 orderCost
             );

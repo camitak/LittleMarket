@@ -8,7 +8,7 @@ public class CustomerFlow : MonoBehaviour
     private CustomerController customerPrefab;
 
     [SerializeField]
-    private ProductData[] availableProducts;
+    private StoreProductCatalog productCatalog;
 
     [Header("Spawn Timing")]
     [Min(0f)]
@@ -73,7 +73,8 @@ public class CustomerFlow : MonoBehaviour
             return;
         }
 
-        if (activeCustomers.Count >= maxCustomersInStore)
+        if (activeCustomers.Count
+            >= maxCustomersInStore)
         {
             return;
         }
@@ -154,7 +155,7 @@ public class CustomerFlow : MonoBehaviour
              i++)
         {
             ProductData product =
-                GetRandomAvailableProduct();
+                GetRandomCatalogProduct();
 
             if (product == null)
             {
@@ -168,14 +169,17 @@ public class CustomerFlow : MonoBehaviour
         return shoppingList;
     }
 
-    private ProductData GetRandomAvailableProduct()
+    private ProductData GetRandomCatalogProduct()
     {
-        if (availableProducts == null)
+        if (productCatalog == null)
         {
             return null;
         }
 
-        if (availableProducts.Length == 0)
+        int productCount =
+            productCatalog.ProductCount;
+
+        if (productCount <= 0)
         {
             return null;
         }
@@ -183,19 +187,21 @@ public class CustomerFlow : MonoBehaviour
         int startIndex =
             Random.Range(
                 0,
-                availableProducts.Length
+                productCount
             );
 
         for (int offset = 0;
-             offset < availableProducts.Length;
+             offset < productCount;
              offset++)
         {
             int index =
                 (startIndex + offset)
-                % availableProducts.Length;
+                % productCount;
 
             ProductData product =
-                availableProducts[index];
+                productCatalog.GetProduct(
+                    index
+                );
 
             if (product != null)
             {
@@ -208,7 +214,8 @@ public class CustomerFlow : MonoBehaviour
 
     private void RemoveDestroyedCustomers()
     {
-        for (int i = activeCustomers.Count - 1;
+        for (int i =
+                 activeCustomers.Count - 1;
              i >= 0;
              i--)
         {
@@ -279,16 +286,16 @@ public class CustomerFlow : MonoBehaviour
 
     private bool HasAtLeastOneProduct()
     {
-        if (availableProducts == null)
+        if (productCatalog == null)
         {
             return false;
         }
 
         for (int i = 0;
-             i < availableProducts.Length;
+             i < productCatalog.ProductCount;
              i++)
         {
-            if (availableProducts[i] != null)
+            if (productCatalog.GetProduct(i) != null)
             {
                 return true;
             }

@@ -6,19 +6,34 @@ using UnityEngine.UI;
 [Serializable]
 public class OrderCatalogEntry
 {
-    [SerializeField] private ProductData productData;
+    [SerializeField]
+    private TMP_Text productNameText;
 
-    [SerializeField] private TMP_Text productNameText;
+    [SerializeField]
+    private TMP_Text priceText;
 
-    [SerializeField] private TMP_Text priceText;
+    [SerializeField]
+    private Button orderButton;
 
-    [SerializeField] private Button orderButton;
+    private ProductData productData;
 
-    public ProductData ProductData => productData;
+    public ProductData ProductData =>
+        productData;
 
-    public Button OrderButton => orderButton;
+    public Button OrderButton =>
+        orderButton;
 
-    public void RefreshDisplay(int quantityPerBox)
+    public void SetProductData(
+        ProductData newProductData
+    )
+    {
+        productData =
+            newProductData;
+    }
+
+    public void RefreshDisplay(
+        int quantityPerBox
+    )
     {
         if (productData == null)
         {
@@ -35,7 +50,8 @@ public class OrderCatalogEntry
 
             if (orderButton != null)
             {
-                orderButton.interactable = false;
+                orderButton.interactable =
+                    false;
             }
 
             return;
@@ -62,7 +78,8 @@ public class OrderCatalogEntry
 
         if (orderButton != null)
         {
-            orderButton.interactable = true;
+            orderButton.interactable =
+                true;
         }
     }
 }

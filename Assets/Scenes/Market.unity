@@ -2126,14 +2126,13 @@ MonoBehaviour:
   statusText: {fileID: 1369482167}
   closeButton: {fileID: 503752936}
   catalogEntries:
-  - productData: {fileID: 11400000, guid: e2d539f48d3851d43aff9653666653a3, type: 2}
-    productNameText: {fileID: 207486448}
+  - productNameText: {fileID: 207486448}
     priceText: {fileID: 1941334173}
     orderButton: {fileID: 1436432908}
-  - productData: {fileID: 11400000, guid: 3391820c701e1fc4181638a9a2a82308, type: 2}
-    productNameText: {fileID: 96186007}
+  - productNameText: {fileID: 96186007}
     priceText: {fileID: 1935653393}
     orderButton: {fileID: 1151651122}
+  productCatalog: {fileID: 11400000, guid: 337a8c40cc0f63040800a898d3e043ac, type: 2}
   quantityPerBox: 4
   deliveryBoxPrefab: {fileID: 2451739325236826120, guid: d6fd02bc723a5674ebd36140829485fc, type: 3}
   deliveryZone: {fileID: 43201577}
@@ -3324,9 +3323,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::CustomerFlow
   customerPrefab: {fileID: 6094999287884776231, guid: afa41f4c77175db43ba1b48a4c6afe87, type: 3}
-  availableProducts:
-  - {fileID: 11400000, guid: e2d539f48d3851d43aff9653666653a3, type: 2}
-  - {fileID: 11400000, guid: 3391820c701e1fc4181638a9a2a82308, type: 2}
+  productCatalog: {fileID: 11400000, guid: 337a8c40cc0f63040800a898d3e043ac, type: 2}
   initialSpawnDelay: 3
   minSpawnInterval: 6
   maxSpawnInterval: 10
