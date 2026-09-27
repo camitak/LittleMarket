@@ -1,18 +1,69 @@
 using UnityEngine;
 
-public class ShelfSlot : MonoBehaviour, IInteractable
+public class ShelfSlot :
+    MonoBehaviour,
+    IInteractable
 {
     [Header("Shelf Rules")]
-    [SerializeField] private ProductData acceptedProduct;
+    [SerializeField]
+    private ProductData acceptedProduct;
 
     [Header("Customer")]
-    [SerializeField] private Transform customerStandPoint;
+    [SerializeField]
+    private Transform customerStandPoint;
 
     private PickupItem storedItem;
 
-    public Transform CustomerStandPoint => customerStandPoint;
+    private ShelfRegistry shelfRegistry;
 
-    public string GetInteractionPrompt(PlayerInteraction player)
+    public Transform CustomerStandPoint =>
+        customerStandPoint;
+
+    private void Start()
+    {
+        FindAndRegisterWithShelfRegistry();
+    }
+
+    private void OnDestroy()
+    {
+        if (shelfRegistry == null)
+        {
+            return;
+        }
+
+        shelfRegistry.UnregisterSlot(
+            this
+        );
+    }
+
+    private void FindAndRegisterWithShelfRegistry()
+    {
+        shelfRegistry =
+            Object.FindAnyObjectByType<
+                ShelfRegistry
+            >();
+
+        if (shelfRegistry == null)
+        {
+            Debug.LogError(
+                "ShelfSlot '"
+                + gameObject.name
+                + "' could not find a "
+                + "ShelfRegistry in the scene.",
+                this
+            );
+
+            return;
+        }
+
+        shelfRegistry.RegisterSlot(
+            this
+        );
+    }
+
+    public string GetInteractionPrompt(
+        PlayerInteraction player
+    )
     {
         if (storedItem != null)
         {
@@ -21,7 +72,8 @@ public class ShelfSlot : MonoBehaviour, IInteractable
                 return "Hands full";
             }
 
-            return "[E] Pick up " + storedItem.GetItemName();
+            return "[E] Pick up "
+                   + storedItem.GetItemName();
         }
 
         if (acceptedProduct == null)
@@ -29,14 +81,17 @@ public class ShelfSlot : MonoBehaviour, IInteractable
             return "Shelf slot not configured";
         }
 
-        PickupItem heldItem = player.GetHeldItem();
+        PickupItem heldItem =
+            player.GetHeldItem();
 
         if (heldItem == null)
         {
-            return "Empty - " + acceptedProduct.ProductName;
+            return "Empty - "
+                   + acceptedProduct.ProductName;
         }
 
-        ProductData heldProduct = heldItem.GetProductData();
+        ProductData heldProduct =
+            heldItem.GetProductData();
 
         if (heldProduct == null)
         {
@@ -45,38 +100,51 @@ public class ShelfSlot : MonoBehaviour, IInteractable
 
         if (heldProduct != acceptedProduct)
         {
-            return "This slot is for " + acceptedProduct.ProductName;
+            return "This slot is for "
+                   + acceptedProduct.ProductName;
         }
 
-        return "[E] Stock " + acceptedProduct.ProductName;
+        return "[E] Stock "
+               + acceptedProduct.ProductName;
     }
 
-    public void Interact(PlayerInteraction player)
+    public void Interact(
+        PlayerInteraction player
+    )
     {
         if (storedItem != null)
         {
-            TryRemoveStoredItem(player);
+            TryRemoveStoredItem(
+                player
+            );
+
             return;
         }
 
-        TryStoreHeldItem(player);
+        TryStoreHeldItem(
+            player
+        );
     }
 
-    private void TryStoreHeldItem(PlayerInteraction player)
+    private void TryStoreHeldItem(
+        PlayerInteraction player
+    )
     {
         if (acceptedProduct == null)
         {
             return;
         }
 
-        PickupItem heldItem = player.GetHeldItem();
+        PickupItem heldItem =
+            player.GetHeldItem();
 
         if (heldItem == null)
         {
             return;
         }
 
-        ProductData heldProduct = heldItem.GetProductData();
+        ProductData heldProduct =
+            heldItem.GetProductData();
 
         if (heldProduct == null)
         {
@@ -88,7 +156,10 @@ public class ShelfSlot : MonoBehaviour, IInteractable
             return;
         }
 
-        StoreItem(heldItem, player);
+        StoreItem(
+            heldItem,
+            player
+        );
     }
 
     private void StoreItem(
@@ -100,20 +171,28 @@ public class ShelfSlot : MonoBehaviour, IInteractable
 
         player.RemoveHeldItem();
 
-        item.PlaceOnShelf(this);
+        item.PlaceOnShelf(
+            this
+        );
     }
 
-    private void TryRemoveStoredItem(PlayerInteraction player)
+    private void TryRemoveStoredItem(
+        PlayerInteraction player
+    )
     {
         if (player.GetHeldItem() != null)
         {
             return;
         }
 
-        player.TryPickUp(storedItem);
+        player.TryPickUp(
+            storedItem
+        );
     }
 
-    public void RemoveItem(PickupItem item)
+    public void RemoveItem(
+        PickupItem item
+    )
     {
         if (storedItem != item)
         {
@@ -123,7 +202,9 @@ public class ShelfSlot : MonoBehaviour, IInteractable
         storedItem = null;
     }
 
-    public bool ContainsProduct(ProductData productData)
+    public bool ContainsProduct(
+        ProductData productData
+    )
     {
         if (storedItem == null)
         {
@@ -135,7 +216,8 @@ public class ShelfSlot : MonoBehaviour, IInteractable
             return false;
         }
 
-        return storedItem.GetProductData() == productData;
+        return storedItem.GetProductData()
+               == productData;
     }
 
     public bool TryTakeItemForCustomer(
@@ -150,11 +232,15 @@ public class ShelfSlot : MonoBehaviour, IInteractable
             return false;
         }
 
-        PickupItem itemToTake = storedItem;
+        PickupItem itemToTake =
+            storedItem;
 
-        itemToTake.PickUp(carryPoint);
+        itemToTake.PickUp(
+            carryPoint
+        );
 
-        takenItem = itemToTake;
+        takenItem =
+            itemToTake;
 
         return true;
     }
