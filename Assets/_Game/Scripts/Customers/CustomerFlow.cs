@@ -39,6 +39,9 @@ public class CustomerFlow : MonoBehaviour
 
     [Header("Store References")]
     [SerializeField]
+    private StoreClock storeClock;
+
+    [SerializeField]
     private ShelfRegistry shelfRegistry;
 
     [SerializeField]
@@ -69,6 +72,11 @@ public class CustomerFlow : MonoBehaviour
         RemoveDestroyedCustomers();
 
         if (!HasValidConfiguration())
+        {
+            return;
+        }
+
+        if (!storeClock.IsStoreOpen)
         {
             return;
         }
@@ -257,6 +265,11 @@ public class CustomerFlow : MonoBehaviour
         }
 
         if (!HasAtLeastOneProduct())
+        {
+            return false;
+        }
+
+        if (storeClock == null)
         {
             return false;
         }
