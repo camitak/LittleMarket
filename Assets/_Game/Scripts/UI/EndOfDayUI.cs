@@ -8,7 +8,7 @@ public class EndOfDayUI : MonoBehaviour
     [SerializeField]
     private GameObject endOfDayPanel;
 
-    [Header("Summary Text")]
+    [Header("Financial Summary")]
     [SerializeField]
     private TMP_Text dayCompleteText;
 
@@ -20,6 +20,16 @@ public class EndOfDayUI : MonoBehaviour
 
     [SerializeField]
     private TMP_Text netCashFlowText;
+
+    [Header("Customer Summary")]
+    [SerializeField]
+    private TMP_Text averageSatisfactionText;
+
+    [SerializeField]
+    private TMP_Text missedProductsText;
+
+    [SerializeField]
+    private TMP_Text emptyHandedText;
 
     [SerializeField]
     private TMP_Text itemsSoldText;
@@ -71,6 +81,14 @@ public class EndOfDayUI : MonoBehaviour
             255
         );
 
+    private static readonly Color32 MediumColor =
+        new Color32(
+            246,
+            215,
+            122,
+            255
+        );
+
     private static readonly Color32 NegativeColor =
         new Color32(
             196,
@@ -93,7 +111,9 @@ public class EndOfDayUI : MonoBehaviour
             StartNextDay
         );
 
-        endOfDayPanel.SetActive(false);
+        endOfDayPanel.SetActive(
+            false
+        );
     }
 
     private void Update()
@@ -134,19 +154,26 @@ public class EndOfDayUI : MonoBehaviour
 
         UpdateSummaryText();
 
-        endOfDayPanel.SetActive(true);
+        endOfDayPanel.SetActive(
+            true
+        );
 
         interactionUI.HidePrompt();
 
-        playerController.enabled = false;
-        playerInteraction.enabled = false;
+        playerController.enabled =
+            false;
+
+        playerInteraction.enabled =
+            false;
 
         Cursor.lockState =
             CursorLockMode.None;
 
-        Cursor.visible = true;
+        Cursor.visible =
+            true;
 
-        Time.timeScale = 0f;
+        Time.timeScale =
+            0f;
     }
 
     private void UpdateSummaryText()
@@ -159,6 +186,31 @@ public class EndOfDayUI : MonoBehaviour
             + day
             + " COMPLETE";
 
+        UpdateFinancialText();
+
+        UpdateCustomerText();
+
+        endingCashText.text =
+            "Ending Cash     £"
+            + storeEconomy.CurrentMoney
+                .ToString("0.00");
+
+        TMP_Text buttonText =
+            startNextDayButton
+                .GetComponentInChildren<
+                    TMP_Text
+                >();
+
+        if (buttonText != null)
+        {
+            buttonText.text =
+                "START DAY "
+                + (day + 1);
+        }
+    }
+
+    private void UpdateFinancialText()
+    {
         float revenue =
             dailyStats.Revenue;
 
@@ -176,12 +228,29 @@ public class EndOfDayUI : MonoBehaviour
             "Stock Orders     -£"
             + stockSpending.ToString("0.00");
 
-        string netPrefix =
-            netCashFlow > 0f
-            ? "+£"
-            : netCashFlow < 0f
-                ? "-£"
-                : "£";
+        string netPrefix;
+
+        if (netCashFlow > 0f)
+        {
+            netPrefix = "+£";
+
+            netCashFlowText.color =
+                PositiveColor;
+        }
+        else if (netCashFlow < 0f)
+        {
+            netPrefix = "-£";
+
+            netCashFlowText.color =
+                NegativeColor;
+        }
+        else
+        {
+            netPrefix = "£";
+
+            netCashFlowText.color =
+                NeutralColor;
+        }
 
         netCashFlowText.text =
             "Net Cash Flow     "
@@ -189,22 +258,42 @@ public class EndOfDayUI : MonoBehaviour
             + Mathf.Abs(
                 netCashFlow
             ).ToString("0.00");
+    }
 
-        if (netCashFlow > 0f)
+    private void UpdateCustomerText()
+    {
+        float satisfaction =
+            dailyStats.AverageSatisfaction;
+
+        averageSatisfactionText.text =
+            "Average Satisfaction     "
+            + satisfaction.ToString("0")
+            + "%";
+
+        if (satisfaction >= 80f)
         {
-            netCashFlowText.color =
+            averageSatisfactionText.color =
                 PositiveColor;
         }
-        else if (netCashFlow < 0f)
+        else if (satisfaction >= 50f)
         {
-            netCashFlowText.color =
-                NegativeColor;
+            averageSatisfactionText.color =
+                MediumColor;
         }
         else
         {
-            netCashFlowText.color =
-                NeutralColor;
+            averageSatisfactionText.color =
+                NegativeColor;
         }
+
+        missedProductsText.text =
+            "Products Missed     "
+            + dailyStats.MissedProducts;
+
+        emptyHandedText.text =
+            "Left Empty-Handed     "
+            + dailyStats
+                .CustomersLeftWithoutBuying;
 
         itemsSoldText.text =
             "Items Sold     "
@@ -213,22 +302,12 @@ public class EndOfDayUI : MonoBehaviour
         customersServedText.text =
             "Customers Served     "
             + dailyStats.CustomersServed;
-
-        endingCashText.text =
-            "Ending Cash     £"
-            + storeEconomy.CurrentMoney
-                .ToString("0.00");
-
-        startNextDayButton
-            .GetComponentInChildren<TMP_Text>()
-            .text =
-            "START DAY "
-            + (day + 1);
     }
 
     private void StartNextDay()
     {
-        Time.timeScale = 1f;
+        Time.timeScale =
+            1f;
 
         dailyStats.ResetForNewDay();
 
@@ -239,21 +318,29 @@ public class EndOfDayUI : MonoBehaviour
             customerFlow.ResetForNewDay();
         }
 
-        endOfDayPanel.SetActive(false);
+        endOfDayPanel.SetActive(
+            false
+        );
 
-        playerController.enabled = true;
-        playerInteraction.enabled = true;
+        playerController.enabled =
+            true;
+
+        playerInteraction.enabled =
+            true;
 
         Cursor.lockState =
             CursorLockMode.Locked;
 
-        Cursor.visible = false;
+        Cursor.visible =
+            false;
 
-        summaryShown = false;
+        summaryShown =
+            false;
     }
 
     private void OnDestroy()
     {
-        Time.timeScale = 1f;
+        Time.timeScale =
+            1f;
     }
 }

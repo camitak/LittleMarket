@@ -7,16 +7,23 @@ using UnityEngine.AI;
 public class CustomerController : MonoBehaviour
 {
     [Header("References")]
-    [SerializeField] private Transform[] carrySlots;
+    [SerializeField]
+    private Transform[] carrySlots;
 
-    [SerializeField] private Transform visual;
+    [SerializeField]
+    private Transform visual;
 
     private NavMeshAgent agent;
 
     private ProductData[] shoppingList;
+
     private ShelfRegistry shelfRegistry;
+
     private CheckoutQueue checkoutQueue;
+
     private Transform exitPoint;
+
+    private DailyStats dailyStats;
 
     private ShelfSlot targetShelfSlot;
 
@@ -35,9 +42,29 @@ public class CustomerController : MonoBehaviour
 
     private Coroutine happyReactionRoutine;
 
+    // Satisfaction
+    private float satisfactionScore = 100f;
+
+    private int missedProductCount;
+
+    private float checkoutWaitSeconds;
+
+    private bool completedPurchase;
+
+    private bool visitReported;
+
+    private const float MissingProductPenalty = 20f;
+
+    private const float CheckoutGraceSeconds = 5f;
+
+    private const float CheckoutPenaltyPerSecond = 2f;
+
+    private const float MaxCheckoutWaitPenalty = 30f;
+
     private void Awake()
     {
-        agent = GetComponent<NavMeshAgent>();
+        agent =
+            GetComponent<NavMeshAgent>();
 
         if (visual != null)
         {
@@ -67,6 +94,7 @@ public class CustomerController : MonoBehaviour
                 break;
 
             case CustomerState.WaitingForCheckoutSpace:
+                UpdateCheckoutWaiting();
                 TryJoinCheckoutQueue();
                 break;
 
@@ -75,6 +103,7 @@ public class CustomerController : MonoBehaviour
                 break;
 
             case CustomerState.WaitingInCheckoutQueue:
+                UpdateCheckoutWaiting();
                 break;
 
             case CustomerState.WalkingToExit:
@@ -90,15 +119,36 @@ public class CustomerController : MonoBehaviour
         ProductData[] newShoppingList,
         ShelfRegistry newShelfRegistry,
         CheckoutQueue newCheckoutQueue,
-        Transform newExitPoint
+        Transform newExitPoint,
+        DailyStats newDailyStats
     )
     {
-        shoppingList = newShoppingList;
-        shelfRegistry = newShelfRegistry;
-        checkoutQueue = newCheckoutQueue;
-        exitPoint = newExitPoint;
+        shoppingList =
+            newShoppingList;
+
+        shelfRegistry =
+            newShelfRegistry;
+
+        checkoutQueue =
+            newCheckoutQueue;
+
+        exitPoint =
+            newExitPoint;
+
+        dailyStats =
+            newDailyStats;
 
         currentShoppingIndex = 0;
+
+        satisfactionScore = 100f;
+
+        missedProductCount = 0;
+
+        checkoutWaitSeconds = 0f;
+
+        completedPurchase = false;
+
+        visitReported = false;
 
         isConfigured = true;
 
@@ -130,7 +180,9 @@ public class CustomerController : MonoBehaviour
         }
 
         ProductData desiredProduct =
-            shoppingList[currentShoppingIndex];
+            shoppingList[
+                currentShoppingIndex
+            ];
 
         if (desiredProduct == null)
         {
@@ -155,8 +207,8 @@ public class CustomerController : MonoBehaviour
 
         if (!foundProduct)
         {
-            // Product is unavailable.
-            // Skip it and continue shopping.
+            RecordMissingProduct();
+
             currentShoppingIndex++;
 
             SearchForNextProduct();
@@ -164,7 +216,8 @@ public class CustomerController : MonoBehaviour
             return;
         }
 
-        targetShelfSlot = foundSlot;
+        targetShelfSlot =
+            foundSlot;
 
         Transform shoppingPoint =
             targetShelfSlot.CustomerStandPoint;
@@ -228,17 +281,37 @@ public class CustomerController : MonoBehaviour
 
         if (!tookProduct)
         {
-            // Another customer may have taken it.
-            // Search again for the SAME shopping-list item.
+            // Another customer may have taken
+            // this exact item before we arrived.
+            //
+            // Search again for the SAME list item.
+            // Don't count it as missed yet.
             SearchForNextProduct();
+
             return;
         }
 
-        carriedItems.Add(item);
+        carriedItems.Add(
+            item
+        );
 
         currentShoppingIndex++;
 
         SearchForNextProduct();
+    }
+
+    private void RecordMissingProduct()
+    {
+        missedProductCount++;
+
+        satisfactionScore -=
+            MissingProductPenalty;
+
+        satisfactionScore =
+            Mathf.Max(
+                0f,
+                satisfactionScore
+            );
     }
 
     private Transform GetNextCarrySlot()
@@ -251,7 +324,8 @@ public class CustomerController : MonoBehaviour
         int nextIndex =
             carriedItems.Count;
 
-        if (nextIndex >= carrySlots.Length)
+        if (nextIndex
+            >= carrySlots.Length)
         {
             return null;
         }
@@ -285,7 +359,9 @@ public class CustomerController : MonoBehaviour
         }
 
         bool joinedQueue =
-            checkoutQueue.TryJoinQueue(this);
+            checkoutQueue.TryJoinQueue(
+                this
+            );
 
         if (!joinedQueue)
         {
@@ -295,8 +371,8 @@ public class CustomerController : MonoBehaviour
             return;
         }
 
-        // CheckoutQueue calls SetQueueDestination()
-        // when the customer successfully joins.
+        // CheckoutQueue will call
+        // SetQueueDestination().
     }
 
     public void SetQueueDestination(
@@ -308,7 +384,8 @@ public class CustomerController : MonoBehaviour
             return;
         }
 
-        assignedQueuePoint = queuePoint;
+        assignedQueuePoint =
+            queuePoint;
 
         currentState =
             CustomerState.WalkingToCheckout;
@@ -343,9 +420,16 @@ public class CustomerController : MonoBehaviour
             CustomerState.WaitingInCheckoutQueue;
     }
 
+    private void UpdateCheckoutWaiting()
+    {
+        checkoutWaitSeconds +=
+            Time.deltaTime;
+    }
+
     public bool IsReadyForCheckout()
     {
-        return currentState ==
+        return currentState
+               ==
                CustomerState.WaitingInCheckoutQueue;
     }
 
@@ -404,7 +488,9 @@ public class CustomerController : MonoBehaviour
 
             checkoutQueue = null;
 
-            previousQueue.LeaveQueue(this);
+            previousQueue.LeaveQueue(
+                this
+            );
         }
 
         for (int i = 0;
@@ -419,12 +505,16 @@ public class CustomerController : MonoBehaviour
                 continue;
             }
 
-            Destroy(item.gameObject);
+            Destroy(
+                item.gameObject
+            );
         }
 
         carriedItems.Clear();
 
         assignedQueuePoint = null;
+
+        completedPurchase = true;
 
         PlayHappyReaction();
 
@@ -488,7 +578,9 @@ public class CustomerController : MonoBehaviour
 
         if (checkoutQueue != null)
         {
-            checkoutQueue.LeaveQueue(this);
+            checkoutQueue.LeaveQueue(
+                this
+            );
         }
 
         for (int i = 0;
@@ -500,13 +592,73 @@ public class CustomerController : MonoBehaviour
 
             if (item != null)
             {
-                Destroy(item.gameObject);
+                Destroy(
+                    item.gameObject
+                );
             }
         }
 
         carriedItems.Clear();
 
-        Destroy(gameObject);
+        ReportVisitIfNeeded();
+
+        Destroy(
+            gameObject
+        );
+    }
+
+    private void ReportVisitIfNeeded()
+    {
+        if (visitReported)
+        {
+            return;
+        }
+
+        visitReported = true;
+
+        if (dailyStats == null)
+        {
+            return;
+        }
+
+        float waitPenalty =
+            CalculateCheckoutWaitPenalty();
+
+        float finalSatisfaction =
+            satisfactionScore
+            - waitPenalty;
+
+        finalSatisfaction =
+            Mathf.Clamp(
+                finalSatisfaction,
+                0f,
+                100f
+            );
+
+        dailyStats.RecordCustomerVisit(
+            finalSatisfaction,
+            missedProductCount,
+            completedPurchase
+        );
+    }
+
+    private float CalculateCheckoutWaitPenalty()
+    {
+        float penalizedSeconds =
+            Mathf.Max(
+                0f,
+                checkoutWaitSeconds
+                - CheckoutGraceSeconds
+            );
+
+        float penalty =
+            penalizedSeconds
+            * CheckoutPenaltyPerSecond;
+
+        return Mathf.Min(
+            MaxCheckoutWaitPenalty,
+            penalty
+        );
     }
 
     private void PlayHappyReaction()
@@ -537,7 +689,8 @@ public class CustomerController : MonoBehaviour
 
         while (elapsed < duration)
         {
-            elapsed += Time.deltaTime;
+            elapsed +=
+                Time.deltaTime;
 
             float t =
                 Mathf.Clamp01(

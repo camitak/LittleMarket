@@ -42,6 +42,9 @@ public class CustomerFlow : MonoBehaviour
     private StoreClock storeClock;
 
     [SerializeField]
+    private DailyStats dailyStats;
+
+    [SerializeField]
     private ShelfRegistry shelfRegistry;
 
     [SerializeField]
@@ -86,7 +89,8 @@ public class CustomerFlow : MonoBehaviour
             return;
         }
 
-        spawnTimer -= Time.deltaTime;
+        spawnTimer -=
+            Time.deltaTime;
 
         if (spawnTimer > 0f)
         {
@@ -131,7 +135,8 @@ public class CustomerFlow : MonoBehaviour
             shoppingList,
             shelfRegistry,
             checkoutQueue,
-            customerExitPoint
+            customerExitPoint,
+            dailyStats
         );
 
         activeCustomers.Add(
@@ -285,6 +290,11 @@ public class CustomerFlow : MonoBehaviour
         }
 
         if (storeClock == null)
+        {
+            return false;
+        }
+
+        if (dailyStats == null)
         {
             return false;
         }
