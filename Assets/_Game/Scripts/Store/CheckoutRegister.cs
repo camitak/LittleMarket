@@ -12,6 +12,9 @@ public class CheckoutRegister :
     private StoreEconomy storeEconomy;
 
     [SerializeField]
+    private DailyStats dailyStats;
+
+    [SerializeField]
     private CheckoutFeedback checkoutFeedback;
 
     public string GetInteractionPrompt(
@@ -60,7 +63,9 @@ public class CheckoutRegister :
                + total.ToString("0.00");
     }
 
-    public void Interact(PlayerInteraction player)
+    public void Interact(
+        PlayerInteraction player
+    )
     {
         if (player.GetHeldItem() != null)
         {
@@ -90,6 +95,14 @@ public class CheckoutRegister :
             return;
         }
 
+        int itemCount =
+            customer.GetCarriedItemCount();
+
+        if (itemCount <= 0)
+        {
+            return;
+        }
+
         float saleAmount =
             customer.GetCheckoutTotal();
 
@@ -109,6 +122,14 @@ public class CheckoutRegister :
         storeEconomy.AddMoney(
             saleAmount
         );
+
+        if (dailyStats != null)
+        {
+            dailyStats.RecordSale(
+                saleAmount,
+                itemCount
+            );
+        }
 
         if (checkoutFeedback != null)
         {

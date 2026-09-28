@@ -58,13 +58,12 @@ public class CustomerFlow : MonoBehaviour
 
     private float spawnTimer;
 
+    public int ActiveCustomerCount =>
+        activeCustomers.Count;
+
     private void Start()
     {
-        spawnTimer =
-            Mathf.Max(
-                0f,
-                initialSpawnDelay
-            );
+        ResetSpawnTimerForNewDay();
     }
 
     private void Update()
@@ -97,6 +96,13 @@ public class CustomerFlow : MonoBehaviour
         SpawnCustomer();
 
         ResetSpawnTimer();
+    }
+
+    public void ResetForNewDay()
+    {
+        RemoveDestroyedCustomers();
+
+        ResetSpawnTimerForNewDay();
     }
 
     private void SpawnCustomer()
@@ -234,6 +240,15 @@ public class CustomerFlow : MonoBehaviour
 
             activeCustomers.RemoveAt(i);
         }
+    }
+
+    private void ResetSpawnTimerForNewDay()
+    {
+        spawnTimer =
+            Mathf.Max(
+                0f,
+                initialSpawnDelay
+            );
     }
 
     private void ResetSpawnTimer()

@@ -117,16 +117,19 @@ public class StoreClock : MonoBehaviour
                 startingDay
             );
 
-        currentMinutes =
-            startHour * 60f
-            + startMinute;
+        ResetClockToStartTime();
+    }
 
-        currentMinutes =
-            Mathf.Clamp(
-                currentMinutes,
-                0f,
-                1439f
-            );
+    private void Update()
+    {
+        if (hasDayEnded)
+        {
+            return;
+        }
+
+        currentMinutes +=
+            gameMinutesPerRealSecond
+            * Time.deltaTime;
 
         if (currentMinutes
             >= DayEndTimeMinutes)
@@ -140,16 +143,27 @@ public class StoreClock : MonoBehaviour
         UpdateClockUI();
     }
 
-    private void Update()
+    public void StartNextDay()
     {
-        if (hasDayEnded)
-        {
-            return;
-        }
+        currentDay++;
 
-        currentMinutes +=
-            gameMinutesPerRealSecond
-            * Time.deltaTime;
+        ResetClockToStartTime();
+    }
+
+    private void ResetClockToStartTime()
+    {
+        currentMinutes =
+            startHour * 60f
+            + startMinute;
+
+        currentMinutes =
+            Mathf.Clamp(
+                currentMinutes,
+                0f,
+                1439f
+            );
+
+        hasDayEnded = false;
 
         if (currentMinutes
             >= DayEndTimeMinutes)

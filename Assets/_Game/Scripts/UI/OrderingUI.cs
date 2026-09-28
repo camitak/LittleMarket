@@ -39,6 +39,9 @@ public class OrderingUI : MonoBehaviour
     [SerializeField]
     private StoreEconomy storeEconomy;
 
+    [SerializeField]
+    private DailyStats dailyStats;
+
     [Header("Player")]
     [SerializeField]
     private PlayerController playerController;
@@ -232,6 +235,13 @@ public class OrderingUI : MonoBehaviour
                 + "Order was refunded.";
 
             return;
+        }
+
+        if (dailyStats != null)
+        {
+            dailyStats.RecordStockSpending(
+                orderCost
+            );
         }
 
         statusText.text =
