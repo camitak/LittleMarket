@@ -5,7 +5,7 @@ using UnityEngine.InputSystem;
 
 public class SaveManager : MonoBehaviour
 {
-    private const int CurrentSaveVersion = 3;
+    private const int CurrentSaveVersion = 4;
 
     [Header("Store References")]
     [SerializeField]
@@ -92,6 +92,9 @@ public class SaveManager : MonoBehaviour
         saveData.day =
             storeClock.CurrentDay;
 
+        saveData.currentMinutes =
+            storeClock.CurrentMinutes;
+
         saveData.money =
             storeEconomy.CurrentMoney;
 
@@ -123,7 +126,11 @@ public class SaveManager : MonoBehaviour
             "Little Market saved "
             + "(version "
             + CurrentSaveVersion
-            + ").\n"
+            + ") at "
+            + GetClockDebugText(
+                saveData.currentMinutes
+            )
+            + ".\n"
             + SavePath
         );
     }
@@ -185,6 +192,10 @@ public class SaveManager : MonoBehaviour
             "Little Market save loaded. "
             + "Save version: "
             + saveData.saveVersion
+            + ". Current time: "
+            + GetClockDebugText(
+                storeClock.CurrentMinutes
+            )
             + "."
         );
     }
@@ -523,15 +534,42 @@ public class SaveManager : MonoBehaviour
 
         dailyStats.ResetForNewDay();
 
-        storeClock.LoadDay(
-            saveData.day
-        );
+        if (saveData.saveVersion >= 4)
+        {
+            storeClock.LoadState(
+                saveData.day,
+                saveData.currentMinutes
+            );
+        }
+        else
+        {
+            storeClock.LoadDay(
+                saveData.day
+            );
+
+            Debug.Log(
+                "Older save loaded. Exact clock time "
+                + "was not available, so the day "
+                + "started at the configured start time."
+            );
+        }
 
         customerFlow.ResetForNewDay();
     }
 
     private bool CanUseSaveSystemNow()
     {
+        if (storeClock.HasDayEnded)
+        {
+            Debug.LogWarning(
+                "Save/Load blocked after the day "
+                + "has ended. Start the next day "
+                + "before using the manual save system."
+            );
+
+            return false;
+        }
+
         if (customerFlow.ActiveCustomerCount > 0)
         {
             Debug.LogWarning(
@@ -553,6 +591,26 @@ public class SaveManager : MonoBehaviour
         }
 
         return true;
+    }
+
+    private string GetClockDebugText(
+        float totalMinutes
+    )
+    {
+        int wholeMinutes =
+            Mathf.FloorToInt(
+                totalMinutes
+            );
+
+        int hours =
+            wholeMinutes / 60;
+
+        int minutes =
+            wholeMinutes % 60;
+
+        return hours.ToString("00")
+               + ":"
+               + minutes.ToString("00");
     }
 
     private bool HasValidConfiguration()

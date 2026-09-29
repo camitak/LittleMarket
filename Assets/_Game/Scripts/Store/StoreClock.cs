@@ -5,33 +5,42 @@ public class StoreClock : MonoBehaviour
 {
     [Header("Day")]
     [Min(1)]
-    [SerializeField] private int startingDay = 1;
+    [SerializeField]
+    private int startingDay = 1;
 
     [Header("Starting Time")]
     [Range(0, 23)]
-    [SerializeField] private int startHour = 8;
+    [SerializeField]
+    private int startHour = 8;
 
     [Range(0, 59)]
-    [SerializeField] private int startMinute = 0;
+    [SerializeField]
+    private int startMinute = 0;
 
     [Header("Store Schedule")]
     [Range(0, 23)]
-    [SerializeField] private int openingHour = 8;
+    [SerializeField]
+    private int openingHour = 8;
 
     [Range(0, 59)]
-    [SerializeField] private int openingMinute = 0;
+    [SerializeField]
+    private int openingMinute = 0;
 
     [Range(0, 23)]
-    [SerializeField] private int closingHour = 21;
+    [SerializeField]
+    private int closingHour = 21;
 
     [Range(0, 59)]
-    [SerializeField] private int closingMinute = 0;
+    [SerializeField]
+    private int closingMinute = 0;
 
     [Range(0, 23)]
-    [SerializeField] private int dayEndHour = 22;
+    [SerializeField]
+    private int dayEndHour = 22;
 
     [Range(0, 59)]
-    [SerializeField] private int dayEndMinute = 0;
+    [SerializeField]
+    private int dayEndMinute = 0;
 
     [Header("Time Speed")]
     [Min(0.1f)]
@@ -39,12 +48,19 @@ public class StoreClock : MonoBehaviour
     private float gameMinutesPerRealSecond = 2f;
 
     [Header("UI")]
-    [SerializeField] private TMP_Text dayText;
-    [SerializeField] private TMP_Text timeText;
-    [SerializeField] private TMP_Text statusText;
+    [SerializeField]
+    private TMP_Text dayText;
+
+    [SerializeField]
+    private TMP_Text timeText;
+
+    [SerializeField]
+    private TMP_Text statusText;
 
     private float currentMinutes;
+
     private int currentDay;
+
     private bool hasDayEnded;
 
     private static readonly Color32 OpenStatusColor =
@@ -137,7 +153,8 @@ public class StoreClock : MonoBehaviour
             currentMinutes =
                 DayEndTimeMinutes;
 
-            hasDayEnded = true;
+            hasDayEnded =
+                true;
         }
 
         UpdateClockUI();
@@ -149,7 +166,7 @@ public class StoreClock : MonoBehaviour
 
         ResetClockToStartTime();
     }
-    
+
     public void LoadDay(
         int day
     )
@@ -161,6 +178,40 @@ public class StoreClock : MonoBehaviour
             );
 
         ResetClockToStartTime();
+    }
+
+    public void LoadState(
+        int day,
+        float savedCurrentMinutes
+    )
+    {
+        currentDay =
+            Mathf.Max(
+                1,
+                day
+            );
+
+        currentMinutes =
+            Mathf.Clamp(
+                savedCurrentMinutes,
+                0f,
+                1439f
+            );
+
+        hasDayEnded =
+            false;
+
+        if (currentMinutes
+            >= DayEndTimeMinutes)
+        {
+            currentMinutes =
+                DayEndTimeMinutes;
+
+            hasDayEnded =
+                true;
+        }
+
+        UpdateClockUI();
     }
 
     private void ResetClockToStartTime()
@@ -176,7 +227,8 @@ public class StoreClock : MonoBehaviour
                 1439f
             );
 
-        hasDayEnded = false;
+        hasDayEnded =
+            false;
 
         if (currentMinutes
             >= DayEndTimeMinutes)
@@ -184,7 +236,8 @@ public class StoreClock : MonoBehaviour
             currentMinutes =
                 DayEndTimeMinutes;
 
-            hasDayEnded = true;
+            hasDayEnded =
+                true;
         }
 
         UpdateClockUI();
@@ -193,7 +246,9 @@ public class StoreClock : MonoBehaviour
     private void UpdateClockUI()
     {
         UpdateDayText();
+
         UpdateTimeText();
+
         UpdateStatusText();
     }
 
@@ -205,7 +260,8 @@ public class StoreClock : MonoBehaviour
         }
 
         dayText.text =
-            "DAY " + currentDay;
+            "DAY "
+            + currentDay;
     }
 
     private void UpdateTimeText()

@@ -8,6 +8,8 @@ public class StoreSaveData
 
     public int day = 1;
 
+    public float currentMinutes = 480f;
+
     public float money = 100f;
 
     public float reputation = 50f;
