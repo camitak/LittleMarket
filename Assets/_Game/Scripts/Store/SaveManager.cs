@@ -1,9 +1,12 @@
+using System.Collections.Generic;
 using System.IO;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
 public class SaveManager : MonoBehaviour
 {
+    private const int CurrentSaveVersion = 2;
+
     [Header("Store References")]
     [SerializeField]
     private StoreClock storeClock;
@@ -22,6 +25,16 @@ public class SaveManager : MonoBehaviour
 
     [SerializeField]
     private CustomerFlow customerFlow;
+
+    [SerializeField]
+    private ShelfRegistry shelfRegistry;
+
+    [SerializeField]
+    private DeliveryZone deliveryZone;
+
+    [Header("Player")]
+    [SerializeField]
+    private PlayerInteraction playerInteraction;
 
     private string SavePath =>
         Path.Combine(
@@ -61,8 +74,16 @@ public class SaveManager : MonoBehaviour
             return;
         }
 
+        if (!CanUseSaveSystemNow())
+        {
+            return;
+        }
+
         StoreSaveData saveData =
             new StoreSaveData();
+
+        saveData.saveVersion =
+            CurrentSaveVersion;
 
         saveData.day =
             storeClock.CurrentDay;
@@ -77,6 +98,9 @@ public class SaveManager : MonoBehaviour
             storeProgression
                 .GetUnlockedProductIDs();
 
+        saveData.shelfSlots =
+            BuildShelfSlotSaveData();
+
         string json =
             JsonUtility.ToJson(
                 saveData,
@@ -89,7 +113,10 @@ public class SaveManager : MonoBehaviour
         );
 
         Debug.Log(
-            "Little Market saved.\n"
+            "Little Market saved "
+            + "(version "
+            + CurrentSaveVersion
+            + ").\n"
             + SavePath
         );
     }
@@ -106,14 +133,8 @@ public class SaveManager : MonoBehaviour
             return;
         }
 
-        if (customerFlow.ActiveCustomerCount > 0)
+        if (!CanUseSaveSystemNow())
         {
-            Debug.LogWarning(
-                "Progression load blocked: "
-                + "wait until no customers are "
-                + "inside the store."
-            );
-
             return;
         }
 
@@ -154,8 +175,166 @@ public class SaveManager : MonoBehaviour
         );
 
         Debug.Log(
-            "Little Market progression loaded."
+            "Little Market save loaded. "
+            + "Save version: "
+            + saveData.saveVersion
+            + "."
         );
+    }
+
+    private List<ShelfSlotSaveData>
+        BuildShelfSlotSaveData()
+    {
+        List<ShelfSlotSaveData> savedSlots =
+            new List<ShelfSlotSaveData>();
+
+        for (int i = 0;
+             i < shelfRegistry.RegisteredSlotCount;
+             i++)
+        {
+            ShelfSlot slot =
+                shelfRegistry.GetRegisteredSlot(
+                    i
+                );
+
+            if (slot == null)
+            {
+                continue;
+            }
+
+            ProductData product =
+                slot.GetStoredProductData();
+
+            if (product == null)
+            {
+                continue;
+            }
+
+            if (string.IsNullOrWhiteSpace(
+                    slot.SlotID
+                ))
+            {
+                continue;
+            }
+
+            if (string.IsNullOrWhiteSpace(
+                    product.ProductID
+                ))
+            {
+                continue;
+            }
+
+            ShelfSlotSaveData slotSaveData =
+                new ShelfSlotSaveData();
+
+            slotSaveData.slotID =
+                slot.SlotID;
+
+            slotSaveData.productID =
+                product.ProductID;
+
+            savedSlots.Add(
+                slotSaveData
+            );
+        }
+
+        return savedSlots;
+    }
+
+    private void RestoreShelfInventory(
+        List<ShelfSlotSaveData> savedSlots
+    )
+    {
+        ClearCurrentShelfInventory();
+
+        if (savedSlots == null)
+        {
+            return;
+        }
+
+        for (int i = 0;
+             i < savedSlots.Count;
+             i++)
+        {
+            ShelfSlotSaveData slotSaveData =
+                savedSlots[i];
+
+            if (slotSaveData == null)
+            {
+                continue;
+            }
+
+            ShelfSlot slot =
+                shelfRegistry.FindSlotByID(
+                    slotSaveData.slotID
+                );
+
+            if (slot == null)
+            {
+                Debug.LogWarning(
+                    "Saved ShelfSlot '"
+                    + slotSaveData.slotID
+                    + "' does not exist "
+                    + "in the current scene."
+                );
+
+                continue;
+            }
+
+            ProductData product =
+                storeProgression
+                    .FindCatalogProductByID(
+                        slotSaveData.productID
+                    );
+
+            if (product == null)
+            {
+                Debug.LogWarning(
+                    "Saved product ID '"
+                    + slotSaveData.productID
+                    + "' does not exist "
+                    + "in the current catalog."
+                );
+
+                continue;
+            }
+
+            bool restored =
+                slot.RestoreProduct(
+                    product
+                );
+
+            if (!restored)
+            {
+                Debug.LogWarning(
+                    "Could not restore product '"
+                    + slotSaveData.productID
+                    + "' into ShelfSlot '"
+                    + slotSaveData.slotID
+                    + "'."
+                );
+            }
+        }
+    }
+
+    private void ClearCurrentShelfInventory()
+    {
+        for (int i = 0;
+             i < shelfRegistry.RegisteredSlotCount;
+             i++)
+        {
+            ShelfSlot slot =
+                shelfRegistry.GetRegisteredSlot(
+                    i
+                );
+
+            if (slot == null)
+            {
+                continue;
+            }
+
+            slot.ClearStoredItemForLoad();
+        }
     }
 
     private void ApplySaveData(
@@ -175,6 +354,22 @@ public class SaveManager : MonoBehaviour
                 saveData.unlockedProductIDs
             );
 
+        if (saveData.saveVersion >= 2)
+        {
+            RestoreShelfInventory(
+                saveData.shelfSlots
+            );
+        }
+        else
+        {
+            Debug.Log(
+                "Older progression save loaded. "
+                + "Shelf inventory was not restored "
+                + "because that save predates "
+                + "inventory persistence."
+            );
+        }
+
         dailyStats.ResetForNewDay();
 
         storeClock.LoadDay(
@@ -182,6 +377,41 @@ public class SaveManager : MonoBehaviour
         );
 
         customerFlow.ResetForNewDay();
+    }
+
+    private bool CanUseSaveSystemNow()
+    {
+        if (customerFlow.ActiveCustomerCount > 0)
+        {
+            Debug.LogWarning(
+                "Save/Load blocked: wait until "
+                + "all customers have left."
+            );
+
+            return false;
+        }
+
+        if (playerInteraction.GetHeldItem() != null)
+        {
+            Debug.LogWarning(
+                "Save/Load blocked: put down or "
+                + "stock the item in your hands first."
+            );
+
+            return false;
+        }
+
+        if (deliveryZone.ActiveDeliveryCount > 0)
+        {
+            Debug.LogWarning(
+                "Save/Load blocked: clear the "
+                + "Delivery Zone first."
+            );
+
+            return false;
+        }
+
+        return true;
     }
 
     private bool HasValidConfiguration()
@@ -212,6 +442,21 @@ public class SaveManager : MonoBehaviour
         }
 
         if (customerFlow == null)
+        {
+            return false;
+        }
+
+        if (shelfRegistry == null)
+        {
+            return false;
+        }
+
+        if (deliveryZone == null)
+        {
+            return false;
+        }
+
+        if (playerInteraction == null)
         {
             return false;
         }

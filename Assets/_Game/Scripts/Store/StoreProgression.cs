@@ -55,6 +55,20 @@ public class StoreProgression : MonoBehaviour
             index
         );
     }
+    
+    public ProductData FindCatalogProductByID(
+        string productID
+    )
+    {
+        if (productCatalog == null)
+        {
+            return null;
+        }
+
+        return productCatalog.FindProductByID(
+            productID
+        );
+    }
 
     public ProductData GetUnlockedProduct(
         int index

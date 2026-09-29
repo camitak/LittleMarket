@@ -2074,6 +2074,10 @@ PrefabInstance:
       value: 
       objectReference: {fileID: 2100000, guid: 56f232c994fc992488cb48c780975a4e, type: 2}
     - target: {fileID: 1060167468770235413, guid: b2ab179c58af96d479747fad85aed525, type: 3}
+      propertyPath: slotID
+      value: slot_dairy_milk_01
+      objectReference: {fileID: 0}
+    - target: {fileID: 1060167468770235413, guid: b2ab179c58af96d479747fad85aed525, type: 3}
       propertyPath: acceptedProduct
       value: 
       objectReference: {fileID: 11400000, guid: f032e810ae9f3c343abd0ecbb972b50b, type: 2}
@@ -2134,6 +2138,10 @@ PrefabInstance:
       value: 
       objectReference: {fileID: 2100000, guid: 5e45ddf10181a5144b03d9b843b86d7e, type: 2}
     - target: {fileID: 3046213625299195560, guid: b2ab179c58af96d479747fad85aed525, type: 3}
+      propertyPath: slotID
+      value: slot_dairy_milk_04
+      objectReference: {fileID: 0}
+    - target: {fileID: 3046213625299195560, guid: b2ab179c58af96d479747fad85aed525, type: 3}
       propertyPath: acceptedProduct
       value: 
       objectReference: {fileID: 11400000, guid: f032e810ae9f3c343abd0ecbb972b50b, type: 2}
@@ -2154,6 +2162,10 @@ PrefabInstance:
       value: 
       objectReference: {fileID: 2100000, guid: 5e45ddf10181a5144b03d9b843b86d7e, type: 2}
     - target: {fileID: 3837043004271950274, guid: b2ab179c58af96d479747fad85aed525, type: 3}
+      propertyPath: slotID
+      value: slot_dairy_milk_03
+      objectReference: {fileID: 0}
+    - target: {fileID: 3837043004271950274, guid: b2ab179c58af96d479747fad85aed525, type: 3}
       propertyPath: acceptedProduct
       value: 
       objectReference: {fileID: 11400000, guid: f032e810ae9f3c343abd0ecbb972b50b, type: 2}
@@ -2168,6 +2180,10 @@ PrefabInstance:
     - target: {fileID: 5191368394742514984, guid: b2ab179c58af96d479747fad85aed525, type: 3}
       propertyPath: m_Name
       value: Shelf_Dairy
+      objectReference: {fileID: 0}
+    - target: {fileID: 5491406873839152957, guid: b2ab179c58af96d479747fad85aed525, type: 3}
+      propertyPath: slotID
+      value: slot_dairy_milk_02
       objectReference: {fileID: 0}
     - target: {fileID: 5491406873839152957, guid: b2ab179c58af96d479747fad85aed525, type: 3}
       propertyPath: acceptedProduct
@@ -4923,6 +4939,9 @@ MonoBehaviour:
   storeProgression: {fileID: 1117834535}
   dailyStats: {fileID: 1117834533}
   customerFlow: {fileID: 1117834531}
+  shelfRegistry: {fileID: 1117834529}
+  deliveryZone: {fileID: 43201577}
+  playerInteraction: {fileID: 1349577615}
 --- !u!1 &1149754932
 GameObject:
   m_ObjectHideFlags: 0
@@ -7632,6 +7651,10 @@ PrefabInstance:
     m_TransformParent: {fileID: 0}
     m_Modifications:
     - target: {fileID: 1060167468770235413, guid: b2ab179c58af96d479747fad85aed525, type: 3}
+      propertyPath: slotID
+      value: slot_cereal_strawberry_01
+      objectReference: {fileID: 0}
+    - target: {fileID: 1060167468770235413, guid: b2ab179c58af96d479747fad85aed525, type: 3}
       propertyPath: acceptedProduct
       value: 
       objectReference: {fileID: 11400000, guid: e2d539f48d3851d43aff9653666653a3, type: 2}
@@ -7692,6 +7715,10 @@ PrefabInstance:
       value: 
       objectReference: {fileID: 2100000, guid: 5e45ddf10181a5144b03d9b843b86d7e, type: 2}
     - target: {fileID: 3046213625299195560, guid: b2ab179c58af96d479747fad85aed525, type: 3}
+      propertyPath: slotID
+      value: slot_cereal_honey_02
+      objectReference: {fileID: 0}
+    - target: {fileID: 3046213625299195560, guid: b2ab179c58af96d479747fad85aed525, type: 3}
       propertyPath: acceptedProduct
       value: 
       objectReference: {fileID: 11400000, guid: 3391820c701e1fc4181638a9a2a82308, type: 2}
@@ -7712,6 +7739,10 @@ PrefabInstance:
       value: 
       objectReference: {fileID: 2100000, guid: 5e45ddf10181a5144b03d9b843b86d7e, type: 2}
     - target: {fileID: 3837043004271950274, guid: b2ab179c58af96d479747fad85aed525, type: 3}
+      propertyPath: slotID
+      value: slot_cereal_honey_01
+      objectReference: {fileID: 0}
+    - target: {fileID: 3837043004271950274, guid: b2ab179c58af96d479747fad85aed525, type: 3}
       propertyPath: acceptedProduct
       value: 
       objectReference: {fileID: 11400000, guid: 3391820c701e1fc4181638a9a2a82308, type: 2}
@@ -7726,6 +7757,10 @@ PrefabInstance:
     - target: {fileID: 5191368394742514984, guid: b2ab179c58af96d479747fad85aed525, type: 3}
       propertyPath: m_Name
       value: Shelf
+      objectReference: {fileID: 0}
+    - target: {fileID: 5491406873839152957, guid: b2ab179c58af96d479747fad85aed525, type: 3}
+      propertyPath: slotID
+      value: slot_cereal_strawberry_02
       objectReference: {fileID: 0}
     - target: {fileID: 5491406873839152957, guid: b2ab179c58af96d479747fad85aed525, type: 3}
       propertyPath: acceptedProduct

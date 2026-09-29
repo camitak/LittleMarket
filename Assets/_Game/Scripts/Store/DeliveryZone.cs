@@ -3,9 +3,46 @@ using UnityEngine;
 public class DeliveryZone : MonoBehaviour
 {
     [Header("Delivery Slots")]
-    [SerializeField] private Transform[] deliverySlots;
+    [SerializeField]
+    private Transform[] deliverySlots;
 
     private DeliveryBox[] activeDeliveries;
+
+    public bool HasSpace
+    {
+        get
+        {
+            return FindAvailableSlotIndex()
+                   >= 0;
+        }
+    }
+
+    public int ActiveDeliveryCount
+    {
+        get
+        {
+            if (activeDeliveries == null)
+            {
+                return 0;
+            }
+
+            int count = 0;
+
+            for (int i = 0;
+                 i < activeDeliveries.Length;
+                 i++)
+            {
+                if (activeDeliveries[i] == null)
+                {
+                    continue;
+                }
+
+                count++;
+            }
+
+            return count;
+        }
+    }
 
     private void Awake()
     {
@@ -13,19 +50,12 @@ public class DeliveryZone : MonoBehaviour
 
         if (deliverySlots != null)
         {
-            slotCount = deliverySlots.Length;
+            slotCount =
+                deliverySlots.Length;
         }
 
         activeDeliveries =
             new DeliveryBox[slotCount];
-    }
-
-    public bool HasSpace
-    {
-        get
-        {
-            return FindAvailableSlotIndex() >= 0;
-        }
     }
 
     public bool TryCreateDelivery(

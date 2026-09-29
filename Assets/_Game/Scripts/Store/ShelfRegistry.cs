@@ -6,6 +6,9 @@ public class ShelfRegistry : MonoBehaviour
     private List<ShelfSlot> registeredSlots =
         new List<ShelfSlot>();
 
+    public int RegisteredSlotCount =>
+        registeredSlots.Count;
+
     public void RegisterSlot(
         ShelfSlot shelfSlot
     )
@@ -19,6 +22,39 @@ public class ShelfRegistry : MonoBehaviour
                 shelfSlot
             ))
         {
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(
+                shelfSlot.SlotID
+            ))
+        {
+            Debug.LogError(
+                "ShelfSlot '"
+                + shelfSlot.gameObject.name
+                + "' has no Slot ID.",
+                shelfSlot
+            );
+
+            return;
+        }
+
+        ShelfSlot existingSlot =
+            FindSlotByID(
+                shelfSlot.SlotID
+            );
+
+        if (existingSlot != null &&
+            existingSlot != shelfSlot)
+        {
+            Debug.LogError(
+                "Duplicate ShelfSlot ID '"
+                + shelfSlot.SlotID
+                + "'. Every shelf slot must "
+                + "have a unique stable ID.",
+                shelfSlot
+            );
+
             return;
         }
 
@@ -39,6 +75,53 @@ public class ShelfRegistry : MonoBehaviour
         registeredSlots.Remove(
             shelfSlot
         );
+    }
+
+    public ShelfSlot GetRegisteredSlot(
+        int index
+    )
+    {
+        if (index < 0 ||
+            index >= registeredSlots.Count)
+        {
+            return null;
+        }
+
+        return registeredSlots[index];
+    }
+
+    public ShelfSlot FindSlotByID(
+        string slotID
+    )
+    {
+        if (string.IsNullOrWhiteSpace(
+                slotID
+            ))
+        {
+            return null;
+        }
+
+        for (int i = 0;
+             i < registeredSlots.Count;
+             i++)
+        {
+            ShelfSlot slot =
+                registeredSlots[i];
+
+            if (slot == null)
+            {
+                continue;
+            }
+
+            if (slot.SlotID != slotID)
+            {
+                continue;
+            }
+
+            return slot;
+        }
+
+        return null;
     }
 
     public bool TryFindStockedSlot(
@@ -82,7 +165,8 @@ public class ShelfRegistry : MonoBehaviour
                 continue;
             }
 
-            foundSlot = slot;
+            foundSlot =
+                slot;
 
             return true;
         }

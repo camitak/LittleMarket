@@ -4,6 +4,8 @@ using System.Collections.Generic;
 [Serializable]
 public class StoreSaveData
 {
+    public int saveVersion;
+
     public int day = 1;
 
     public float money = 100f;
@@ -12,4 +14,6 @@ public class StoreSaveData
 
     public List<string> unlockedProductIDs =
         new List<string>();
+
+    public List<ShelfSlotSaveData> shelfSlots;
 }

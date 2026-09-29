@@ -4,6 +4,10 @@ public class ShelfSlot :
     MonoBehaviour,
     IInteractable
 {
+    [Header("Identity")]
+    [SerializeField]
+    private string slotID = "";
+
     [Header("Shelf Rules")]
     [SerializeField]
     private ProductData acceptedProduct;
@@ -15,6 +19,9 @@ public class ShelfSlot :
     private PickupItem storedItem;
 
     private ShelfRegistry shelfRegistry;
+
+    public string SlotID =>
+        slotID;
 
     public Transform CustomerStandPoint =>
         customerStandPoint;
@@ -59,6 +66,83 @@ public class ShelfSlot :
         shelfRegistry.RegisterSlot(
             this
         );
+    }
+
+    public ProductData GetStoredProductData()
+    {
+        if (storedItem == null)
+        {
+            return null;
+        }
+
+        return storedItem.GetProductData();
+    }
+
+    public void ClearStoredItemForLoad()
+    {
+        if (storedItem == null)
+        {
+            return;
+        }
+
+        PickupItem itemToDestroy =
+            storedItem;
+
+        storedItem = null;
+
+        Destroy(
+            itemToDestroy.gameObject
+        );
+    }
+
+    public bool RestoreProduct(
+        ProductData productData
+    )
+    {
+        if (productData == null)
+        {
+            return false;
+        }
+
+        if (productData.WorldPrefab == null)
+        {
+            return false;
+        }
+
+        if (acceptedProduct != null &&
+            productData != acceptedProduct)
+        {
+            Debug.LogWarning(
+                "Cannot restore "
+                + productData.ProductName
+                + " into ShelfSlot '"
+                + slotID
+                + "' because that slot accepts "
+                + acceptedProduct.ProductName
+                + ".",
+                this
+            );
+
+            return false;
+        }
+
+        ClearStoredItemForLoad();
+
+        PickupItem restoredItem =
+            Instantiate(
+                productData.WorldPrefab,
+                transform.position,
+                transform.rotation
+            );
+
+        storedItem =
+            restoredItem;
+
+        restoredItem.PlaceOnShelf(
+            this
+        );
+
+        return true;
     }
 
     public string GetInteractionPrompt(
@@ -167,7 +251,8 @@ public class ShelfSlot :
         PlayerInteraction player
     )
     {
-        storedItem = item;
+        storedItem =
+            item;
 
         player.RemoveHeldItem();
 
