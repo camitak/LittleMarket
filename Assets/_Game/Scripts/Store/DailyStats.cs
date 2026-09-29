@@ -12,7 +12,11 @@ public class DailyStats : MonoBehaviour
 
     public int CustomersVisited { get; private set; }
 
-    public int CustomersLeftWithoutBuying { get; private set; }
+    public int CustomersLeftWithoutBuying
+    {
+        get;
+        private set;
+    }
 
     public int MissedProducts { get; private set; }
 
@@ -44,7 +48,8 @@ public class DailyStats : MonoBehaviour
             return;
         }
 
-        StockSpending += amount;
+        StockSpending +=
+            amount;
     }
 
     public void RecordSale(
@@ -62,9 +67,11 @@ public class DailyStats : MonoBehaviour
             return;
         }
 
-        Revenue += amount;
+        Revenue +=
+            amount;
 
-        ItemsSold += itemCount;
+        ItemsSold +=
+            itemCount;
 
         CustomersServed++;
     }
@@ -94,6 +101,104 @@ public class DailyStats : MonoBehaviour
         {
             CustomersLeftWithoutBuying++;
         }
+    }
+
+    public DailyStatsSaveData CreateSaveData()
+    {
+        DailyStatsSaveData saveData =
+            new DailyStatsSaveData();
+
+        saveData.revenue =
+            Revenue;
+
+        saveData.stockSpending =
+            StockSpending;
+
+        saveData.itemsSold =
+            ItemsSold;
+
+        saveData.customersServed =
+            CustomersServed;
+
+        saveData.customersVisited =
+            CustomersVisited;
+
+        saveData.customersLeftWithoutBuying =
+            CustomersLeftWithoutBuying;
+
+        saveData.missedProducts =
+            MissedProducts;
+
+        saveData.totalSatisfaction =
+            totalSatisfaction;
+
+        return saveData;
+    }
+
+    public void RestoreFromSaveData(
+        DailyStatsSaveData saveData
+    )
+    {
+        if (saveData == null)
+        {
+            ResetForNewDay();
+
+            return;
+        }
+
+        Revenue =
+            Mathf.Max(
+                0f,
+                saveData.revenue
+            );
+
+        StockSpending =
+            Mathf.Max(
+                0f,
+                saveData.stockSpending
+            );
+
+        ItemsSold =
+            Mathf.Max(
+                0,
+                saveData.itemsSold
+            );
+
+        CustomersVisited =
+            Mathf.Max(
+                0,
+                saveData.customersVisited
+            );
+
+        CustomersServed =
+            Mathf.Clamp(
+                saveData.customersServed,
+                0,
+                CustomersVisited
+            );
+
+        CustomersLeftWithoutBuying =
+            Mathf.Clamp(
+                saveData.customersLeftWithoutBuying,
+                0,
+                CustomersVisited
+            );
+
+        MissedProducts =
+            Mathf.Max(
+                0,
+                saveData.missedProducts
+            );
+
+        float maximumSatisfactionTotal =
+            CustomersVisited * 100f;
+
+        totalSatisfaction =
+            Mathf.Clamp(
+                saveData.totalSatisfaction,
+                0f,
+                maximumSatisfactionTotal
+            );
     }
 
     public void ResetForNewDay()

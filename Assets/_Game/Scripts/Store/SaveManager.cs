@@ -5,7 +5,7 @@ using UnityEngine.InputSystem;
 
 public class SaveManager : MonoBehaviour
 {
-    private const int CurrentSaveVersion = 4;
+    private const int CurrentSaveVersion = 5;
 
     [Header("Store References")]
     [SerializeField]
@@ -111,6 +111,9 @@ public class SaveManager : MonoBehaviour
         saveData.deliveries =
             BuildDeliverySaveData();
 
+        saveData.dailyStats =
+            dailyStats.CreateSaveData();
+
         string json =
             JsonUtility.ToJson(
                 saveData,
@@ -130,6 +133,9 @@ public class SaveManager : MonoBehaviour
             + GetClockDebugText(
                 saveData.currentMinutes
             )
+            + ". Revenue today: £"
+            + saveData.dailyStats.revenue
+                .ToString("0.00")
             + ".\n"
             + SavePath
         );
@@ -196,6 +202,9 @@ public class SaveManager : MonoBehaviour
             + GetClockDebugText(
                 storeClock.CurrentMinutes
             )
+            + ". Revenue today: £"
+            + dailyStats.Revenue
+                .ToString("0.00")
             + "."
         );
     }
@@ -532,7 +541,23 @@ public class SaveManager : MonoBehaviour
             );
         }
 
-        dailyStats.ResetForNewDay();
+        if (saveData.saveVersion >= 5 &&
+            saveData.dailyStats != null)
+        {
+            dailyStats.RestoreFromSaveData(
+                saveData.dailyStats
+            );
+        }
+        else
+        {
+            dailyStats.ResetForNewDay();
+
+            Debug.Log(
+                "Older save loaded. Daily statistics "
+                + "were reset because that save "
+                + "predates daily-stat persistence."
+            );
+        }
 
         if (saveData.saveVersion >= 4)
         {
