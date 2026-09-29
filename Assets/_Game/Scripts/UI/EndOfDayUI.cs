@@ -26,6 +26,9 @@ public class EndOfDayUI : MonoBehaviour
     private TMP_Text averageSatisfactionText;
 
     [SerializeField]
+    private TMP_Text reputationResultText;
+
+    [SerializeField]
     private TMP_Text missedProductsText;
 
     [SerializeField]
@@ -53,6 +56,9 @@ public class EndOfDayUI : MonoBehaviour
 
     [SerializeField]
     private StoreEconomy storeEconomy;
+
+    [SerializeField]
+    private StoreReputation storeReputation;
 
     [SerializeField]
     private CustomerFlow customerFlow;
@@ -152,6 +158,15 @@ public class EndOfDayUI : MonoBehaviour
             orderingUI.Close();
         }
 
+        if (storeReputation != null &&
+            dailyStats != null)
+        {
+            storeReputation.ApplyDailySatisfaction(
+                dailyStats.AverageSatisfaction,
+                dailyStats.CustomersVisited
+            );
+        }
+
         UpdateSummaryText();
 
         endOfDayPanel.SetActive(
@@ -189,6 +204,8 @@ public class EndOfDayUI : MonoBehaviour
         UpdateFinancialText();
 
         UpdateCustomerText();
+
+        UpdateReputationText();
 
         endingCashText.text =
             "Ending Cash     £"
@@ -262,28 +279,39 @@ public class EndOfDayUI : MonoBehaviour
 
     private void UpdateCustomerText()
     {
-        float satisfaction =
-            dailyStats.AverageSatisfaction;
-
-        averageSatisfactionText.text =
-            "Average Satisfaction     "
-            + satisfaction.ToString("0")
-            + "%";
-
-        if (satisfaction >= 80f)
+        if (dailyStats.CustomersVisited <= 0)
         {
+            averageSatisfactionText.text =
+                "Average Satisfaction     N/A";
+
             averageSatisfactionText.color =
-                PositiveColor;
-        }
-        else if (satisfaction >= 50f)
-        {
-            averageSatisfactionText.color =
-                MediumColor;
+                NeutralColor;
         }
         else
         {
-            averageSatisfactionText.color =
-                NegativeColor;
+            float satisfaction =
+                dailyStats.AverageSatisfaction;
+
+            averageSatisfactionText.text =
+                "Average Satisfaction     "
+                + satisfaction.ToString("0")
+                + "%";
+
+            if (satisfaction >= 80f)
+            {
+                averageSatisfactionText.color =
+                    PositiveColor;
+            }
+            else if (satisfaction >= 50f)
+            {
+                averageSatisfactionText.color =
+                    MediumColor;
+            }
+            else
+            {
+                averageSatisfactionText.color =
+                    NegativeColor;
+            }
         }
 
         missedProductsText.text =
@@ -302,6 +330,61 @@ public class EndOfDayUI : MonoBehaviour
         customersServedText.text =
             "Customers Served     "
             + dailyStats.CustomersServed;
+    }
+
+    private void UpdateReputationText()
+    {
+        if (storeReputation == null)
+        {
+            reputationResultText.text =
+                "Reputation     Not configured";
+
+            reputationResultText.color =
+                NeutralColor;
+
+            return;
+        }
+
+        float reputation =
+            storeReputation.CurrentReputation;
+
+        float change =
+            storeReputation.LastDailyChange;
+
+        string changeText;
+
+        if (change > 0f)
+        {
+            changeText =
+                "+"
+                + change.ToString("0.0");
+
+            reputationResultText.color =
+                PositiveColor;
+        }
+        else if (change < 0f)
+        {
+            changeText =
+                change.ToString("0.0");
+
+            reputationResultText.color =
+                NegativeColor;
+        }
+        else
+        {
+            changeText =
+                "0.0";
+
+            reputationResultText.color =
+                NeutralColor;
+        }
+
+        reputationResultText.text =
+            "Reputation     "
+            + reputation.ToString("0.0")
+            + " / 100 ("
+            + changeText
+            + ")";
     }
 
     private void StartNextDay()

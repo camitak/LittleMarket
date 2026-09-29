@@ -45,6 +45,9 @@ public class CustomerFlow : MonoBehaviour
     private DailyStats dailyStats;
 
     [SerializeField]
+    private StoreReputation storeReputation;
+
+    [SerializeField]
     private ShelfRegistry shelfRegistry;
 
     [SerializeField]
@@ -270,6 +273,16 @@ public class CustomerFlow : MonoBehaviour
                 maxSpawnInterval
             );
 
+        float reputationMultiplier =
+            storeReputation
+                .CustomerArrivalIntervalMultiplier;
+
+        minimumInterval *=
+            reputationMultiplier;
+
+        maximumInterval *=
+            reputationMultiplier;
+
         spawnTimer =
             Random.Range(
                 minimumInterval,
@@ -295,6 +308,11 @@ public class CustomerFlow : MonoBehaviour
         }
 
         if (dailyStats == null)
+        {
+            return false;
+        }
+
+        if (storeReputation == null)
         {
             return false;
         }
@@ -333,7 +351,8 @@ public class CustomerFlow : MonoBehaviour
              i < productCatalog.ProductCount;
              i++)
         {
-            if (productCatalog.GetProduct(i) != null)
+            if (productCatalog.GetProduct(i)
+                != null)
             {
                 return true;
             }
