@@ -5,7 +5,7 @@ using UnityEngine.InputSystem;
 
 public class SaveManager : MonoBehaviour
 {
-    private const int CurrentSaveVersion = 2;
+    private const int CurrentSaveVersion = 3;
 
     [Header("Store References")]
     [SerializeField]
@@ -31,6 +31,10 @@ public class SaveManager : MonoBehaviour
 
     [SerializeField]
     private DeliveryZone deliveryZone;
+
+    [Header("Delivery")]
+    [SerializeField]
+    private DeliveryBox deliveryBoxPrefab;
 
     [Header("Player")]
     [SerializeField]
@@ -100,6 +104,9 @@ public class SaveManager : MonoBehaviour
 
         saveData.shelfSlots =
             BuildShelfSlotSaveData();
+
+        saveData.deliveries =
+            BuildDeliverySaveData();
 
         string json =
             JsonUtility.ToJson(
@@ -241,6 +248,64 @@ public class SaveManager : MonoBehaviour
         return savedSlots;
     }
 
+    private List<DeliveryBoxSaveData>
+        BuildDeliverySaveData()
+    {
+        List<DeliveryBoxSaveData> savedDeliveries =
+            new List<DeliveryBoxSaveData>();
+
+        for (int i = 0;
+             i < deliveryZone.DeliverySlotCount;
+             i++)
+        {
+            DeliveryBox delivery =
+                deliveryZone.GetActiveDelivery(
+                    i
+                );
+
+            if (delivery == null)
+            {
+                continue;
+            }
+
+            ProductData product =
+                delivery.ProductData;
+
+            if (product == null)
+            {
+                continue;
+            }
+
+            if (string.IsNullOrWhiteSpace(
+                    product.ProductID
+                ))
+            {
+                continue;
+            }
+
+            DeliveryBoxSaveData deliverySaveData =
+                new DeliveryBoxSaveData();
+
+            deliverySaveData.slotIndex =
+                i;
+
+            deliverySaveData.productID =
+                product.ProductID;
+
+            deliverySaveData.quantity =
+                delivery.RemainingQuantity;
+
+            deliverySaveData.isOpen =
+                delivery.IsOpen;
+
+            savedDeliveries.Add(
+                deliverySaveData
+            );
+        }
+
+        return savedDeliveries;
+    }
+
     private void RestoreShelfInventory(
         List<ShelfSlotSaveData> savedSlots
     )
@@ -317,6 +382,72 @@ public class SaveManager : MonoBehaviour
         }
     }
 
+    private void RestoreDeliveryZone(
+        List<DeliveryBoxSaveData> savedDeliveries
+    )
+    {
+        deliveryZone
+            .ClearAllDeliveriesForLoad();
+
+        if (savedDeliveries == null)
+        {
+            return;
+        }
+
+        for (int i = 0;
+             i < savedDeliveries.Count;
+             i++)
+        {
+            DeliveryBoxSaveData deliverySaveData =
+                savedDeliveries[i];
+
+            if (deliverySaveData == null)
+            {
+                continue;
+            }
+
+            ProductData product =
+                storeProgression
+                    .FindCatalogProductByID(
+                        deliverySaveData.productID
+                    );
+
+            if (product == null)
+            {
+                Debug.LogWarning(
+                    "Saved delivery product ID '"
+                    + deliverySaveData.productID
+                    + "' does not exist "
+                    + "in the current catalog."
+                );
+
+                continue;
+            }
+
+            bool restored =
+                deliveryZone.TryRestoreDelivery(
+                    deliveryBoxPrefab,
+                    deliverySaveData.slotIndex,
+                    product,
+                    deliverySaveData.quantity,
+                    deliverySaveData.isOpen,
+                    out DeliveryBox restoredDelivery
+                );
+
+            if (!restored)
+            {
+                Debug.LogWarning(
+                    "Could not restore delivery "
+                    + "in slot "
+                    + deliverySaveData.slotIndex
+                    + " for product '"
+                    + deliverySaveData.productID
+                    + "'."
+                );
+            }
+        }
+    }
+
     private void ClearCurrentShelfInventory()
     {
         for (int i = 0;
@@ -362,11 +493,31 @@ public class SaveManager : MonoBehaviour
         }
         else
         {
+            ClearCurrentShelfInventory();
+
             Debug.Log(
                 "Older progression save loaded. "
                 + "Shelf inventory was not restored "
                 + "because that save predates "
                 + "inventory persistence."
+            );
+        }
+
+        if (saveData.saveVersion >= 3)
+        {
+            RestoreDeliveryZone(
+                saveData.deliveries
+            );
+        }
+        else
+        {
+            deliveryZone
+                .ClearAllDeliveriesForLoad();
+
+            Debug.Log(
+                "Older save loaded. Delivery boxes "
+                + "were not restored because that "
+                + "save predates delivery persistence."
             );
         }
 
@@ -396,16 +547,6 @@ public class SaveManager : MonoBehaviour
             Debug.LogWarning(
                 "Save/Load blocked: put down or "
                 + "stock the item in your hands first."
-            );
-
-            return false;
-        }
-
-        if (deliveryZone.ActiveDeliveryCount > 0)
-        {
-            Debug.LogWarning(
-                "Save/Load blocked: clear the "
-                + "Delivery Zone first."
             );
 
             return false;
@@ -452,6 +593,11 @@ public class SaveManager : MonoBehaviour
         }
 
         if (deliveryZone == null)
+        {
+            return false;
+        }
+
+        if (deliveryBoxPrefab == null)
         {
             return false;
         }

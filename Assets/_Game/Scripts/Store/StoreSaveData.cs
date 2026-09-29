@@ -16,4 +16,6 @@ public class StoreSaveData
         new List<string>();
 
     public List<ShelfSlotSaveData> shelfSlots;
+
+    public List<DeliveryBoxSaveData> deliveries;
 }

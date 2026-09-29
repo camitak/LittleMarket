@@ -44,6 +44,19 @@ public class DeliveryZone : MonoBehaviour
         }
     }
 
+    public int DeliverySlotCount
+    {
+        get
+        {
+            if (deliverySlots == null)
+            {
+                return 0;
+            }
+
+            return deliverySlots.Length;
+        }
+    }
+
     private void Awake()
     {
         int slotCount = 0;
@@ -56,6 +69,26 @@ public class DeliveryZone : MonoBehaviour
 
         activeDeliveries =
             new DeliveryBox[slotCount];
+    }
+
+    public DeliveryBox GetActiveDelivery(
+        int slotIndex
+    )
+    {
+        if (activeDeliveries == null)
+        {
+            return null;
+        }
+
+        if (slotIndex < 0 ||
+            slotIndex >= activeDeliveries.Length)
+        {
+            return null;
+        }
+
+        return activeDeliveries[
+            slotIndex
+        ];
     }
 
     public bool TryCreateDelivery(
@@ -109,6 +142,105 @@ public class DeliveryZone : MonoBehaviour
             createdDelivery;
 
         return true;
+    }
+
+    public bool TryRestoreDelivery(
+        DeliveryBox deliveryBoxPrefab,
+        int slotIndex,
+        ProductData productData,
+        int quantity,
+        bool isOpen,
+        out DeliveryBox createdDelivery
+    )
+    {
+        createdDelivery = null;
+
+        if (deliveryBoxPrefab == null)
+        {
+            return false;
+        }
+
+        if (productData == null)
+        {
+            return false;
+        }
+
+        if (quantity < 0)
+        {
+            return false;
+        }
+
+        if (deliverySlots == null ||
+            activeDeliveries == null)
+        {
+            return false;
+        }
+
+        if (slotIndex < 0 ||
+            slotIndex >= deliverySlots.Length)
+        {
+            return false;
+        }
+
+        Transform deliverySlot =
+            deliverySlots[slotIndex];
+
+        if (deliverySlot == null)
+        {
+            return false;
+        }
+
+        if (activeDeliveries[slotIndex]
+            != null)
+        {
+            return false;
+        }
+
+        createdDelivery =
+            Instantiate(
+                deliveryBoxPrefab,
+                deliverySlot.position,
+                deliverySlot.rotation
+            );
+
+        createdDelivery.RestoreState(
+            productData,
+            quantity,
+            isOpen
+        );
+
+        activeDeliveries[slotIndex] =
+            createdDelivery;
+
+        return true;
+    }
+
+    public void ClearAllDeliveriesForLoad()
+    {
+        if (activeDeliveries == null)
+        {
+            return;
+        }
+
+        for (int i = 0;
+             i < activeDeliveries.Length;
+             i++)
+        {
+            DeliveryBox delivery =
+                activeDeliveries[i];
+
+            activeDeliveries[i] =
+                null;
+
+            if (delivery == null)
+            {
+                continue;
+            }
+
+            Destroy(
+                delivery.gameObject
+            );
+        }
     }
 
     private int FindAvailableSlotIndex()

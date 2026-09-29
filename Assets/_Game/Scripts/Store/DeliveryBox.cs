@@ -1,17 +1,31 @@
 using UnityEngine;
 
-public class DeliveryBox : MonoBehaviour, IInteractable
+public class DeliveryBox :
+    MonoBehaviour,
+    IInteractable
 {
     [Header("Contents")]
-    [SerializeField] private ProductData productData;
+    [SerializeField]
+    private ProductData productData;
 
     [Min(0)]
-    [SerializeField] private int quantity = 4;
+    [SerializeField]
+    private int quantity = 4;
 
     [Header("References")]
-    [SerializeField] private Transform spawnPoint;
+    [SerializeField]
+    private Transform spawnPoint;
 
     private bool isOpen;
+
+    public ProductData ProductData =>
+        productData;
+
+    public int RemainingQuantity =>
+        quantity;
+
+    public bool IsOpen =>
+        isOpen;
 
     public string GetInteractionPrompt(
         PlayerInteraction player
@@ -71,7 +85,9 @@ public class DeliveryBox : MonoBehaviour, IInteractable
                 return;
             }
 
-            Destroy(gameObject);
+            Destroy(
+                gameObject
+            );
 
             return;
         }
@@ -91,7 +107,9 @@ public class DeliveryBox : MonoBehaviour, IInteractable
             return;
         }
 
-        DispenseItem(player);
+        DispenseItem(
+            player
+        );
     }
 
     private void OpenBox()
@@ -132,7 +150,21 @@ public class DeliveryBox : MonoBehaviour, IInteractable
         int newQuantity
     )
     {
-        productData = newProductData;
+        RestoreState(
+            newProductData,
+            newQuantity,
+            false
+        );
+    }
+
+    public void RestoreState(
+        ProductData newProductData,
+        int newQuantity,
+        bool newIsOpen
+    )
+    {
+        productData =
+            newProductData;
 
         quantity =
             Mathf.Max(
@@ -140,6 +172,7 @@ public class DeliveryBox : MonoBehaviour, IInteractable
                 newQuantity
             );
 
-        isOpen = false;
+        isOpen =
+            newIsOpen;
     }
 }

@@ -4941,6 +4941,7 @@ MonoBehaviour:
   customerFlow: {fileID: 1117834531}
   shelfRegistry: {fileID: 1117834529}
   deliveryZone: {fileID: 43201577}
+  deliveryBoxPrefab: {fileID: 2451739325236826120, guid: d6fd02bc723a5674ebd36140829485fc, type: 3}
   playerInteraction: {fileID: 1349577615}
 --- !u!1 &1149754932
 GameObject:
