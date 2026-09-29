@@ -129,6 +129,27 @@ public class StoreReputation : MonoBehaviour
             value * 10f
         ) / 10f;
     }
+    
+    public void SetReputation(
+        float newReputation
+    )
+    {
+        currentReputation =
+            Mathf.Clamp(
+                newReputation,
+                0f,
+                100f
+            );
+
+        currentReputation =
+            RoundToOneDecimal(
+                currentReputation
+            );
+
+        lastDailyChange = 0f;
+
+        UpdateReputationUI();
+    }
 
     private void UpdateReputationUI()
     {

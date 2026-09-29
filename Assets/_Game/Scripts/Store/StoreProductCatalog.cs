@@ -22,7 +22,9 @@ public class StoreProductCatalog : ScriptableObject
         }
     }
 
-    public ProductData GetProduct(int index)
+    public ProductData GetProduct(
+        int index
+    )
     {
         if (products == null)
         {
@@ -36,5 +38,45 @@ public class StoreProductCatalog : ScriptableObject
         }
 
         return products[index];
+    }
+
+    public ProductData FindProductByID(
+        string productID
+    )
+    {
+        if (products == null)
+        {
+            return null;
+        }
+
+        if (string.IsNullOrEmpty(
+                productID
+            ))
+        {
+            return null;
+        }
+
+        for (int i = 0;
+             i < products.Length;
+             i++)
+        {
+            ProductData product =
+                products[i];
+
+            if (product == null)
+            {
+                continue;
+            }
+
+            if (product.ProductID
+                != productID)
+            {
+                continue;
+            }
+
+            return product;
+        }
+
+        return null;
     }
 }

@@ -4764,6 +4764,7 @@ GameObject:
   - component: {fileID: 1117834533}
   - component: {fileID: 1117834534}
   - component: {fileID: 1117834535}
+  - component: {fileID: 1117834536}
   m_Layer: 0
   m_Name: StoreSystems
   m_TagString: Untagged
@@ -4904,6 +4905,24 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::StoreProgression
   productCatalog: {fileID: 11400000, guid: 337a8c40cc0f63040800a898d3e043ac, type: 2}
   storeReputation: {fileID: 1117834534}
+--- !u!114 &1117834536
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1117834526}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 16bde7c25c90ab44fb07b2d8675aec56, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SaveManager
+  storeClock: {fileID: 1117834532}
+  storeEconomy: {fileID: 1117834528}
+  storeReputation: {fileID: 1117834534}
+  storeProgression: {fileID: 1117834535}
+  dailyStats: {fileID: 1117834533}
+  customerFlow: {fileID: 1117834531}
 --- !u!1 &1149754932
 GameObject:
   m_ObjectHideFlags: 0

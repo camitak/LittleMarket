@@ -4,25 +4,35 @@ using UnityEngine;
 public class StoreEconomy : MonoBehaviour
 {
     [Header("Money")]
-    [SerializeField] private float startingMoney = 100f;
+    [Min(0f)]
+    [SerializeField]
+    private float startingMoney = 100f;
 
     [Header("UI")]
-    [SerializeField] private TMP_Text moneyText;
+    [SerializeField]
+    private TMP_Text moneyText;
 
     private float currentMoney;
 
-    public float CurrentMoney => currentMoney;
+    public float CurrentMoney =>
+        currentMoney;
 
     private void Awake()
     {
-        currentMoney = startingMoney;
+        currentMoney =
+            Mathf.Max(
+                0f,
+                startingMoney
+            );
 
         UpdateMoneyUI();
     }
 
-    public bool TrySpend(float amount)
+    public bool TrySpend(
+        float amount
+    )
     {
-        if (amount < 0f)
+        if (amount <= 0f)
         {
             return false;
         }
@@ -39,7 +49,9 @@ public class StoreEconomy : MonoBehaviour
         return true;
     }
 
-    public void AddMoney(float amount)
+    public void AddMoney(
+        float amount
+    )
     {
         if (amount <= 0f)
         {
@@ -51,6 +63,19 @@ public class StoreEconomy : MonoBehaviour
         UpdateMoneyUI();
     }
 
+    public void SetMoney(
+        float newMoney
+    )
+    {
+        currentMoney =
+            Mathf.Max(
+                0f,
+                newMoney
+            );
+
+        UpdateMoneyUI();
+    }
+
     private void UpdateMoneyUI()
     {
         if (moneyText == null)
@@ -58,6 +83,8 @@ public class StoreEconomy : MonoBehaviour
             return;
         }
 
-        moneyText.text = "£" + currentMoney.ToString("0.00");
+        moneyText.text =
+            "£"
+            + currentMoney.ToString("0.00");
     }
 }

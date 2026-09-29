@@ -149,6 +149,19 @@ public class StoreClock : MonoBehaviour
 
         ResetClockToStartTime();
     }
+    
+    public void LoadDay(
+        int day
+    )
+    {
+        currentDay =
+            Mathf.Max(
+                1,
+                day
+            );
+
+        ResetClockToStartTime();
+    }
 
     private void ResetClockToStartTime()
     {

@@ -60,6 +60,8 @@ public class StoreProgression : MonoBehaviour
         int index
     )
     {
+        EnsureInitialized();
+
         if (index < 0 ||
             index >= unlockedProducts.Count)
         {
@@ -86,6 +88,8 @@ public class StoreProgression : MonoBehaviour
         ProductData productData
     )
     {
+        EnsureInitialized();
+
         if (productData == null)
         {
             return false;
@@ -94,6 +98,88 @@ public class StoreProgression : MonoBehaviour
         return unlockedProducts.Contains(
             productData
         );
+    }
+
+    public List<string> GetUnlockedProductIDs()
+    {
+        EnsureInitialized();
+
+        List<string> ids =
+            new List<string>();
+
+        for (int i = 0;
+             i < unlockedProducts.Count;
+             i++)
+        {
+            ProductData product =
+                unlockedProducts[i];
+
+            if (product == null)
+            {
+                continue;
+            }
+
+            if (string.IsNullOrEmpty(
+                    product.ProductID
+                ))
+            {
+                continue;
+            }
+
+            ids.Add(
+                product.ProductID
+            );
+        }
+
+        return ids;
+    }
+
+    public void RestoreUnlockedProducts(
+        List<string> productIDs
+    )
+    {
+        EnsureInitialized();
+
+        unlockedProducts.Clear();
+
+        lastNewUnlocks.Clear();
+
+        if (productCatalog == null)
+        {
+            return;
+        }
+
+        if (productIDs != null)
+        {
+            for (int i = 0;
+                 i < productIDs.Count;
+                 i++)
+            {
+                ProductData product =
+                    productCatalog
+                        .FindProductByID(
+                            productIDs[i]
+                        );
+
+                if (product == null)
+                {
+                    continue;
+                }
+
+                if (unlockedProducts.Contains(
+                        product
+                    ))
+                {
+                    continue;
+                }
+
+                unlockedProducts.Add(
+                    product
+                );
+            }
+        }
+
+        EnsureStarterProductsUnlocked();
     }
 
     public void RefreshUnlocks()
@@ -184,6 +270,43 @@ public class StoreProgression : MonoBehaviour
 
             if (storeReputation.CurrentReputation
                 < product.RequiredReputation)
+            {
+                continue;
+            }
+
+            unlockedProducts.Add(
+                product
+            );
+        }
+    }
+
+    private void EnsureStarterProductsUnlocked()
+    {
+        if (productCatalog == null)
+        {
+            return;
+        }
+
+        for (int i = 0;
+             i < productCatalog.ProductCount;
+             i++)
+        {
+            ProductData product =
+                productCatalog.GetProduct(i);
+
+            if (product == null)
+            {
+                continue;
+            }
+
+            if (product.RequiredReputation > 0f)
+            {
+                continue;
+            }
+
+            if (unlockedProducts.Contains(
+                    product
+                ))
             {
                 continue;
             }
