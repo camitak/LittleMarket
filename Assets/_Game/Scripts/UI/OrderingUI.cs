@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -20,9 +21,9 @@ public class OrderingUI : MonoBehaviour
     [SerializeField]
     private OrderingProductRow productRowPrefab;
 
-    [Header("Catalog")]
+    [Header("Progression")]
     [SerializeField]
-    private StoreProductCatalog productCatalog;
+    private StoreProgression storeProgression;
 
     [Header("Order")]
     [Min(1)]
@@ -52,9 +53,13 @@ public class OrderingUI : MonoBehaviour
     [SerializeField]
     private InteractionUI interactionUI;
 
+    private List<OrderingProductRow> spawnedRows =
+        new List<OrderingProductRow>();
+
     private bool isOpen;
 
-    public bool IsOpen => isOpen;
+    public bool IsOpen =>
+        isOpen;
 
     private void Awake()
     {
@@ -62,9 +67,9 @@ public class OrderingUI : MonoBehaviour
             Close
         );
 
-        BuildCatalogRows();
-
-        orderingPanel.SetActive(false);
+        orderingPanel.SetActive(
+            false
+        );
     }
 
     public void Open()
@@ -76,19 +81,27 @@ public class OrderingUI : MonoBehaviour
 
         isOpen = true;
 
+        RebuildCatalogRows();
+
         statusText.text = "";
 
-        orderingPanel.SetActive(true);
+        orderingPanel.SetActive(
+            true
+        );
 
         interactionUI.HidePrompt();
 
-        playerController.enabled = false;
-        playerInteraction.enabled = false;
+        playerController.enabled =
+            false;
+
+        playerInteraction.enabled =
+            false;
 
         Cursor.lockState =
             CursorLockMode.None;
 
-        Cursor.visible = true;
+        Cursor.visible =
+            true;
     }
 
     public void Close()
@@ -100,19 +113,27 @@ public class OrderingUI : MonoBehaviour
 
         isOpen = false;
 
-        orderingPanel.SetActive(false);
+        orderingPanel.SetActive(
+            false
+        );
 
-        playerController.enabled = true;
-        playerInteraction.enabled = true;
+        playerController.enabled =
+            true;
+
+        playerInteraction.enabled =
+            true;
 
         Cursor.lockState =
             CursorLockMode.Locked;
 
-        Cursor.visible = false;
+        Cursor.visible =
+            false;
     }
 
-    private void BuildCatalogRows()
+    private void RebuildCatalogRows()
     {
+        ClearSpawnedRows();
+
         if (productListContent == null)
         {
             return;
@@ -123,19 +144,21 @@ public class OrderingUI : MonoBehaviour
             return;
         }
 
-        if (productCatalog == null)
+        if (storeProgression == null)
         {
             return;
         }
 
         for (int i = 0;
-             i < productCatalog.ProductCount;
+             i < storeProgression.CatalogProductCount;
              i++)
         {
-            ProductData productData =
-                productCatalog.GetProduct(i);
+            ProductData product =
+                storeProgression.GetCatalogProduct(
+                    i
+                );
 
-            if (productData == null)
+            if (product == null)
             {
                 continue;
             }
@@ -146,12 +169,57 @@ public class OrderingUI : MonoBehaviour
                     productListContent
                 );
 
-            newRow.Configure(
-                productData,
-                quantityPerBox,
-                OrderProduct
+            spawnedRows.Add(
+                newRow
+            );
+
+            bool isUnlocked =
+                storeProgression
+                    .IsProductUnlocked(
+                        product
+                    );
+
+            if (isUnlocked)
+            {
+                newRow.Configure(
+                    product,
+                    quantityPerBox,
+                    OrderProduct
+                );
+            }
+            else
+            {
+                newRow.ConfigureLocked(
+                    product
+                );
+            }
+        }
+    }
+
+    private void ClearSpawnedRows()
+    {
+        for (int i = 0;
+             i < spawnedRows.Count;
+             i++)
+        {
+            OrderingProductRow row =
+                spawnedRows[i];
+
+            if (row == null)
+            {
+                continue;
+            }
+
+            row.gameObject.SetActive(
+                false
+            );
+
+            Destroy(
+                row.gameObject
             );
         }
+
+        spawnedRows.Clear();
     }
 
     private void OrderProduct(
@@ -162,6 +230,24 @@ public class OrderingUI : MonoBehaviour
         {
             statusText.text =
                 "Product not configured.";
+
+            return;
+        }
+
+        if (storeProgression == null)
+        {
+            statusText.text =
+                "Store progression not configured.";
+
+            return;
+        }
+
+        if (!storeProgression.IsProductUnlocked(
+                productData
+            ))
+        {
+            statusText.text =
+                "This product is still locked.";
 
             return;
         }

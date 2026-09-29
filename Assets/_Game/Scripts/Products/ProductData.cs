@@ -7,34 +7,62 @@ using UnityEngine;
 public class ProductData : ScriptableObject
 {
     [Header("Basic Information")]
-    [SerializeField] private string productName = "New Product";
-    [SerializeField] private string productID = "product_id";
-    [SerializeField] private ProductCategory category;
-    [SerializeField] private Sprite icon;
+    [SerializeField]
+    private string productName = "New Product";
+
+    [SerializeField]
+    private string productID = "product_id";
+
+    [SerializeField]
+    private ProductCategory category;
+
+    [SerializeField]
+    private Sprite icon;
+
     [TextArea]
-    [SerializeField] private string description; 
+    [SerializeField]
+    private string description;
 
     [Header("World")]
-    [SerializeField] private PickupItem worldPrefab;
-    
+    [SerializeField]
+    private PickupItem worldPrefab;
 
     [Header("Economy")]
-    [SerializeField] private float buyPrice = 1f;
-    [SerializeField] private float sellPrice = 2f;
+    [SerializeField]
+    private float buyPrice = 1f;
 
-    public string ProductName => productName;
+    [SerializeField]
+    private float sellPrice = 2f;
 
-    public string ProductID => productID;
+    [Header("Progression")]
+    [Range(0f, 100f)]
+    [SerializeField]
+    private float requiredReputation = 0f;
 
-    public ProductCategory Category => category;
+    public string ProductName =>
+        productName;
 
-    public Sprite Icon => icon;
+    public string ProductID =>
+        productID;
 
-    public string Description => description;
-    
-    public PickupItem WorldPrefab => worldPrefab;
+    public ProductCategory Category =>
+        category;
 
-    public float BuyPrice => buyPrice;
+    public Sprite Icon =>
+        icon;
 
-    public float SellPrice => sellPrice;
+    public string Description =>
+        description;
+
+    public PickupItem WorldPrefab =>
+        worldPrefab;
+
+    public float BuyPrice =>
+        buyPrice;
+
+    public float SellPrice =>
+        sellPrice;
+
+    public float RequiredReputation =>
+        requiredReputation;
 }

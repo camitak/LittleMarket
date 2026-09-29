@@ -29,6 +29,9 @@ public class EndOfDayUI : MonoBehaviour
     private TMP_Text reputationResultText;
 
     [SerializeField]
+    private TMP_Text unlockText;
+
+    [SerializeField]
     private TMP_Text missedProductsText;
 
     [SerializeField]
@@ -59,6 +62,9 @@ public class EndOfDayUI : MonoBehaviour
 
     [SerializeField]
     private StoreReputation storeReputation;
+
+    [SerializeField]
+    private StoreProgression storeProgression;
 
     [SerializeField]
     private CustomerFlow customerFlow;
@@ -108,6 +114,14 @@ public class EndOfDayUI : MonoBehaviour
             122,
             104,
             96,
+            255
+        );
+
+    private static readonly Color32 UnlockColor =
+        new Color32(
+            143,
+            197,
+            232,
             255
         );
 
@@ -167,6 +181,11 @@ public class EndOfDayUI : MonoBehaviour
             );
         }
 
+        if (storeProgression != null)
+        {
+            storeProgression.RefreshUnlocks();
+        }
+
         UpdateSummaryText();
 
         endOfDayPanel.SetActive(
@@ -206,6 +225,8 @@ public class EndOfDayUI : MonoBehaviour
         UpdateCustomerText();
 
         UpdateReputationText();
+
+        UpdateUnlockText();
 
         endingCashText.text =
             "Ending Cash     £"
@@ -385,6 +406,66 @@ public class EndOfDayUI : MonoBehaviour
             + " / 100 ("
             + changeText
             + ")";
+    }
+
+    private void UpdateUnlockText()
+    {
+        if (storeProgression == null)
+        {
+            unlockText.text =
+                "New Unlocks     Not configured";
+
+            unlockText.color =
+                NeutralColor;
+
+            return;
+        }
+
+        if (storeProgression.LastNewUnlockCount <= 0)
+        {
+            unlockText.text =
+                "New Unlocks     None";
+
+            unlockText.color =
+                UnlockColor;
+
+            return;
+        }
+
+        if (storeProgression.LastNewUnlockCount == 1)
+        {
+            ProductData unlockedProduct =
+                storeProgression
+                    .GetLastNewUnlock(0);
+
+            if (unlockedProduct == null)
+            {
+                unlockText.text =
+                    "New Unlocks     None";
+
+                unlockText.color =
+                    UnlockColor;
+
+                return;
+            }
+
+            unlockText.text =
+                "NEW PRODUCT UNLOCKED     "
+                + unlockedProduct.ProductName;
+
+            unlockText.color =
+                PositiveColor;
+
+            return;
+        }
+
+        unlockText.text =
+            "NEW PRODUCTS UNLOCKED     "
+            + storeProgression
+                .LastNewUnlockCount;
+
+        unlockText.color =
+            PositiveColor;
     }
 
     private void StartNextDay()

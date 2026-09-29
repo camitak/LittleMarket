@@ -28,6 +28,10 @@ public class OrderingProductRow : MonoBehaviour
 
         orderButton.onClick.RemoveAllListeners();
 
+        SetButtonLabel(
+            "ORDER"
+        );
+
         if (productData == null)
         {
             ShowUnconfiguredState();
@@ -48,7 +52,8 @@ public class OrderingProductRow : MonoBehaviour
             + " - £"
             + orderCost.ToString("0.00");
 
-        orderButton.interactable = true;
+        orderButton.interactable =
+            true;
 
         orderButton.onClick.AddListener(
             () =>
@@ -60,6 +65,38 @@ public class OrderingProductRow : MonoBehaviour
         );
     }
 
+    public void ConfigureLocked(
+        ProductData lockedProduct
+    )
+    {
+        productData =
+            lockedProduct;
+
+        orderButton.onClick.RemoveAllListeners();
+
+        if (productData == null)
+        {
+            ShowUnconfiguredState();
+
+            return;
+        }
+
+        productNameText.text =
+            productData.ProductName;
+
+        priceText.text =
+            "Unlock at REP "
+            + productData.RequiredReputation
+                .ToString("0");
+
+        orderButton.interactable =
+            false;
+
+        SetButtonLabel(
+            "LOCKED"
+        );
+    }
+
     private void ShowUnconfiguredState()
     {
         productNameText.text =
@@ -67,6 +104,30 @@ public class OrderingProductRow : MonoBehaviour
 
         priceText.text = "";
 
-        orderButton.interactable = false;
+        orderButton.interactable =
+            false;
+
+        SetButtonLabel(
+            "LOCKED"
+        );
+    }
+
+    private void SetButtonLabel(
+        string label
+    )
+    {
+        TMP_Text buttonText =
+            orderButton
+                .GetComponentInChildren<
+                    TMP_Text
+                >();
+
+        if (buttonText == null)
+        {
+            return;
+        }
+
+        buttonText.text =
+            label;
     }
 }

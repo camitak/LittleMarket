@@ -7,9 +7,6 @@ public class CustomerFlow : MonoBehaviour
     [SerializeField]
     private CustomerController customerPrefab;
 
-    [SerializeField]
-    private StoreProductCatalog productCatalog;
-
     [Header("Spawn Timing")]
     [Min(0f)]
     [SerializeField]
@@ -46,6 +43,9 @@ public class CustomerFlow : MonoBehaviour
 
     [SerializeField]
     private StoreReputation storeReputation;
+
+    [SerializeField]
+    private StoreProgression storeProgression;
 
     [SerializeField]
     private ShelfRegistry shelfRegistry;
@@ -177,7 +177,7 @@ public class CustomerFlow : MonoBehaviour
              i++)
         {
             ProductData product =
-                GetRandomCatalogProduct();
+                GetRandomUnlockedProduct();
 
             if (product == null)
             {
@@ -191,47 +191,31 @@ public class CustomerFlow : MonoBehaviour
         return shoppingList;
     }
 
-    private ProductData GetRandomCatalogProduct()
+    private ProductData GetRandomUnlockedProduct()
     {
-        if (productCatalog == null)
+        if (storeProgression == null)
         {
             return null;
         }
 
         int productCount =
-            productCatalog.ProductCount;
+            storeProgression.UnlockedProductCount;
 
         if (productCount <= 0)
         {
             return null;
         }
 
-        int startIndex =
+        int randomIndex =
             Random.Range(
                 0,
                 productCount
             );
 
-        for (int offset = 0;
-             offset < productCount;
-             offset++)
-        {
-            int index =
-                (startIndex + offset)
-                % productCount;
-
-            ProductData product =
-                productCatalog.GetProduct(
-                    index
-                );
-
-            if (product != null)
-            {
-                return product;
-            }
-        }
-
-        return null;
+        return storeProgression
+            .GetUnlockedProduct(
+                randomIndex
+            );
     }
 
     private void RemoveDestroyedCustomers()
@@ -297,11 +281,6 @@ public class CustomerFlow : MonoBehaviour
             return false;
         }
 
-        if (!HasAtLeastOneProduct())
-        {
-            return false;
-        }
-
         if (storeClock == null)
         {
             return false;
@@ -313,6 +292,17 @@ public class CustomerFlow : MonoBehaviour
         }
 
         if (storeReputation == null)
+        {
+            return false;
+        }
+
+        if (storeProgression == null)
+        {
+            return false;
+        }
+
+        if (storeProgression
+            .UnlockedProductCount <= 0)
         {
             return false;
         }
@@ -338,26 +328,5 @@ public class CustomerFlow : MonoBehaviour
         }
 
         return true;
-    }
-
-    private bool HasAtLeastOneProduct()
-    {
-        if (productCatalog == null)
-        {
-            return false;
-        }
-
-        for (int i = 0;
-             i < productCatalog.ProductCount;
-             i++)
-        {
-            if (productCatalog.GetProduct(i)
-                != null)
-            {
-                return true;
-            }
-        }
-
-        return false;
     }
 }
