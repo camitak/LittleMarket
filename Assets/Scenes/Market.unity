@@ -4781,6 +4781,7 @@ GameObject:
   - component: {fileID: 1117834534}
   - component: {fileID: 1117834535}
   - component: {fileID: 1117834536}
+  - component: {fileID: 1117834537}
   m_Layer: 0
   m_Name: StoreSystems
   m_TagString: Untagged
@@ -4941,8 +4942,21 @@ MonoBehaviour:
   customerFlow: {fileID: 1117834531}
   shelfRegistry: {fileID: 1117834529}
   deliveryZone: {fileID: 43201577}
+  worldItemRegistry: {fileID: 1117834537}
   deliveryBoxPrefab: {fileID: 2451739325236826120, guid: d6fd02bc723a5674ebd36140829485fc, type: 3}
   playerInteraction: {fileID: 1349577615}
+--- !u!114 &1117834537
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1117834526}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e9ca5c10186802d47b183fde27a163fa, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::WorldItemRegistry
 --- !u!1 &1149754932
 GameObject:
   m_ObjectHideFlags: 0

@@ -22,4 +22,6 @@ public class StoreSaveData
     public List<DeliveryBoxSaveData> deliveries;
 
     public DailyStatsSaveData dailyStats;
+
+    public List<LooseProductSaveData> looseProducts;
 }

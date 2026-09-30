@@ -1,88 +1,211 @@
 using UnityEngine;
 
 [RequireComponent(typeof(Rigidbody))]
-public class PickupItem : MonoBehaviour, IInteractable
+public class PickupItem :
+    MonoBehaviour,
+    IInteractable
 {
     [Header("Product")]
-    [SerializeField] private ProductData productData;
+    [SerializeField]
+    private ProductData productData;
 
-    private Rigidbody rb;
+    private Rigidbody itemRigidbody;
 
-    // If this item is currently on a shelf,
-    // this remembers which slot owns it.
     private ShelfSlot currentShelfSlot;
+
+    private WorldItemRegistry worldItemRegistry;
+
+    public bool IsOnShelf =>
+        currentShelfSlot != null;
+
+    public bool IsLooseWorldItem
+    {
+        get
+        {
+            if (currentShelfSlot != null)
+            {
+                return false;
+            }
+
+            if (transform.parent != null)
+            {
+                return false;
+            }
+
+            return true;
+        }
+    }
 
     private void Awake()
     {
-        rb = GetComponent<Rigidbody>();
+        itemRigidbody =
+            GetComponent<Rigidbody>();
     }
 
-    public string GetInteractionPrompt(PlayerInteraction  player)
+    private void Start()
     {
-        if (player.GetHeldItem() != null)
-        {
-            return "Hands is full";
-        }
-
-        if (productData == null)
-        {
-            return "[E] Pick up Item";
-        }
-        
-        return "[E] Pick up " +  productData.ProductName;
+        FindAndRegisterWithWorldItemRegistry();
     }
 
-    public void Interact(PlayerInteraction player)
+    private void OnDestroy()
     {
-        player.TryPickUp(this);
-    }
-
-    public void PickUp(Transform holdPoint)
-    {
-        LeaveShelfIfNeeded();
-
-        rb.useGravity = false;
-        rb.isKinematic = true;
-
-        transform.SetParent(holdPoint);
-
-        transform.localPosition = Vector3.zero;
-        transform.localRotation = Quaternion.identity;
-    }
-
-    public void Drop()
-    {
-        transform.SetParent(null);
-
-        rb.isKinematic = false;
-        rb.useGravity = true;
-    }
-
-    public void PlaceOnShelf(ShelfSlot shelfSlot)
-    {
-        currentShelfSlot = shelfSlot;
-
-        rb.isKinematic = true;
-        rb.useGravity = false;
-
-        transform.SetParent(shelfSlot.transform);
-
-        transform.localPosition = Vector3.zero;
-        transform.localRotation = Quaternion.identity;
-    }
-
-    private void LeaveShelfIfNeeded()
-    {
-        if (currentShelfSlot == null)
+        if (worldItemRegistry == null)
         {
             return;
         }
 
-        ShelfSlot previousSlot = currentShelfSlot;
+        worldItemRegistry.UnregisterItem(
+            this
+        );
+    }
 
-        currentShelfSlot = null;
+    private void FindAndRegisterWithWorldItemRegistry()
+    {
+        worldItemRegistry =
+            Object.FindAnyObjectByType<
+                WorldItemRegistry
+            >();
 
-        previousSlot.RemoveItem(this);
+        if (worldItemRegistry == null)
+        {
+            Debug.LogError(
+                "PickupItem '"
+                + gameObject.name
+                + "' could not find a "
+                + "WorldItemRegistry in the scene.",
+                this
+            );
+
+            return;
+        }
+
+        worldItemRegistry.RegisterItem(
+            this
+        );
+    }
+
+    public string GetInteractionPrompt(
+        PlayerInteraction player
+    )
+    {
+        if (player.GetHeldItem() != null)
+        {
+            return "Hands full";
+        }
+
+        return "[E] Pick up "
+               + GetItemName();
+    }
+
+    public void Interact(
+        PlayerInteraction player
+    )
+    {
+        if (player.GetHeldItem() != null)
+        {
+            return;
+        }
+
+        player.TryPickUp(
+            this
+        );
+    }
+
+    public void PickUp(
+        Transform holdPoint
+    )
+    {
+        if (holdPoint == null)
+        {
+            return;
+        }
+
+        LeaveShelfIfNeeded();
+
+        itemRigidbody.useGravity =
+            false;
+
+        itemRigidbody.isKinematic =
+            true;
+
+        transform.SetParent(
+            holdPoint
+        );
+
+        transform.localPosition =
+            Vector3.zero;
+
+        transform.localRotation =
+            Quaternion.identity;
+    }
+
+    public void Drop()
+    {
+        LeaveShelfIfNeeded();
+
+        transform.SetParent(
+            null
+        );
+
+        itemRigidbody.useGravity =
+            true;
+
+        itemRigidbody.isKinematic =
+            false;
+    }
+
+    public void PlaceOnShelf(
+        ShelfSlot shelfSlot
+    )
+    {
+        if (shelfSlot == null)
+        {
+            return;
+        }
+
+        LeaveShelfIfNeeded();
+
+        currentShelfSlot =
+            shelfSlot;
+
+        itemRigidbody.useGravity =
+            false;
+
+        itemRigidbody.isKinematic =
+            true;
+
+        transform.SetParent(
+            shelfSlot.transform
+        );
+
+        transform.localPosition =
+            Vector3.zero;
+
+        transform.localRotation =
+            Quaternion.identity;
+    }
+
+    public void RestoreAsLooseWorldItem(
+        Vector3 position,
+        Quaternion rotation
+    )
+    {
+        LeaveShelfIfNeeded();
+
+        transform.SetParent(
+            null
+        );
+
+        transform.SetPositionAndRotation(
+            position,
+            rotation
+        );
+
+        itemRigidbody.useGravity =
+            true;
+
+        itemRigidbody.isKinematic =
+            false;
     }
 
     public string GetItemName()
@@ -98,5 +221,23 @@ public class PickupItem : MonoBehaviour, IInteractable
     public ProductData GetProductData()
     {
         return productData;
+    }
+
+    private void LeaveShelfIfNeeded()
+    {
+        if (currentShelfSlot == null)
+        {
+            return;
+        }
+
+        ShelfSlot previousShelfSlot =
+            currentShelfSlot;
+
+        currentShelfSlot =
+            null;
+
+        previousShelfSlot.RemoveItem(
+            this
+        );
     }
 }

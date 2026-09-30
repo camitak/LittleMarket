@@ -5,7 +5,7 @@ using UnityEngine.InputSystem;
 
 public class SaveManager : MonoBehaviour
 {
-    private const int CurrentSaveVersion = 5;
+    private const int CurrentSaveVersion = 6;
 
     [Header("Store References")]
     [SerializeField]
@@ -31,6 +31,9 @@ public class SaveManager : MonoBehaviour
 
     [SerializeField]
     private DeliveryZone deliveryZone;
+
+    [SerializeField]
+    private WorldItemRegistry worldItemRegistry;
 
     [Header("Delivery")]
     [SerializeField]
@@ -114,6 +117,9 @@ public class SaveManager : MonoBehaviour
         saveData.dailyStats =
             dailyStats.CreateSaveData();
 
+        saveData.looseProducts =
+            BuildLooseProductSaveData();
+
         string json =
             JsonUtility.ToJson(
                 saveData,
@@ -133,9 +139,8 @@ public class SaveManager : MonoBehaviour
             + GetClockDebugText(
                 saveData.currentMinutes
             )
-            + ". Revenue today: £"
-            + saveData.dailyStats.revenue
-                .ToString("0.00")
+            + ". Loose products: "
+            + saveData.looseProducts.Count
             + ".\n"
             + SavePath
         );
@@ -202,9 +207,6 @@ public class SaveManager : MonoBehaviour
             + GetClockDebugText(
                 storeClock.CurrentMinutes
             )
-            + ". Revenue today: £"
-            + dailyStats.Revenue
-                .ToString("0.00")
             + "."
         );
     }
@@ -324,6 +326,66 @@ public class SaveManager : MonoBehaviour
         }
 
         return savedDeliveries;
+    }
+
+    private List<LooseProductSaveData>
+        BuildLooseProductSaveData()
+    {
+        List<LooseProductSaveData> savedProducts =
+            new List<LooseProductSaveData>();
+
+        for (int i = 0;
+             i < worldItemRegistry.RegisteredItemCount;
+             i++)
+        {
+            PickupItem item =
+                worldItemRegistry.GetRegisteredItem(
+                    i
+                );
+
+            if (item == null)
+            {
+                continue;
+            }
+
+            if (!item.IsLooseWorldItem)
+            {
+                continue;
+            }
+
+            ProductData productData =
+                item.GetProductData();
+
+            if (productData == null)
+            {
+                continue;
+            }
+
+            if (string.IsNullOrWhiteSpace(
+                    productData.ProductID
+                ))
+            {
+                continue;
+            }
+
+            LooseProductSaveData productSaveData =
+                new LooseProductSaveData();
+
+            productSaveData.productID =
+                productData.ProductID;
+
+            productSaveData.position =
+                item.transform.position;
+
+            productSaveData.rotation =
+                item.transform.rotation;
+
+            savedProducts.Add(
+                productSaveData
+            );
+        }
+
+        return savedProducts;
     }
 
     private void RestoreShelfInventory(
@@ -468,6 +530,67 @@ public class SaveManager : MonoBehaviour
         }
     }
 
+    private void RestoreLooseProducts(
+        List<LooseProductSaveData> savedProducts
+    )
+    {
+        worldItemRegistry
+            .ClearLooseWorldItemsForLoad();
+
+        if (savedProducts == null)
+        {
+            return;
+        }
+
+        for (int i = 0;
+             i < savedProducts.Count;
+             i++)
+        {
+            LooseProductSaveData productSaveData =
+                savedProducts[i];
+
+            if (productSaveData == null)
+            {
+                continue;
+            }
+
+            ProductData productData =
+                storeProgression
+                    .FindCatalogProductByID(
+                        productSaveData.productID
+                    );
+
+            if (productData == null)
+            {
+                Debug.LogWarning(
+                    "Saved loose product ID '"
+                    + productSaveData.productID
+                    + "' does not exist "
+                    + "in the current catalog."
+                );
+
+                continue;
+            }
+
+            bool restored =
+                worldItemRegistry
+                    .RestoreLooseProduct(
+                        productData,
+                        productSaveData.position,
+                        productSaveData.rotation
+                    );
+
+            if (!restored)
+            {
+                Debug.LogWarning(
+                    "Could not restore loose product '"
+                    + productSaveData.productID
+                    + "'."
+                );
+            }
+        }
+    }
+
     private void ClearCurrentShelfInventory()
     {
         for (int i = 0;
@@ -538,6 +661,24 @@ public class SaveManager : MonoBehaviour
                 "Older save loaded. Delivery boxes "
                 + "were not restored because that "
                 + "save predates delivery persistence."
+            );
+        }
+
+        if (saveData.saveVersion >= 6)
+        {
+            RestoreLooseProducts(
+                saveData.looseProducts
+            );
+        }
+        else
+        {
+            worldItemRegistry
+                .ClearLooseWorldItemsForLoad();
+
+            Debug.Log(
+                "Older save loaded. Loose products "
+                + "were cleared because that save "
+                + "predates loose-product persistence."
             );
         }
 
@@ -676,6 +817,11 @@ public class SaveManager : MonoBehaviour
         }
 
         if (deliveryZone == null)
+        {
+            return false;
+        }
+
+        if (worldItemRegistry == null)
         {
             return false;
         }
