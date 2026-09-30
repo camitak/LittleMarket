@@ -1,7 +1,6 @@
 using System.Collections.Generic;
 using System.IO;
 using UnityEngine;
-using UnityEngine.InputSystem;
 
 public class SaveManager : MonoBehaviour
 {
@@ -43,47 +42,41 @@ public class SaveManager : MonoBehaviour
     [SerializeField]
     private PlayerInteraction playerInteraction;
 
+    public string LastOperationMessage
+    {
+        get;
+        private set;
+    } = "";
+
+    public bool HasSaveFile =>
+        File.Exists(
+            SavePath
+        );
+
     private string SavePath =>
         Path.Combine(
             Application.persistentDataPath,
             "little_market_save.json"
         );
 
-    private void Update()
-    {
-        if (Keyboard.current == null)
-        {
-            return;
-        }
-
-        if (Keyboard.current.f5Key
-            .wasPressedThisFrame)
-        {
-            SaveGame();
-        }
-
-        if (Keyboard.current.f9Key
-            .wasPressedThisFrame)
-        {
-            LoadGame();
-        }
-    }
-
-    public void SaveGame()
+    public bool SaveGame()
     {
         if (!HasValidConfiguration())
         {
+            LastOperationMessage =
+                "Save system is not configured.";
+
             Debug.LogError(
-                "SaveManager is not fully configured.",
+                LastOperationMessage,
                 this
             );
 
-            return;
+            return false;
         }
 
         if (!CanUseSaveSystemNow())
         {
-            return;
+            return false;
         }
 
         StoreSaveData saveData =
@@ -131,6 +124,9 @@ public class SaveManager : MonoBehaviour
             json
         );
 
+        LastOperationMessage =
+            "Game saved successfully.";
+
         Debug.Log(
             "Little Market saved "
             + "(version "
@@ -144,34 +140,42 @@ public class SaveManager : MonoBehaviour
             + ".\n"
             + SavePath
         );
+
+        return true;
     }
 
-    public void LoadGame()
+    public bool LoadGame()
     {
         if (!HasValidConfiguration())
         {
+            LastOperationMessage =
+                "Save system is not configured.";
+
             Debug.LogError(
-                "SaveManager is not fully configured.",
+                LastOperationMessage,
                 this
             );
 
-            return;
+            return false;
         }
 
         if (!CanUseSaveSystemNow())
         {
-            return;
+            return false;
         }
 
         if (!File.Exists(
                 SavePath
             ))
         {
+            LastOperationMessage =
+                "No saved game exists yet.";
+
             Debug.LogWarning(
-                "No Little Market save file exists yet."
+                LastOperationMessage
             );
 
-            return;
+            return false;
         }
 
         string json =
@@ -188,16 +192,22 @@ public class SaveManager : MonoBehaviour
 
         if (saveData == null)
         {
+            LastOperationMessage =
+                "The save file could not be read.";
+
             Debug.LogError(
-                "Could not read Little Market save data."
+                LastOperationMessage
             );
 
-            return;
+            return false;
         }
 
         ApplySaveData(
             saveData
         );
+
+        LastOperationMessage =
+            "Game loaded successfully.";
 
         Debug.Log(
             "Little Market save loaded. "
@@ -209,6 +219,8 @@ public class SaveManager : MonoBehaviour
             )
             + "."
         );
+
+        return true;
     }
 
     private List<ShelfSlotSaveData>
@@ -727,10 +739,11 @@ public class SaveManager : MonoBehaviour
     {
         if (storeClock.HasDayEnded)
         {
+            LastOperationMessage =
+                "Start the next day before saving or loading.";
+
             Debug.LogWarning(
-                "Save/Load blocked after the day "
-                + "has ended. Start the next day "
-                + "before using the manual save system."
+                LastOperationMessage
             );
 
             return false;
@@ -738,9 +751,11 @@ public class SaveManager : MonoBehaviour
 
         if (customerFlow.ActiveCustomerCount > 0)
         {
+            LastOperationMessage =
+                "Wait until all customers have left.";
+
             Debug.LogWarning(
-                "Save/Load blocked: wait until "
-                + "all customers have left."
+                LastOperationMessage
             );
 
             return false;
@@ -748,9 +763,11 @@ public class SaveManager : MonoBehaviour
 
         if (playerInteraction.GetHeldItem() != null)
         {
+            LastOperationMessage =
+                "Put away the item in your hands first.";
+
             Debug.LogWarning(
-                "Save/Load blocked: put down or "
-                + "stock the item in your hands first."
+                LastOperationMessage
             );
 
             return false;

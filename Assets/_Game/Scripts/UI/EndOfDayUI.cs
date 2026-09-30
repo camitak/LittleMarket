@@ -84,6 +84,8 @@ public class EndOfDayUI : MonoBehaviour
     private PlayerInteraction playerInteraction;
 
     private bool summaryShown;
+    
+    public bool IsOpen => summaryShown;
 
     private static readonly Color32 PositiveColor =
         new Color32(
