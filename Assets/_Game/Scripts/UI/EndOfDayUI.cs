@@ -32,6 +32,9 @@ public class EndOfDayUI : MonoBehaviour
     private TMP_Text unlockText;
 
     [SerializeField]
+    private TMP_Text goalResultsText;
+
+    [SerializeField]
     private TMP_Text missedProductsText;
 
     [SerializeField]
@@ -67,6 +70,9 @@ public class EndOfDayUI : MonoBehaviour
     private StoreProgression storeProgression;
 
     [SerializeField]
+    private StoreGoals storeGoals;
+
+    [SerializeField]
     private CustomerFlow customerFlow;
 
     [Header("Other UI")]
@@ -84,8 +90,9 @@ public class EndOfDayUI : MonoBehaviour
     private PlayerInteraction playerInteraction;
 
     private bool summaryShown;
-    
-    public bool IsOpen => summaryShown;
+
+    public bool IsOpen =>
+        summaryShown;
 
     private static readonly Color32 PositiveColor =
         new Color32(
@@ -188,6 +195,11 @@ public class EndOfDayUI : MonoBehaviour
             storeProgression.RefreshUnlocks();
         }
 
+        if (storeGoals != null)
+        {
+            storeGoals.ClaimEndOfDayRewards();
+        }
+
         UpdateSummaryText();
 
         endOfDayPanel.SetActive(
@@ -229,6 +241,8 @@ public class EndOfDayUI : MonoBehaviour
         UpdateReputationText();
 
         UpdateUnlockText();
+
+        UpdateGoalResultsText();
 
         endingCashText.text =
             "Ending Cash     £"
@@ -470,12 +484,61 @@ public class EndOfDayUI : MonoBehaviour
             PositiveColor;
     }
 
+    private void UpdateGoalResultsText()
+    {
+        if (storeGoals == null)
+        {
+            goalResultsText.text =
+                "Daily Goals     Not configured";
+
+            goalResultsText.color =
+                NeutralColor;
+
+            return;
+        }
+
+        int completed =
+            storeGoals.CompletedGoalCount;
+
+        int total =
+            storeGoals.GoalCount;
+
+        string bonusSuffix = "";
+
+        if (storeGoals.AllGoalsBonusClaimed)
+        {
+            bonusSuffix =
+                "  •  ALL GOALS BONUS!";
+        }
+
+        goalResultsText.text =
+            "Daily Goals     "
+            + completed
+            + " / "
+            + total
+            + "\nGoal Rewards     +£"
+            + storeGoals
+                .TotalRewardsPaidToday
+                .ToString("0.00")
+            + bonusSuffix;
+
+        goalResultsText.color =
+            storeGoals.AllGoalsCompleted
+            ? PositiveColor
+            : NeutralColor;
+    }
+
     private void StartNextDay()
     {
         Time.timeScale =
             1f;
 
         dailyStats.ResetForNewDay();
+
+        if (storeGoals != null)
+        {
+            storeGoals.ResetForNewDay();
+        }
 
         storeClock.StartNextDay();
 

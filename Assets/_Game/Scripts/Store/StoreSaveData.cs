@@ -24,4 +24,6 @@ public class StoreSaveData
     public DailyStatsSaveData dailyStats;
 
     public List<LooseProductSaveData> looseProducts;
+
+    public StoreGoalsSaveData goalRewards;
 }

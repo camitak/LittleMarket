@@ -4,7 +4,7 @@ using UnityEngine;
 
 public class SaveManager : MonoBehaviour
 {
-    private const int CurrentSaveVersion = 6;
+    private const int CurrentSaveVersion = 7;
 
     [Header("Store References")]
     [SerializeField]
@@ -21,6 +21,9 @@ public class SaveManager : MonoBehaviour
 
     [SerializeField]
     private DailyStats dailyStats;
+
+    [SerializeField]
+    private StoreGoals storeGoals;
 
     [SerializeField]
     private CustomerFlow customerFlow;
@@ -112,6 +115,9 @@ public class SaveManager : MonoBehaviour
 
         saveData.looseProducts =
             BuildLooseProductSaveData();
+
+        saveData.goalRewards =
+            storeGoals.CreateSaveData();
 
         string json =
             JsonUtility.ToJson(
@@ -712,6 +718,24 @@ public class SaveManager : MonoBehaviour
             );
         }
 
+        if (saveData.saveVersion >= 7 &&
+            saveData.goalRewards != null)
+        {
+            storeGoals.RestoreFromSaveData(
+                saveData.goalRewards
+            );
+        }
+        else
+        {
+            storeGoals.ResetForNewDay();
+
+            Debug.Log(
+                "Older save loaded. Daily goal reward "
+                + "claim state was reset because that "
+                + "save predates goal-reward persistence."
+            );
+        }
+
         if (saveData.saveVersion >= 4)
         {
             storeClock.LoadState(
@@ -819,6 +843,11 @@ public class SaveManager : MonoBehaviour
         }
 
         if (dailyStats == null)
+        {
+            return false;
+        }
+
+        if (storeGoals == null)
         {
             return false;
         }

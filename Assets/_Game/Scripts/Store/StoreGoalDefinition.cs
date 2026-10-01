@@ -6,6 +6,10 @@ using UnityEngine;
 )]
 public class StoreGoalDefinition : ScriptableObject
 {
+    [Header("Identity")]
+    [SerializeField]
+    private string goalID = "goal_id";
+
     [Header("Display")]
     [SerializeField]
     private string goalName = "New Goal";
@@ -22,15 +26,20 @@ public class StoreGoalDefinition : ScriptableObject
     [SerializeField]
     private float targetValue = 1f;
 
-    public string GoalName =>
-        goalName;
+    [Header("Reward")]
+    [Min(0f)]
+    [SerializeField]
+    private float moneyReward = 0f;
 
-    public string Description =>
-        description;
+    public string GoalID => goalID;
 
-    public StoreGoalType GoalType =>
-        goalType;
+    public string GoalName => goalName;
 
-    public float TargetValue =>
-        targetValue;
+    public string Description => description;
+
+    public StoreGoalType GoalType => goalType;
+
+    public float TargetValue => targetValue;
+
+    public float MoneyReward => moneyReward;
 }

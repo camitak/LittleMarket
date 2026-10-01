@@ -12,7 +12,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 69fbfca04e45646468ab5ef6a6180242, type: 3}
   m_Name: SO_Goal_EarnRevenue
   m_EditorClassIdentifier: Assembly-CSharp::StoreGoalDefinition
+  goalID: goal_earn_revenue
   goalName: Earn revenue
   description: "Earn at least \xA37.00 from customer sales today."
   goalType: 0
   targetValue: 7
+  moneyReward: 2
