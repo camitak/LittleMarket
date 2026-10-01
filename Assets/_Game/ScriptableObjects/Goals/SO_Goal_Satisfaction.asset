@@ -1,0 +1,18 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 69fbfca04e45646468ab5ef6a6180242, type: 3}
+  m_Name: SO_Goal_Satisfaction
+  m_EditorClassIdentifier: Assembly-CSharp::StoreGoalDefinition
+  goalName: Keep satisfaction high
+  description: Maintain at least 80% average customer satisfaction.
+  goalType: 3
+  targetValue: 80
