@@ -3,14 +3,9 @@ using UnityEngine;
 
 public class StoreGoals : MonoBehaviour
 {
-    [Header("Goal Set")]
+    [Header("Goal Schedule")]
     [SerializeField]
-    private DailyGoalSet dailyGoalSet;
-
-    [Header("Rewards")]
-    [Min(0f)]
-    [SerializeField]
-    private float allGoalsBonus = 5f;
+    private DayGoalSchedule goalSchedule;
 
     [Header("Store References")]
     [SerializeField]
@@ -42,16 +37,34 @@ public class StoreGoals : MonoBehaviour
         }
     }
 
+    public DailyGoalSet CurrentGoalSet
+    {
+        get
+        {
+            if (goalSchedule == null)
+            {
+                return null;
+            }
+
+            return goalSchedule.GetGoalSetForDay(
+                CurrentDay
+            );
+        }
+    }
+
     public int GoalCount
     {
         get
         {
-            if (dailyGoalSet == null)
+            DailyGoalSet goalSet =
+                CurrentGoalSet;
+
+            if (goalSet == null)
             {
                 return 0;
             }
 
-            return dailyGoalSet.GoalCount;
+            return goalSet.GoalCount;
         }
     }
 
@@ -96,6 +109,22 @@ public class StoreGoals : MonoBehaviour
         }
     }
 
+    public float CurrentAllGoalsBonus
+    {
+        get
+        {
+            DailyGoalSet goalSet =
+                CurrentGoalSet;
+
+            if (goalSet == null)
+            {
+                return 0f;
+            }
+
+            return goalSet.AllGoalsBonus;
+        }
+    }
+
     public bool AllGoalsBonusClaimed =>
         allGoalsBonusClaimed;
 
@@ -104,19 +133,22 @@ public class StoreGoals : MonoBehaviour
 
     private void Start()
     {
-        ValidateGoalDefinitions();
+        ValidateGoalSchedule();
     }
 
     public StoreGoalDefinition GetGoal(
         int index
     )
     {
-        if (dailyGoalSet == null)
+        DailyGoalSet goalSet =
+            CurrentGoalSet;
+
+        if (goalSet == null)
         {
             return null;
         }
 
-        return dailyGoalSet.GetGoal(
+        return goalSet.GetGoal(
             index
         );
     }
@@ -350,7 +382,7 @@ public class StoreGoals : MonoBehaviour
             float bonus =
                 Mathf.Max(
                     0f,
-                    allGoalsBonus
+                    CurrentAllGoalsBonus
                 );
 
             if (bonus > 0f)
@@ -459,48 +491,130 @@ public class StoreGoals : MonoBehaviour
             0f;
     }
 
-    private void ValidateGoalDefinitions()
+    private void ValidateGoalSchedule()
     {
-        HashSet<string> seenGoalIDs =
-            new HashSet<string>();
-
-        for (int i = 0;
-             i < GoalCount;
-             i++)
+        if (goalSchedule == null)
         {
-            StoreGoalDefinition goal =
-                GetGoal(i);
+            Debug.LogError(
+                "StoreGoals has no DayGoalSchedule.",
+                this
+            );
 
-            if (goal == null)
+            return;
+        }
+
+        HashSet<int> seenStartDays =
+            new HashSet<int>();
+
+        bool hasDayOneEntry =
+            false;
+
+        for (int scheduleIndex = 0;
+             scheduleIndex
+             < goalSchedule.EntryCount;
+             scheduleIndex++)
+        {
+            DayGoalScheduleEntry entry =
+                goalSchedule.GetEntry(
+                    scheduleIndex
+                );
+
+            if (entry == null)
             {
                 continue;
             }
 
-            if (string.IsNullOrWhiteSpace(
-                    goal.GoalID
+            if (entry.StartDay == 1)
+            {
+                hasDayOneEntry =
+                    true;
+            }
+
+            if (!seenStartDays.Add(
+                    entry.StartDay
                 ))
             {
                 Debug.LogError(
-                    "Goal '"
-                    + goal.GoalName
-                    + "' has no Goal ID.",
-                    goal
+                    "Day Goal Schedule contains "
+                    + "more than one entry starting "
+                    + "on Day "
+                    + entry.StartDay
+                    + ".",
+                    goalSchedule
+                );
+            }
+
+            DailyGoalSet goalSet =
+                entry.GoalSet;
+
+            if (goalSet == null)
+            {
+                Debug.LogError(
+                    "Day Goal Schedule entry for Day "
+                    + entry.StartDay
+                    + " has no Goal Set.",
+                    goalSchedule
                 );
 
                 continue;
             }
 
-            if (!seenGoalIDs.Add(
-                    goal.GoalID
-                ))
+            HashSet<string> goalIDsInSet =
+                new HashSet<string>();
+
+            for (int goalIndex = 0;
+                 goalIndex < goalSet.GoalCount;
+                 goalIndex++)
             {
-                Debug.LogError(
-                    "Duplicate Goal ID '"
-                    + goal.GoalID
-                    + "'. Goal IDs must be unique.",
-                    goal
-                );
+                StoreGoalDefinition goal =
+                    goalSet.GetGoal(
+                        goalIndex
+                    );
+
+                if (goal == null)
+                {
+                    continue;
+                }
+
+                if (string.IsNullOrWhiteSpace(
+                        goal.GoalID
+                    ))
+                {
+                    Debug.LogError(
+                        "Goal '"
+                        + goal.GoalName
+                        + "' in the Day "
+                        + entry.StartDay
+                        + " goal set has no Goal ID.",
+                        goal
+                    );
+
+                    continue;
+                }
+
+                if (!goalIDsInSet.Add(
+                        goal.GoalID
+                    ))
+                {
+                    Debug.LogError(
+                        "Goal Set scheduled from Day "
+                        + entry.StartDay
+                        + " contains duplicate Goal ID '"
+                        + goal.GoalID
+                        + "'.",
+                        goal
+                    );
+                }
             }
+        }
+
+        if (!hasDayOneEntry)
+        {
+            Debug.LogError(
+                "Day Goal Schedule needs an entry "
+                + "starting on Day 1.",
+                goalSchedule
+            );
         }
     }
 }

@@ -1,0 +1,21 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7ea36dbf7816edb4b9d71ba84568f30a, type: 3}
+  m_Name: SO_DailyGoalSchedule
+  m_EditorClassIdentifier: Assembly-CSharp::DayGoalSchedule
+  entries:
+  - startDay: 1
+    goalSet: {fileID: 11400000, guid: 77efaa37e3832e048b542a17b90c9610, type: 2}
+  - startDay: 2
+    goalSet: {fileID: 11400000, guid: 017fd4bf12bb87b4fa197b25919e987b, type: 2}
+  - startDay: 3
+    goalSet: {fileID: 11400000, guid: 97144c985ef120f4280b61a19cc4872f, type: 2}

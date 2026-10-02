@@ -5584,8 +5584,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 55ec087c15919fe409cbafdc876c9bca, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::StoreGoals
-  dailyGoalSet: {fileID: 11400000, guid: 77efaa37e3832e048b542a17b90c9610, type: 2}
-  allGoalsBonus: 5
+  goalSchedule: {fileID: 11400000, guid: da517859440f62142a243499805ca4e8, type: 2}
   storeClock: {fileID: 1117834532}
   dailyStats: {fileID: 1117834533}
   storeEconomy: {fileID: 1117834528}

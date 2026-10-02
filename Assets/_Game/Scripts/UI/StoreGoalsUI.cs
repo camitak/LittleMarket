@@ -21,15 +21,14 @@ public class StoreGoalsUI : MonoBehaviour
     private List<StoreGoalRow> spawnedRows =
         new List<StoreGoalRow>();
 
-    private int displayedDay = -1;
+    private int displayedDay =
+        -1;
+
+    private DailyGoalSet displayedGoalSet;
 
     private void Start()
     {
-        BuildGoalRows();
-
-        RefreshTitle();
-
-        RefreshRows();
+        RebuildForCurrentDay();
     }
 
     private void Update()
@@ -39,11 +38,39 @@ public class StoreGoalsUI : MonoBehaviour
             return;
         }
 
-        if (displayedDay
-            != storeGoals.CurrentDay)
+        int currentDay =
+            storeGoals.CurrentDay;
+
+        DailyGoalSet currentGoalSet =
+            storeGoals.CurrentGoalSet;
+
+        if (displayedDay != currentDay ||
+            displayedGoalSet != currentGoalSet)
         {
-            RefreshTitle();
+            RebuildForCurrentDay();
+
+            return;
         }
+
+        RefreshRows();
+    }
+
+    private void RebuildForCurrentDay()
+    {
+        if (storeGoals == null)
+        {
+            return;
+        }
+
+        displayedDay =
+            storeGoals.CurrentDay;
+
+        displayedGoalSet =
+            storeGoals.CurrentGoalSet;
+
+        BuildGoalRows();
+
+        RefreshTitle();
 
         RefreshRows();
     }
@@ -124,14 +151,6 @@ public class StoreGoalsUI : MonoBehaviour
 
     private void RefreshTitle()
     {
-        if (storeGoals == null)
-        {
-            return;
-        }
-
-        displayedDay =
-            storeGoals.CurrentDay;
-
         if (goalsTitleText == null)
         {
             return;
@@ -156,6 +175,10 @@ public class StoreGoalsUI : MonoBehaviour
             {
                 continue;
             }
+
+            row.gameObject.SetActive(
+                false
+            );
 
             Destroy(
                 row.gameObject

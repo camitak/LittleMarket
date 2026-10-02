@@ -6,9 +6,17 @@ using UnityEngine;
 )]
 public class DailyGoalSet : ScriptableObject
 {
+    [Header("Reward")]
+    [Min(0f)]
+    [SerializeField]
+    private float allGoalsBonus = 5f;
+
     [Header("Goals")]
     [SerializeField]
     private StoreGoalDefinition[] goals;
+
+    public float AllGoalsBonus =>
+        allGoalsBonus;
 
     public int GoalCount
     {

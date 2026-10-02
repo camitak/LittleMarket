@@ -1,0 +1,20 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 69fbfca04e45646468ab5ef6a6180242, type: 3}
+  m_Name: SO_Goal_D3_EarnRevenue
+  m_EditorClassIdentifier: Assembly-CSharp::StoreGoalDefinition
+  goalID: goal_day3plus_earn_revenue
+  goalName: Strong sales
+  description: "Earn at least \xA318.00 from customer sales today."
+  goalType: 0
+  targetValue: 18
+  moneyReward: 4
