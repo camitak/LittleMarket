@@ -26,4 +26,6 @@ public class StoreSaveData
     public List<LooseProductSaveData> looseProducts;
 
     public StoreGoalsSaveData goalRewards;
+
+    public StoreLevelSaveData storeLevel;
 }

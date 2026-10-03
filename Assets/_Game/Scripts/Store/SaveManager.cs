@@ -4,7 +4,7 @@ using UnityEngine;
 
 public class SaveManager : MonoBehaviour
 {
-    private const int CurrentSaveVersion = 7;
+    private const int CurrentSaveVersion = 8;
 
     [Header("Store References")]
     [SerializeField]
@@ -24,6 +24,10 @@ public class SaveManager : MonoBehaviour
 
     [SerializeField]
     private StoreGoals storeGoals;
+
+    [SerializeField]
+    private StoreLevelProgression
+        storeLevelProgression;
 
     [SerializeField]
     private CustomerFlow customerFlow;
@@ -119,6 +123,10 @@ public class SaveManager : MonoBehaviour
         saveData.goalRewards =
             storeGoals.CreateSaveData();
 
+        saveData.storeLevel =
+            storeLevelProgression
+                .CreateSaveData();
+
         string json =
             JsonUtility.ToJson(
                 saveData,
@@ -143,6 +151,8 @@ public class SaveManager : MonoBehaviour
             )
             + ". Loose products: "
             + saveData.looseProducts.Count
+            + ". Store Level: "
+            + storeLevelProgression.CurrentLevel
             + ".\n"
             + SavePath
         );
@@ -223,6 +233,8 @@ public class SaveManager : MonoBehaviour
             + GetClockDebugText(
                 storeClock.CurrentMinutes
             )
+            + ". Store Level: "
+            + storeLevelProgression.CurrentLevel
             + "."
         );
 
@@ -736,6 +748,28 @@ public class SaveManager : MonoBehaviour
             );
         }
 
+        if (saveData.saveVersion >= 8 &&
+            saveData.storeLevel != null)
+        {
+            storeLevelProgression
+                .RestoreFromSaveData(
+                    saveData.storeLevel
+                );
+        }
+        else
+        {
+            storeLevelProgression
+                .RestoreFromSaveData(
+                    null
+                );
+
+            Debug.Log(
+                "Older save loaded. Store Level "
+                + "started at Level 1 because that "
+                + "save predates Store Level progression."
+            );
+        }
+
         if (saveData.saveVersion >= 4)
         {
             storeClock.LoadState(
@@ -848,6 +882,11 @@ public class SaveManager : MonoBehaviour
         }
 
         if (storeGoals == null)
+        {
+            return false;
+        }
+
+        if (storeLevelProgression == null)
         {
             return false;
         }

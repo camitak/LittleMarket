@@ -35,6 +35,9 @@ public class EndOfDayUI : MonoBehaviour
     private TMP_Text goalResultsText;
 
     [SerializeField]
+    private TMP_Text storeLevelResultText;
+
+    [SerializeField]
     private TMP_Text missedProductsText;
 
     [SerializeField]
@@ -71,6 +74,10 @@ public class EndOfDayUI : MonoBehaviour
 
     [SerializeField]
     private StoreGoals storeGoals;
+
+    [SerializeField]
+    private StoreLevelProgression
+        storeLevelProgression;
 
     [SerializeField]
     private CustomerFlow customerFlow;
@@ -173,7 +180,8 @@ public class EndOfDayUI : MonoBehaviour
 
     private void ShowSummary()
     {
-        summaryShown = true;
+        summaryShown =
+            true;
 
         if (orderingUI != null &&
             orderingUI.IsOpen)
@@ -195,9 +203,32 @@ public class EndOfDayUI : MonoBehaviour
             storeProgression.RefreshUnlocks();
         }
 
+        int completedGoals =
+            0;
+
+        bool allGoalsCompleted =
+            false;
+
         if (storeGoals != null)
         {
-            storeGoals.ClaimEndOfDayRewards();
+            completedGoals =
+                storeGoals.CompletedGoalCount;
+
+            allGoalsCompleted =
+                storeGoals.AllGoalsCompleted;
+
+            storeGoals
+                .ClaimEndOfDayRewards();
+        }
+
+        if (storeLevelProgression != null)
+        {
+            storeLevelProgression
+                .ApplyEndOfDayProgression(
+                    storeClock.CurrentDay,
+                    completedGoals,
+                    allGoalsCompleted
+                );
         }
 
         UpdateSummaryText();
@@ -244,6 +275,8 @@ public class EndOfDayUI : MonoBehaviour
 
         UpdateGoalResultsText();
 
+        UpdateStoreLevelText();
+
         endingCashText.text =
             "Ending Cash     £"
             + storeEconomy.CurrentMoney
@@ -286,21 +319,24 @@ public class EndOfDayUI : MonoBehaviour
 
         if (netCashFlow > 0f)
         {
-            netPrefix = "+£";
+            netPrefix =
+                "+£";
 
             netCashFlowText.color =
                 PositiveColor;
         }
         else if (netCashFlow < 0f)
         {
-            netPrefix = "-£";
+            netPrefix =
+                "-£";
 
             netCashFlowText.color =
                 NegativeColor;
         }
         else
         {
-            netPrefix = "£";
+            netPrefix =
+                "£";
 
             netCashFlowText.color =
                 NeutralColor;
@@ -452,7 +488,9 @@ public class EndOfDayUI : MonoBehaviour
         {
             ProductData unlockedProduct =
                 storeProgression
-                    .GetLastNewUnlock(0);
+                    .GetLastNewUnlock(
+                        0
+                    );
 
             if (unlockedProduct == null)
             {
@@ -503,7 +541,8 @@ public class EndOfDayUI : MonoBehaviour
         int total =
             storeGoals.GoalCount;
 
-        string bonusSuffix = "";
+        string bonusSuffix =
+            "";
 
         if (storeGoals.AllGoalsBonusClaimed)
         {
@@ -526,6 +565,46 @@ public class EndOfDayUI : MonoBehaviour
             storeGoals.AllGoalsCompleted
             ? PositiveColor
             : NeutralColor;
+    }
+
+    private void UpdateStoreLevelText()
+    {
+        if (storeLevelProgression == null)
+        {
+            storeLevelResultText.text =
+                "Store Level     Not configured";
+
+            storeLevelResultText.color =
+                NeutralColor;
+
+            return;
+        }
+
+        string levelUpSuffix =
+            "";
+
+        if (storeLevelProgression
+            .LeveledUpLastProcessing)
+        {
+            levelUpSuffix =
+                "  •  LEVEL UP!";
+        }
+
+        storeLevelResultText.text =
+            "Store Level     "
+            + storeLevelProgression
+                .CurrentLevel
+            + "  •  +"
+            + storeLevelProgression
+                .LastExperienceGained
+            + " XP"
+            + levelUpSuffix;
+
+        storeLevelResultText.color =
+            storeLevelProgression
+                .LeveledUpLastProcessing
+            ? PositiveColor
+            : UnlockColor;
     }
 
     private void StartNextDay()
