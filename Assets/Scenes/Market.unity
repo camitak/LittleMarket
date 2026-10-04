@@ -5692,6 +5692,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::StoreProgression
   productCatalog: {fileID: 11400000, guid: 337a8c40cc0f63040800a898d3e043ac, type: 2}
   storeReputation: {fileID: 1117834534}
+  storeLevelProgression: {fileID: 1117834539}
 --- !u!114 &1117834536
 MonoBehaviour:
   m_ObjectHideFlags: 0

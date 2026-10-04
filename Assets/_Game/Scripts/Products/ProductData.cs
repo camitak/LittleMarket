@@ -21,16 +21,18 @@ public class ProductData : ScriptableObject
 
     [TextArea]
     [SerializeField]
-    private string description;
+    private string description = "";
 
     [Header("World")]
     [SerializeField]
     private PickupItem worldPrefab;
 
     [Header("Economy")]
+    [Min(0f)]
     [SerializeField]
     private float buyPrice = 1f;
 
+    [Min(0f)]
     [SerializeField]
     private float sellPrice = 2f;
 
@@ -38,6 +40,10 @@ public class ProductData : ScriptableObject
     [Range(0f, 100f)]
     [SerializeField]
     private float requiredReputation = 0f;
+
+    [Min(1)]
+    [SerializeField]
+    private int requiredStoreLevel = 1;
 
     public string ProductName =>
         productName;
@@ -65,4 +71,10 @@ public class ProductData : ScriptableObject
 
     public float RequiredReputation =>
         requiredReputation;
+
+    public int RequiredStoreLevel =>
+        Mathf.Max(
+            1,
+            requiredStoreLevel
+        );
 }

@@ -21,3 +21,4 @@ MonoBehaviour:
   buyPrice: 0.95
   sellPrice: 2.1
   requiredReputation: 55
+  requiredStoreLevel: 1

@@ -3,12 +3,17 @@ using UnityEngine;
 
 public class StoreProgression : MonoBehaviour
 {
-    [Header("References")]
+    [Header("Catalog")]
     [SerializeField]
     private StoreProductCatalog productCatalog;
 
+    [Header("Progression")]
     [SerializeField]
     private StoreReputation storeReputation;
+
+    [SerializeField]
+    private StoreLevelProgression
+        storeLevelProgression;
 
     private List<ProductData> unlockedProducts =
         new List<ProductData>();
@@ -16,7 +21,7 @@ public class StoreProgression : MonoBehaviour
     private List<ProductData> lastNewUnlocks =
         new List<ProductData>();
 
-    private bool isInitialized;
+    private bool initialized;
 
     public int CatalogProductCount
     {
@@ -39,7 +44,7 @@ public class StoreProgression : MonoBehaviour
 
     private void Start()
     {
-        InitializeProgression();
+        EnsureInitialized();
     }
 
     public ProductData GetCatalogProduct(
@@ -55,27 +60,11 @@ public class StoreProgression : MonoBehaviour
             index
         );
     }
-    
-    public ProductData FindCatalogProductByID(
-        string productID
-    )
-    {
-        if (productCatalog == null)
-        {
-            return null;
-        }
-
-        return productCatalog.FindProductByID(
-            productID
-        );
-    }
 
     public ProductData GetUnlockedProduct(
         int index
     )
     {
-        EnsureInitialized();
-
         if (index < 0 ||
             index >= unlockedProducts.Count)
         {
@@ -98,12 +87,24 @@ public class StoreProgression : MonoBehaviour
         return lastNewUnlocks[index];
     }
 
+    public ProductData FindCatalogProductByID(
+        string productID
+    )
+    {
+        if (productCatalog == null)
+        {
+            return null;
+        }
+
+        return productCatalog.FindProductByID(
+            productID
+        );
+    }
+
     public bool IsProductUnlocked(
         ProductData productData
     )
     {
-        EnsureInitialized();
-
         if (productData == null)
         {
             return false;
@@ -114,11 +115,92 @@ public class StoreProgression : MonoBehaviour
         );
     }
 
+    public bool MeetsUnlockRequirements(
+        ProductData productData
+    )
+    {
+        if (productData == null)
+        {
+            return false;
+        }
+
+        if (storeReputation == null)
+        {
+            return false;
+        }
+
+        if (storeLevelProgression == null)
+        {
+            return false;
+        }
+
+        if (storeReputation.CurrentReputation
+            < productData.RequiredReputation)
+        {
+            return false;
+        }
+
+        if (storeLevelProgression.CurrentLevel
+            < productData.RequiredStoreLevel)
+        {
+            return false;
+        }
+
+        return true;
+    }
+
+    public void RefreshUnlocks()
+    {
+        EnsureInitializedWithoutRefresh();
+
+        lastNewUnlocks.Clear();
+
+        if (productCatalog == null)
+        {
+            return;
+        }
+
+        for (int i = 0;
+             i < productCatalog.ProductCount;
+             i++)
+        {
+            ProductData product =
+                productCatalog.GetProduct(
+                    i
+                );
+
+            if (product == null)
+            {
+                continue;
+            }
+
+            if (unlockedProducts.Contains(
+                    product
+                ))
+            {
+                continue;
+            }
+
+            if (!MeetsUnlockRequirements(
+                    product
+                ))
+            {
+                continue;
+            }
+
+            unlockedProducts.Add(
+                product
+            );
+
+            lastNewUnlocks.Add(
+                product
+            );
+        }
+    }
+
     public List<string> GetUnlockedProductIDs()
     {
-        EnsureInitialized();
-
-        List<string> ids =
+        List<string> productIDs =
             new List<string>();
 
         for (int i = 0;
@@ -133,35 +215,30 @@ public class StoreProgression : MonoBehaviour
                 continue;
             }
 
-            if (string.IsNullOrEmpty(
+            if (string.IsNullOrWhiteSpace(
                     product.ProductID
                 ))
             {
                 continue;
             }
 
-            ids.Add(
+            productIDs.Add(
                 product.ProductID
             );
         }
 
-        return ids;
+        return productIDs;
     }
 
     public void RestoreUnlockedProducts(
         List<string> productIDs
     )
     {
-        EnsureInitialized();
+        EnsureInitializedWithoutRefresh();
 
         unlockedProducts.Clear();
 
         lastNewUnlocks.Clear();
-
-        if (productCatalog == null)
-        {
-            return;
-        }
 
         if (productIDs != null)
         {
@@ -170,10 +247,9 @@ public class StoreProgression : MonoBehaviour
                  i++)
             {
                 ProductData product =
-                    productCatalog
-                        .FindProductByID(
-                            productIDs[i]
-                        );
+                    FindCatalogProductByID(
+                        productIDs[i]
+                    );
 
                 if (product == null)
                 {
@@ -196,102 +272,31 @@ public class StoreProgression : MonoBehaviour
         EnsureStarterProductsUnlocked();
     }
 
-    public void RefreshUnlocks()
+    private void EnsureInitialized()
     {
-        EnsureInitialized();
-
-        lastNewUnlocks.Clear();
-
-        if (productCatalog == null)
+        if (initialized)
         {
             return;
         }
 
-        if (storeReputation == null)
-        {
-            return;
-        }
+        EnsureInitializedWithoutRefresh();
 
-        for (int i = 0;
-             i < productCatalog.ProductCount;
-             i++)
-        {
-            ProductData product =
-                productCatalog.GetProduct(i);
-
-            if (product == null)
-            {
-                continue;
-            }
-
-            if (unlockedProducts.Contains(
-                    product
-                ))
-            {
-                continue;
-            }
-
-            if (storeReputation.CurrentReputation
-                < product.RequiredReputation)
-            {
-                continue;
-            }
-
-            unlockedProducts.Add(
-                product
-            );
-
-            lastNewUnlocks.Add(
-                product
-            );
-        }
+        RefreshUnlocks();
     }
 
-    private void InitializeProgression()
+    private void EnsureInitializedWithoutRefresh()
     {
-        if (isInitialized)
+        if (initialized)
         {
             return;
         }
 
-        isInitialized = true;
+        initialized =
+            true;
 
         unlockedProducts.Clear();
 
         lastNewUnlocks.Clear();
-
-        if (productCatalog == null)
-        {
-            return;
-        }
-
-        if (storeReputation == null)
-        {
-            return;
-        }
-
-        for (int i = 0;
-             i < productCatalog.ProductCount;
-             i++)
-        {
-            ProductData product =
-                productCatalog.GetProduct(i);
-
-            if (product == null)
-            {
-                continue;
-            }
-
-            if (storeReputation.CurrentReputation
-                < product.RequiredReputation)
-            {
-                continue;
-            }
-
-            unlockedProducts.Add(
-                product
-            );
-        }
     }
 
     private void EnsureStarterProductsUnlocked()
@@ -306,14 +311,21 @@ public class StoreProgression : MonoBehaviour
              i++)
         {
             ProductData product =
-                productCatalog.GetProduct(i);
+                productCatalog.GetProduct(
+                    i
+                );
 
             if (product == null)
             {
                 continue;
             }
 
-            if (product.RequiredReputation > 0f)
+            bool isStarterProduct =
+                product.RequiredReputation <= 0f
+                &&
+                product.RequiredStoreLevel <= 1;
+
+            if (!isStarterProduct)
             {
                 continue;
             }
@@ -329,15 +341,5 @@ public class StoreProgression : MonoBehaviour
                 product
             );
         }
-    }
-
-    private void EnsureInitialized()
-    {
-        if (isInitialized)
-        {
-            return;
-        }
-
-        InitializeProgression();
     }
 }
