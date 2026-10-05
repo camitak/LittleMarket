@@ -139,7 +139,7 @@ Transform:
   m_GameObject: {fileID: 1352348362251811348}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -0.9, y: 1.3, z: -0.3}
+  m_LocalPosition: {x: -0.9, y: 1.044, z: -0.3}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -178,6 +178,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 66cd52bbfaeae2a468321fefd48e5a6d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ShelfSlot
+  slotID: 
   acceptedProduct: {fileID: 0}
   customerStandPoint: {fileID: 0}
 --- !u!1 &3457331461783563248
@@ -207,7 +208,7 @@ Transform:
   m_GameObject: {fileID: 3457331461783563248}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0.3, y: 1.3, z: -0.3}
+  m_LocalPosition: {x: 0.3, y: 1.044, z: -0.3}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -246,6 +247,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 66cd52bbfaeae2a468321fefd48e5a6d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ShelfSlot
+  slotID: 
   acceptedProduct: {fileID: 0}
   customerStandPoint: {fileID: 0}
 --- !u!1 &4661067243534627180
@@ -275,7 +277,7 @@ Transform:
   m_GameObject: {fileID: 4661067243534627180}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -0.3, y: 1.3, z: -0.3}
+  m_LocalPosition: {x: -0.3, y: 1.044, z: -0.3}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -314,6 +316,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 66cd52bbfaeae2a468321fefd48e5a6d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ShelfSlot
+  slotID: 
   acceptedProduct: {fileID: 0}
   customerStandPoint: {fileID: 0}
 --- !u!1 &4850478660933191058
@@ -718,7 +721,7 @@ Transform:
   m_GameObject: {fileID: 8549030928161687386}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0.9, y: 1.3, z: -0.3}
+  m_LocalPosition: {x: 0.9, y: 1.044, z: -0.3}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -757,5 +760,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 66cd52bbfaeae2a468321fefd48e5a6d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ShelfSlot
+  slotID: 
   acceptedProduct: {fileID: 0}
   customerStandPoint: {fileID: 0}

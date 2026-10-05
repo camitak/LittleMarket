@@ -9,6 +9,10 @@ public class PickupItem :
     [SerializeField]
     private ProductData productData;
 
+    [Header("Placement")]
+    [SerializeField]
+    private Transform shelfPlacementAnchor;
+
     private Rigidbody itemRigidbody;
 
     private ShelfSlot currentShelfSlot;
@@ -175,14 +179,18 @@ public class PickupItem :
             true;
 
         transform.SetParent(
+            null,
+            true
+        );
+
+        AlignShelfAnchorTo(
             shelfSlot.transform
         );
 
-        transform.localPosition =
-            Vector3.zero;
-
-        transform.localRotation =
-            Quaternion.identity;
+        transform.SetParent(
+            shelfSlot.transform,
+            true
+        );
     }
 
     public void RestoreAsLooseWorldItem(
@@ -223,6 +231,45 @@ public class PickupItem :
         return productData;
     }
 
+    private void AlignShelfAnchorTo(
+        Transform shelfTarget
+    )
+    {
+        if (shelfTarget == null)
+        {
+            return;
+        }
+
+        if (shelfPlacementAnchor == null)
+        {
+            transform.SetPositionAndRotation(
+                shelfTarget.position,
+                shelfTarget.rotation
+            );
+
+            return;
+        }
+
+        Quaternion anchorRotationRelativeToRoot =
+            Quaternion.Inverse(
+                transform.rotation
+            )
+            * shelfPlacementAnchor.rotation;
+
+        transform.rotation =
+            shelfTarget.rotation
+            * Quaternion.Inverse(
+                anchorRotationRelativeToRoot
+            );
+
+        Vector3 positionCorrection =
+            shelfTarget.position
+            - shelfPlacementAnchor.position;
+
+        transform.position +=
+            positionCorrection;
+    }
+
     private void LeaveShelfIfNeeded()
     {
         if (currentShelfSlot == null)
@@ -238,6 +285,26 @@ public class PickupItem :
 
         previousShelfSlot.RemoveItem(
             this
+        );
+    }
+
+    private void OnDrawGizmosSelected()
+    {
+        if (shelfPlacementAnchor == null)
+        {
+            return;
+        }
+
+        Gizmos.DrawWireSphere(
+            shelfPlacementAnchor.position,
+            0.025f
+        );
+
+        Gizmos.DrawLine(
+            shelfPlacementAnchor.position,
+            shelfPlacementAnchor.position
+            + shelfPlacementAnchor.forward
+            * 0.12f
         );
     }
 }
