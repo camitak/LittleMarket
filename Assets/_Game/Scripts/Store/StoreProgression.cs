@@ -42,6 +42,34 @@ public class StoreProgression : MonoBehaviour
     public int LastNewUnlockCount =>
         lastNewUnlocks.Count;
 
+    public float CurrentReputation
+    {
+        get
+        {
+            if (storeReputation == null)
+            {
+                return 0f;
+            }
+
+            return storeReputation
+                .CurrentReputation;
+        }
+    }
+
+    public int CurrentStoreLevel
+    {
+        get
+        {
+            if (storeLevelProgression == null)
+            {
+                return 1;
+            }
+
+            return storeLevelProgression
+                .CurrentLevel;
+        }
+    }
+
     private void Start()
     {
         EnsureInitialized();
@@ -115,7 +143,21 @@ public class StoreProgression : MonoBehaviour
         );
     }
 
-    public bool MeetsUnlockRequirements(
+    public bool WasUnlockedInLastRefresh(
+        ProductData productData
+    )
+    {
+        if (productData == null)
+        {
+            return false;
+        }
+
+        return lastNewUnlocks.Contains(
+            productData
+        );
+    }
+
+    public bool MeetsReputationRequirement(
         ProductData productData
     )
     {
@@ -129,19 +171,42 @@ public class StoreProgression : MonoBehaviour
             return false;
         }
 
+        return storeReputation.CurrentReputation
+               >= productData.RequiredReputation;
+    }
+
+    public bool MeetsStoreLevelRequirement(
+        ProductData productData
+    )
+    {
+        if (productData == null)
+        {
+            return false;
+        }
+
         if (storeLevelProgression == null)
         {
             return false;
         }
 
-        if (storeReputation.CurrentReputation
-            < productData.RequiredReputation)
+        return storeLevelProgression.CurrentLevel
+               >= productData.RequiredStoreLevel;
+    }
+
+    public bool MeetsUnlockRequirements(
+        ProductData productData
+    )
+    {
+        if (!MeetsReputationRequirement(
+                productData
+            ))
         {
             return false;
         }
 
-        if (storeLevelProgression.CurrentLevel
-            < productData.RequiredStoreLevel)
+        if (!MeetsStoreLevelRequirement(
+                productData
+            ))
         {
             return false;
         }
@@ -280,6 +345,15 @@ public class StoreProgression : MonoBehaviour
         }
 
         EnsureInitializedWithoutRefresh();
+
+        /*
+         * Starter products exist from the beginning.
+         *
+         * We add them BEFORE RefreshUnlocks so they
+         * are not incorrectly reported as "NEW"
+         * products on a brand-new game.
+         */
+        EnsureStarterProductsUnlocked();
 
         RefreshUnlocks();
     }

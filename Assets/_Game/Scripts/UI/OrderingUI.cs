@@ -184,13 +184,15 @@ public class OrderingUI : MonoBehaviour
                 newRow.Configure(
                     product,
                     quantityPerBox,
-                    OrderProduct
+                    OrderProduct,
+                    storeProgression
                 );
             }
             else
             {
                 newRow.ConfigureLocked(
-                    product
+                    product,
+                    storeProgression
                 );
             }
         }

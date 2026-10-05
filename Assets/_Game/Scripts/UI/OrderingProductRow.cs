@@ -22,10 +22,40 @@ public class OrderingProductRow : MonoBehaviour
 
     private Action<ProductData> orderAction;
 
+    private const string PositiveColor =
+        "#6FCF97";
+
+    private const string NegativeColor =
+        "#C46B6B";
+
+    private const string NewColor =
+        "#6FCF97";
+
+    /*
+     * Compatibility overload.
+     *
+     * Existing OrderingUI code can still compile
+     * before we update its Configure call.
+     */
     public void Configure(
         ProductData newProductData,
         int quantityPerBox,
         Action<ProductData> newOrderAction
+    )
+    {
+        Configure(
+            newProductData,
+            quantityPerBox,
+            newOrderAction,
+            null
+        );
+    }
+
+    public void Configure(
+        ProductData newProductData,
+        int quantityPerBox,
+        Action<ProductData> newOrderAction,
+        StoreProgression storeProgression
     )
     {
         productData =
@@ -39,8 +69,28 @@ public class OrderingProductRow : MonoBehaviour
             return;
         }
 
-        productNameText.text =
-            productData.ProductName;
+        bool showNewLabel =
+            storeProgression != null
+            &&
+            storeProgression
+                .WasUnlockedInLastRefresh(
+                    productData
+                );
+
+        if (showNewLabel)
+        {
+            productNameText.text =
+                "<color="
+                + NewColor
+                + "><b>NEW</b></color>"
+                + " • "
+                + productData.ProductName;
+        }
+        else
+        {
+            productNameText.text =
+                productData.ProductName;
+        }
 
         int safeQuantity =
             Mathf.Max(
@@ -72,8 +122,22 @@ public class OrderingProductRow : MonoBehaviour
         );
     }
 
+    /*
+     * Compatibility overload.
+     */
     public void ConfigureLocked(
         ProductData newProductData
+    )
+    {
+        ConfigureLocked(
+            newProductData,
+            null
+        );
+    }
+
+    public void ConfigureLocked(
+        ProductData newProductData,
+        StoreProgression storeProgression
     )
     {
         productData =
@@ -92,7 +156,8 @@ public class OrderingProductRow : MonoBehaviour
 
         priceText.text =
             BuildRequirementText(
-                productData
+                productData,
+                storeProgression
             );
 
         orderButton.interactable =
@@ -106,6 +171,95 @@ public class OrderingProductRow : MonoBehaviour
     }
 
     private string BuildRequirementText(
+        ProductData product,
+        StoreProgression storeProgression
+    )
+    {
+        bool requiresReputation =
+            product.RequiredReputation > 0f;
+
+        bool requiresStoreLevel =
+            product.RequiredStoreLevel > 1;
+
+        if (storeProgression == null)
+        {
+            return BuildStaticRequirementText(
+                product
+            );
+        }
+
+        string reputationLine =
+            "";
+
+        string storeLevelLine =
+            "";
+
+        if (requiresReputation)
+        {
+            bool reputationMet =
+                storeProgression
+                    .MeetsReputationRequirement(
+                        product
+                    );
+
+            reputationLine =
+                "REP "
+                + storeProgression
+                    .CurrentReputation
+                    .ToString("0")
+                + " / "
+                + product
+                    .RequiredReputation
+                    .ToString("0")
+                + " "
+                + GetStatusMarker(
+                    reputationMet
+                );
+        }
+
+        if (requiresStoreLevel)
+        {
+            bool storeLevelMet =
+                storeProgression
+                    .MeetsStoreLevelRequirement(
+                        product
+                    );
+
+            storeLevelLine =
+                "STORE LV "
+                + storeProgression
+                    .CurrentStoreLevel
+                + " / "
+                + product
+                    .RequiredStoreLevel
+                + " "
+                + GetStatusMarker(
+                    storeLevelMet
+                );
+        }
+
+        if (requiresReputation &&
+            requiresStoreLevel)
+        {
+            return reputationLine
+                   + "\n"
+                   + storeLevelLine;
+        }
+
+        if (requiresReputation)
+        {
+            return reputationLine;
+        }
+
+        if (requiresStoreLevel)
+        {
+            return storeLevelLine;
+        }
+
+        return "Locked";
+    }
+
+    private string BuildStaticRequirementText(
         ProductData product
     )
     {
@@ -119,26 +273,46 @@ public class OrderingProductRow : MonoBehaviour
             requiresStoreLevel)
         {
             return "Requires REP "
-                   + product.RequiredReputation
+                   + product
+                       .RequiredReputation
                        .ToString("0")
-                   + " • STORE LV "
-                   + product.RequiredStoreLevel;
+                   + "\nSTORE LV "
+                   + product
+                       .RequiredStoreLevel;
         }
 
         if (requiresReputation)
         {
             return "Unlock at REP "
-                   + product.RequiredReputation
+                   + product
+                       .RequiredReputation
                        .ToString("0");
         }
 
         if (requiresStoreLevel)
         {
             return "Unlock at STORE LV "
-                   + product.RequiredStoreLevel;
+                   + product
+                       .RequiredStoreLevel;
         }
 
         return "Locked";
+    }
+
+    private string GetStatusMarker(
+        bool completed
+    )
+    {
+        if (completed)
+        {
+            return "<color="
+                   + PositiveColor
+                   + ">OK</color>";
+        }
+
+        return "<color="
+               + NegativeColor
+               + ">NEEDED</color>";
     }
 
     private void HandleOrderClicked()
