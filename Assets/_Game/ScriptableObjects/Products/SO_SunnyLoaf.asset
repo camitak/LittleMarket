@@ -1,0 +1,24 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 04d13059c56a5de46ba3c54c05eecfb5, type: 3}
+  m_Name: SO_SunnyLoaf
+  m_EditorClassIdentifier: Assembly-CSharp::ProductData
+  productName: Sunny Loaf
+  productID: bread_sunny
+  category: 2
+  icon: {fileID: 0}
+  description: A cheerful golden loaf baked fresh for the neighbourhood.
+  worldPrefab: {fileID: 4631704347769127167, guid: 7b18ffeb8aeeb6b4a80318a53e63e960, type: 3}
+  buyPrice: 1.3
+  sellPrice: 2.9
+  requiredReputation: 55
+  requiredStoreLevel: 2

@@ -198,11 +198,6 @@ public class EndOfDayUI : MonoBehaviour
             );
         }
 
-        if (storeProgression != null)
-        {
-            storeProgression.RefreshUnlocks();
-        }
-
         int completedGoals =
             0;
 
@@ -229,6 +224,11 @@ public class EndOfDayUI : MonoBehaviour
                     completedGoals,
                     allGoalsCompleted
                 );
+        }
+
+        if (storeProgression != null)
+        {
+            storeProgression.RefreshUnlocks();
         }
 
         UpdateSummaryText();
@@ -484,39 +484,48 @@ public class EndOfDayUI : MonoBehaviour
             return;
         }
 
-        if (storeProgression.LastNewUnlockCount == 1)
+        string unlockedNames =
+            "";
+
+        for (int i = 0;
+             i < storeProgression.LastNewUnlockCount;
+             i++)
         {
-            ProductData unlockedProduct =
+            ProductData product =
                 storeProgression
                     .GetLastNewUnlock(
-                        0
+                        i
                     );
 
-            if (unlockedProduct == null)
+            if (product == null)
             {
-                unlockText.text =
-                    "New Unlocks     None";
-
-                unlockText.color =
-                    UnlockColor;
-
-                return;
+                continue;
             }
 
-            unlockText.text =
-                "NEW PRODUCT UNLOCKED     "
-                + unlockedProduct.ProductName;
+            if (!string.IsNullOrEmpty(
+                    unlockedNames
+                ))
+            {
+                unlockedNames +=
+                    ", ";
+            }
 
-            unlockText.color =
-                PositiveColor;
-
-            return;
+            unlockedNames +=
+                product.ProductName;
         }
 
-        unlockText.text =
-            "NEW PRODUCTS UNLOCKED     "
-            + storeProgression
-                .LastNewUnlockCount;
+        if (storeProgression.LastNewUnlockCount == 1)
+        {
+            unlockText.text =
+                "NEW PRODUCT UNLOCKED     "
+                + unlockedNames;
+        }
+        else
+        {
+            unlockText.text =
+                "NEW PRODUCTS UNLOCKED     "
+                + unlockedNames;
+        }
 
         unlockText.color =
             PositiveColor;

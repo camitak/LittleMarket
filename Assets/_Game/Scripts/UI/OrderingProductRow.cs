@@ -15,69 +15,75 @@ public class OrderingProductRow : MonoBehaviour
     [SerializeField]
     private Button orderButton;
 
+    [SerializeField]
+    private TMP_Text orderButtonText;
+
     private ProductData productData;
+
+    private Action<ProductData> orderAction;
 
     public void Configure(
         ProductData newProductData,
         int quantityPerBox,
-        Action<ProductData> onOrderRequested
+        Action<ProductData> newOrderAction
     )
     {
         productData =
             newProductData;
 
-        orderButton.onClick.RemoveAllListeners();
-
-        SetButtonLabel(
-            "ORDER"
-        );
+        orderAction =
+            newOrderAction;
 
         if (productData == null)
         {
-            ShowUnconfiguredState();
-
             return;
         }
 
         productNameText.text =
             productData.ProductName;
 
-        float orderCost =
+        int safeQuantity =
+            Mathf.Max(
+                1,
+                quantityPerBox
+            );
+
+        float boxPrice =
             productData.BuyPrice
-            * quantityPerBox;
+            * safeQuantity;
 
         priceText.text =
             "Box of "
-            + quantityPerBox
+            + safeQuantity
             + " - £"
-            + orderCost.ToString("0.00");
+            + boxPrice.ToString("0.00");
 
         orderButton.interactable =
             true;
 
+        orderButtonText.text =
+            "ORDER";
+
+        orderButton.onClick
+            .RemoveAllListeners();
+
         orderButton.onClick.AddListener(
-            () =>
-            {
-                onOrderRequested?.Invoke(
-                    productData
-                );
-            }
+            HandleOrderClicked
         );
     }
 
     public void ConfigureLocked(
-        ProductData lockedProduct
+        ProductData newProductData
     )
     {
         productData =
-            lockedProduct;
+            newProductData;
 
-        orderButton.onClick.RemoveAllListeners();
+        orderAction =
+            null;
 
         if (productData == null)
         {
-            ShowUnconfiguredState();
-
             return;
         }
 
@@ -85,49 +91,70 @@ public class OrderingProductRow : MonoBehaviour
             productData.ProductName;
 
         priceText.text =
-            "Unlock at REP "
-            + productData.RequiredReputation
-                .ToString("0");
+            BuildRequirementText(
+                productData
+            );
 
         orderButton.interactable =
             false;
 
-        SetButtonLabel(
-            "LOCKED"
-        );
+        orderButtonText.text =
+            "LOCKED";
+
+        orderButton.onClick
+            .RemoveAllListeners();
     }
 
-    private void ShowUnconfiguredState()
-    {
-        productNameText.text =
-            "Product not configured";
-
-        priceText.text = "";
-
-        orderButton.interactable =
-            false;
-
-        SetButtonLabel(
-            "LOCKED"
-        );
-    }
-
-    private void SetButtonLabel(
-        string label
+    private string BuildRequirementText(
+        ProductData product
     )
     {
-        TMP_Text buttonText =
-            orderButton
-                .GetComponentInChildren<
-                    TMP_Text
-                >();
+        bool requiresReputation =
+            product.RequiredReputation > 0f;
 
-        if (buttonText == null)
+        bool requiresStoreLevel =
+            product.RequiredStoreLevel > 1;
+
+        if (requiresReputation &&
+            requiresStoreLevel)
+        {
+            return "Requires REP "
+                   + product.RequiredReputation
+                       .ToString("0")
+                   + " • STORE LV "
+                   + product.RequiredStoreLevel;
+        }
+
+        if (requiresReputation)
+        {
+            return "Unlock at REP "
+                   + product.RequiredReputation
+                       .ToString("0");
+        }
+
+        if (requiresStoreLevel)
+        {
+            return "Unlock at STORE LV "
+                   + product.RequiredStoreLevel;
+        }
+
+        return "Locked";
+    }
+
+    private void HandleOrderClicked()
+    {
+        if (productData == null)
         {
             return;
         }
 
-        buttonText.text =
-            label;
+        if (orderAction == null)
+        {
+            return;
+        }
+
+        orderAction.Invoke(
+            productData
+        );
     }
 }

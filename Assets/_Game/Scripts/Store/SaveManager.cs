@@ -769,6 +769,8 @@ public class SaveManager : MonoBehaviour
                 + "save predates Store Level progression."
             );
         }
+        
+        storeProgression.RefreshUnlocks();
 
         if (saveData.saveVersion >= 4)
         {
