@@ -30,6 +30,9 @@ public class PauseMenuUI : MonoBehaviour
 
     [SerializeField]
     private EndOfDayUI endOfDayUI;
+    
+    [SerializeField]
+    private ProductCatalogueUI productCatalogueUI;
 
     [SerializeField]
     private InteractionUI interactionUI;
@@ -109,6 +112,14 @@ public class PauseMenuUI : MonoBehaviour
         {
             return;
         }
+        
+        if (productCatalogueUI != null &&
+            productCatalogueUI.IsOpen)
+        {
+            productCatalogueUI.Close();
+
+            return;
+        }
 
         if (orderingUI != null &&
             orderingUI.IsOpen)
@@ -137,6 +148,12 @@ public class PauseMenuUI : MonoBehaviour
 
         if (endOfDayUI != null &&
             endOfDayUI.IsOpen)
+        {
+            return;
+        }
+        
+        if (productCatalogueUI != null &&
+            productCatalogueUI.IsOpen)
         {
             return;
         }
