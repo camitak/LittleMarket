@@ -25,6 +25,9 @@ public class OrderingUI : MonoBehaviour
     [SerializeField]
     private StoreProgression storeProgression;
 
+    [SerializeField]
+    private StoreStockOverview storeStockOverview;
+    
     [Header("Order")]
     [Min(1)]
     [SerializeField]
@@ -185,14 +188,16 @@ public class OrderingUI : MonoBehaviour
                     product,
                     quantityPerBox,
                     OrderProduct,
-                    storeProgression
+                    storeProgression,
+                    storeStockOverview
                 );
             }
             else
             {
                 newRow.ConfigureLocked(
                     product,
-                    storeProgression
+                    storeProgression,
+                    storeStockOverview
                 );
             }
         }

@@ -13,6 +13,9 @@ public class OrderingProductRow : MonoBehaviour
     private TMP_Text priceText;
 
     [SerializeField]
+    private TMP_Text stockText;
+
+    [SerializeField]
     private Button orderButton;
 
     [SerializeField]
@@ -21,6 +24,15 @@ public class OrderingProductRow : MonoBehaviour
     private ProductData productData;
 
     private Action<ProductData> orderAction;
+
+    private StoreStockOverview stockOverview;
+
+    private bool isLocked;
+
+    private float stockRefreshTimer;
+
+    private const float StockRefreshInterval =
+        0.25f;
 
     private const string PositiveColor =
         "#6FCF97";
@@ -31,11 +43,40 @@ public class OrderingProductRow : MonoBehaviour
     private const string NewColor =
         "#6FCF97";
 
+    private static readonly Color32 HealthyStockColor =
+        new Color32(
+            122,
+            104,
+            96,
+            255
+        );
+
+    private static readonly Color32 LowStockColor =
+        new Color32(
+            246,
+            215,
+            122,
+            255
+        );
+
+    private static readonly Color32 RestockColor =
+        new Color32(
+            143,
+            197,
+            232,
+            255
+        );
+
+    private static readonly Color32 OutOfStockColor =
+        new Color32(
+            196,
+            107,
+            107,
+            255
+        );
+
     /*
      * Compatibility overload.
-     *
-     * Existing OrderingUI code can still compile
-     * before we update its Configure call.
      */
     public void Configure(
         ProductData newProductData,
@@ -47,6 +88,26 @@ public class OrderingProductRow : MonoBehaviour
             newProductData,
             quantityPerBox,
             newOrderAction,
+            null,
+            null
+        );
+    }
+
+    /*
+     * Compatibility overload from Lesson 44.
+     */
+    public void Configure(
+        ProductData newProductData,
+        int quantityPerBox,
+        Action<ProductData> newOrderAction,
+        StoreProgression storeProgression
+    )
+    {
+        Configure(
+            newProductData,
+            quantityPerBox,
+            newOrderAction,
+            storeProgression,
             null
         );
     }
@@ -55,7 +116,8 @@ public class OrderingProductRow : MonoBehaviour
         ProductData newProductData,
         int quantityPerBox,
         Action<ProductData> newOrderAction,
-        StoreProgression storeProgression
+        StoreProgression storeProgression,
+        StoreStockOverview newStockOverview
     )
     {
         productData =
@@ -63,6 +125,15 @@ public class OrderingProductRow : MonoBehaviour
 
         orderAction =
             newOrderAction;
+
+        stockOverview =
+            newStockOverview;
+
+        isLocked =
+            false;
+
+        stockRefreshTimer =
+            0f;
 
         if (productData == null)
         {
@@ -120,6 +191,8 @@ public class OrderingProductRow : MonoBehaviour
         orderButton.onClick.AddListener(
             HandleOrderClicked
         );
+
+        RefreshStockText();
     }
 
     /*
@@ -131,13 +204,30 @@ public class OrderingProductRow : MonoBehaviour
     {
         ConfigureLocked(
             newProductData,
+            null,
+            null
+        );
+    }
+
+    /*
+     * Compatibility overload from Lesson 44.
+     */
+    public void ConfigureLocked(
+        ProductData newProductData,
+        StoreProgression storeProgression
+    )
+    {
+        ConfigureLocked(
+            newProductData,
+            storeProgression,
             null
         );
     }
 
     public void ConfigureLocked(
         ProductData newProductData,
-        StoreProgression storeProgression
+        StoreProgression storeProgression,
+        StoreStockOverview newStockOverview
     )
     {
         productData =
@@ -145,6 +235,12 @@ public class OrderingProductRow : MonoBehaviour
 
         orderAction =
             null;
+
+        stockOverview =
+            newStockOverview;
+
+        isLocked =
+            true;
 
         if (productData == null)
         {
@@ -160,6 +256,17 @@ public class OrderingProductRow : MonoBehaviour
                 storeProgression
             );
 
+        if (stockText != null)
+        {
+            stockText.text =
+                "";
+
+            stockText.gameObject
+                .SetActive(
+                    false
+                );
+        }
+
         orderButton.interactable =
             false;
 
@@ -168,6 +275,115 @@ public class OrderingProductRow : MonoBehaviour
 
         orderButton.onClick
             .RemoveAllListeners();
+    }
+
+    private void Update()
+    {
+        if (isLocked)
+        {
+            return;
+        }
+
+        if (productData == null)
+        {
+            return;
+        }
+
+        if (stockOverview == null)
+        {
+            return;
+        }
+
+        stockRefreshTimer +=
+            Time.unscaledDeltaTime;
+
+        if (stockRefreshTimer
+            < StockRefreshInterval)
+        {
+            return;
+        }
+
+        stockRefreshTimer =
+            0f;
+
+        RefreshStockText();
+    }
+
+    private void RefreshStockText()
+    {
+        if (stockText == null)
+        {
+            return;
+        }
+
+        if (productData == null ||
+            stockOverview == null)
+        {
+            stockText.text =
+                "";
+
+            stockText.gameObject
+                .SetActive(
+                    false
+                );
+
+            return;
+        }
+
+        stockText.gameObject
+            .SetActive(
+                true
+            );
+
+        int shelfCount =
+            stockOverview.GetShelfCount(
+                productData
+            );
+
+        int backStockCount =
+            stockOverview.GetBackStockCount(
+                productData
+            );
+
+        int totalStock =
+            shelfCount
+            + backStockCount;
+
+        stockText.text =
+            "Shelf "
+            + shelfCount
+            + "  •  Back "
+            + backStockCount
+            + "  •  Total "
+            + totalStock;
+
+        StockStatus status =
+            stockOverview.GetStockStatus(
+                productData
+            );
+
+        switch (status)
+        {
+            case StockStatus.Low:
+                stockText.color =
+                    LowStockColor;
+                break;
+
+            case StockStatus.Restock:
+                stockText.color =
+                    RestockColor;
+                break;
+
+            case StockStatus.OutOfStock:
+                stockText.color =
+                    OutOfStockColor;
+                break;
+
+            default:
+                stockText.color =
+                    HealthyStockColor;
+                break;
+        }
     }
 
     private string BuildRequirementText(
@@ -307,12 +523,12 @@ public class OrderingProductRow : MonoBehaviour
         {
             return "<color="
                    + PositiveColor
-                   + ">OK</color>";
+                   + ">✓</color>";
         }
 
         return "<color="
                + NegativeColor
-               + ">NEEDED</color>";
+               + ">✗</color>";
     }
 
     private void HandleOrderClicked()
