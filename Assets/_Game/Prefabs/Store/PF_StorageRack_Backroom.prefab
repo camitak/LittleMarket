@@ -12,7 +12,7 @@ GameObject:
   - component: {fileID: 1761992670303014872}
   - component: {fileID: 8164205336144668858}
   m_Layer: 0
-  m_Name: Storage_Milk_01
+  m_Name: StorageSlot_07
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -45,8 +45,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 66cd52bbfaeae2a468321fefd48e5a6d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ShelfSlot
-  slotID: storage_milk_01
-  acceptedProduct: {fileID: 11400000, guid: f032e810ae9f3c343abd0ecbb972b50b, type: 2}
+  slotID: StorageSlot_07
+  acceptedProduct: {fileID: 0}
   customerStandPoint: {fileID: 0}
   customerAccessible: 0
 --- !u!65 &8164205336144668858
@@ -328,14 +328,14 @@ Transform:
   - {fileID: 3020748016347558996}
   - {fileID: 3015436798104862699}
   - {fileID: 1098496555018211108}
-  - {fileID: 4181713457894025336}
   - {fileID: 3386998451747208559}
-  - {fileID: 8983749734707621552}
   - {fileID: 7262121764861962010}
-  - {fileID: 1881428577642340645}
   - {fileID: 5021460243456944843}
-  - {fileID: 3717078585025330779}
   - {fileID: 8135982101173421896}
+  - {fileID: 4181713457894025336}
+  - {fileID: 8983749734707621552}
+  - {fileID: 1881428577642340645}
+  - {fileID: 3717078585025330779}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &2331759564877960375
@@ -350,7 +350,7 @@ GameObject:
   - component: {fileID: 7515085640905411840}
   - component: {fileID: 8898412923004573401}
   m_Layer: 0
-  m_Name: Storage_Honey_01
+  m_Name: StorageSlot_06
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -383,8 +383,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 66cd52bbfaeae2a468321fefd48e5a6d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ShelfSlot
-  slotID: storage_honey_01
-  acceptedProduct: {fileID: 11400000, guid: 3391820c701e1fc4181638a9a2a82308, type: 2}
+  slotID: StorageSlot_06
+  acceptedProduct: {fileID: 0}
   customerStandPoint: {fileID: 0}
   customerAccessible: 0
 --- !u!65 &8898412923004573401
@@ -420,7 +420,7 @@ GameObject:
   - component: {fileID: 5807984038980979067}
   - component: {fileID: 6456265093485009926}
   m_Layer: 0
-  m_Name: Storage_Strawberry_01
+  m_Name: StorageSlot_05
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -453,8 +453,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 66cd52bbfaeae2a468321fefd48e5a6d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ShelfSlot
-  slotID: storage_strawberry_01
-  acceptedProduct: {fileID: 11400000, guid: e2d539f48d3851d43aff9653666653a3, type: 2}
+  slotID: StorageSlot_05
+  acceptedProduct: {fileID: 0}
   customerStandPoint: {fileID: 0}
   customerAccessible: 0
 --- !u!65 &6456265093485009926
@@ -714,7 +714,7 @@ GameObject:
   - component: {fileID: 5785258849126562759}
   - component: {fileID: 3184260132582054036}
   m_Layer: 0
-  m_Name: Storage_Strawberry_02
+  m_Name: StorageSlot_01
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -747,8 +747,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 66cd52bbfaeae2a468321fefd48e5a6d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ShelfSlot
-  slotID: storage_strawberry_02
-  acceptedProduct: {fileID: 11400000, guid: e2d539f48d3851d43aff9653666653a3, type: 2}
+  slotID: StorageSlot_01
+  acceptedProduct: {fileID: 0}
   customerStandPoint: {fileID: 0}
   customerAccessible: 0
 --- !u!65 &3184260132582054036
@@ -784,7 +784,7 @@ GameObject:
   - component: {fileID: 6304938218241289491}
   - component: {fileID: 3918562552797403860}
   m_Layer: 0
-  m_Name: Storage_Milk_02
+  m_Name: StorageSlot_03
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -817,8 +817,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 66cd52bbfaeae2a468321fefd48e5a6d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ShelfSlot
-  slotID: storage_milk_02
-  acceptedProduct: {fileID: 11400000, guid: f032e810ae9f3c343abd0ecbb972b50b, type: 2}
+  slotID: StorageSlot_03
+  acceptedProduct: {fileID: 0}
   customerStandPoint: {fileID: 0}
   customerAccessible: 0
 --- !u!65 &3918562552797403860
@@ -854,7 +854,7 @@ GameObject:
   - component: {fileID: 4135136129061783026}
   - component: {fileID: 3514709335811099219}
   m_Layer: 0
-  m_Name: Storage_Bread_02
+  m_Name: StorageSlot_04
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -887,8 +887,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 66cd52bbfaeae2a468321fefd48e5a6d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ShelfSlot
-  slotID: storage_bread_02
-  acceptedProduct: {fileID: 11400000, guid: d8357952f61bf6240ab4f59d74b9d367, type: 2}
+  slotID: StorageSlot_04
+  acceptedProduct: {fileID: 0}
   customerStandPoint: {fileID: 0}
   customerAccessible: 0
 --- !u!65 &3514709335811099219
@@ -924,7 +924,7 @@ GameObject:
   - component: {fileID: 6242197135670045874}
   - component: {fileID: 5482515554223714934}
   m_Layer: 0
-  m_Name: Storage_Honey_02
+  m_Name: StorageSlot_02
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -957,8 +957,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 66cd52bbfaeae2a468321fefd48e5a6d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ShelfSlot
-  slotID: storage_honey_02
-  acceptedProduct: {fileID: 11400000, guid: 3391820c701e1fc4181638a9a2a82308, type: 2}
+  slotID: StorageSlot_02
+  acceptedProduct: {fileID: 0}
   customerStandPoint: {fileID: 0}
   customerAccessible: 0
 --- !u!65 &5482515554223714934
@@ -1106,7 +1106,7 @@ GameObject:
   - component: {fileID: 5630699759811382421}
   - component: {fileID: 5971462839868853878}
   m_Layer: 0
-  m_Name: Storage_Bread_01
+  m_Name: StorageSlot_08
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -1139,8 +1139,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 66cd52bbfaeae2a468321fefd48e5a6d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ShelfSlot
-  slotID: storage_bread_01
-  acceptedProduct: {fileID: 11400000, guid: d8357952f61bf6240ab4f59d74b9d367, type: 2}
+  slotID: StorageSlot_08
+  acceptedProduct: {fileID: 0}
   customerStandPoint: {fileID: 0}
   customerAccessible: 0
 --- !u!65 &5971462839868853878

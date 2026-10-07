@@ -1132,6 +1132,17 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 103991563}
   m_CullTransparentMesh: 1
+--- !u!114 &121856236 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 7515085640905411840, guid: 95bfb5590d5914a419c06f3d376bd716, type: 3}
+  m_PrefabInstance: {fileID: 166000932}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 66cd52bbfaeae2a468321fefd48e5a6d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ShelfSlot
 --- !u!1 &145050475
 GameObject:
   m_ObjectHideFlags: 0
@@ -1244,6 +1255,17 @@ Transform:
   m_Children: []
   m_Father: {fileID: 1898022736}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 90}
+--- !u!114 &150505768 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 5630699759811382421, guid: 95bfb5590d5914a419c06f3d376bd716, type: 3}
+  m_PrefabInstance: {fileID: 166000932}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 66cd52bbfaeae2a468321fefd48e5a6d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ShelfSlot
 --- !u!1 &155047038
 GameObject:
   m_ObjectHideFlags: 0
@@ -1544,6 +1566,10 @@ PrefabInstance:
     - target: {fileID: 3291202639147095468, guid: 95bfb5590d5914a419c06f3d376bd716, type: 3}
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5785258849126562759, guid: 95bfb5590d5914a419c06f3d376bd716, type: 3}
+      propertyPath: acceptedProduct
+      value: 
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
@@ -1904,6 +1930,17 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 261632428}
   m_CullTransparentMesh: 1
+--- !u!114 &310413618 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 1761992670303014872, guid: 95bfb5590d5914a419c06f3d376bd716, type: 3}
+  m_PrefabInstance: {fileID: 166000932}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 66cd52bbfaeae2a468321fefd48e5a6d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ShelfSlot
 --- !u!1 &330585543
 GameObject:
   m_ObjectHideFlags: 0
@@ -2337,6 +2374,17 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 419836300}
   m_CullTransparentMesh: 1
+--- !u!114 &424150515 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 4135136129061783026, guid: 95bfb5590d5914a419c06f3d376bd716, type: 3}
+  m_PrefabInstance: {fileID: 166000932}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 66cd52bbfaeae2a468321fefd48e5a6d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ShelfSlot
 --- !u!1 &430429859
 GameObject:
   m_ObjectHideFlags: 0
@@ -7130,7 +7178,7 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1117834526}
-  m_Enabled: 0
+  m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 6607fbddd256d894e871624ce254bf7d, type: 3}
   m_Name: 
@@ -7312,7 +7360,26 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 2df96e06f32267a40a2d187542df6694, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::StorageRegistry
-  registeredSlots: []
+  registeredSlots:
+  - {fileID: 1143558374}
+  - {fileID: 1262381325}
+  - {fileID: 1369588094}
+  - {fileID: 424150515}
+  - {fileID: 1391882427}
+  - {fileID: 121856236}
+  - {fileID: 310413618}
+  - {fileID: 150505768}
+--- !u!114 &1143558374 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 5785258849126562759, guid: 95bfb5590d5914a419c06f3d376bd716, type: 3}
+  m_PrefabInstance: {fileID: 166000932}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 66cd52bbfaeae2a468321fefd48e5a6d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ShelfSlot
 --- !u!1 &1149754932
 GameObject:
   m_ObjectHideFlags: 0
@@ -8001,6 +8068,17 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1201759784}
   m_CullTransparentMesh: 1
+--- !u!114 &1262381325 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 6242197135670045874, guid: 95bfb5590d5914a419c06f3d376bd716, type: 3}
+  m_PrefabInstance: {fileID: 166000932}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 66cd52bbfaeae2a468321fefd48e5a6d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ShelfSlot
 --- !u!1 &1266572564
 GameObject:
   m_ObjectHideFlags: 0
@@ -8733,6 +8811,17 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1369482165}
   m_CullTransparentMesh: 1
+--- !u!114 &1369588094 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 6304938218241289491, guid: 95bfb5590d5914a419c06f3d376bd716, type: 3}
+  m_PrefabInstance: {fileID: 166000932}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 66cd52bbfaeae2a468321fefd48e5a6d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ShelfSlot
 --- !u!1 &1382221010
 GameObject:
   m_ObjectHideFlags: 0
@@ -8845,6 +8934,17 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1382221010}
   m_Mesh: {fileID: 10202, guid: 0000000000000000e000000000000000, type: 0}
+--- !u!114 &1391882427 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 5807984038980979067, guid: 95bfb5590d5914a419c06f3d376bd716, type: 3}
+  m_PrefabInstance: {fileID: 166000932}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 66cd52bbfaeae2a468321fefd48e5a6d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ShelfSlot
 --- !u!1 &1411538122
 GameObject:
   m_ObjectHideFlags: 0

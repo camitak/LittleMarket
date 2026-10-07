@@ -38,6 +38,30 @@ public class ShelfSlot :
     {
         RegisterWithCorrectRegistry();
     }
+    
+    public bool IsGenericStorage => !customerAccessible && acceptedProduct == null;
+
+    public bool CanAcceptProduct(
+        ProductData productData
+    )
+    {
+        if (productData == null)
+        {
+            return false;
+        }
+
+        if (IsGenericStorage)
+        {
+            return true;
+        }
+
+        if (acceptedProduct == null)
+        {
+            return false;
+        }
+
+        return acceptedProduct == productData;
+    }
 
     private void OnDestroy()
     {
@@ -48,17 +72,12 @@ public class ShelfSlot :
             return;
         }
 
-        shelfRegistry.UnregisterSlot(
-            this
-        );
+        shelfRegistry.UnregisterSlot(this);
     }
 
     private void FindAndRegisterWithShelfRegistry()
     {
-        shelfRegistry =
-            Object.FindAnyObjectByType<
-                ShelfRegistry
-            >();
+        shelfRegistry = Object.FindAnyObjectByType<ShelfRegistry>();
 
         if (shelfRegistry == null)
         {
@@ -73,9 +92,7 @@ public class ShelfSlot :
             return;
         }
 
-        shelfRegistry.RegisterSlot(
-            this
-        );
+        shelfRegistry.RegisterSlot(this);
     }
 
     public ProductData GetStoredProductData()
@@ -95,19 +112,14 @@ public class ShelfSlot :
             return;
         }
 
-        PickupItem itemToDestroy =
-            storedItem;
+        PickupItem itemToDestroy = storedItem;
 
         storedItem = null;
 
-        Destroy(
-            itemToDestroy.gameObject
-        );
+        Destroy(itemToDestroy.gameObject);
     }
 
-    public bool RestoreProduct(
-        ProductData productData
-    )
+    public bool RestoreProduct(ProductData productData)
     {
         if (productData == null)
         {
@@ -120,7 +132,7 @@ public class ShelfSlot :
         }
 
         if (acceptedProduct != null &&
-            productData != acceptedProduct)
+            !CanAcceptProduct(productData))
         {
             Debug.LogWarning(
                 "Cannot restore "
@@ -145,19 +157,29 @@ public class ShelfSlot :
                 transform.rotation
             );
 
-        storedItem =
-            restoredItem;
+        storedItem = restoredItem;
 
-        restoredItem.PlaceOnShelf(
-            this
-        );
+        restoredItem.PlaceOnShelf(this);
 
         return true;
     }
+    
+    private string GetAcceptedProductLabel()
+    {
+        if (acceptedProduct != null)
+        {
+            return acceptedProduct.ProductName;
+        }
 
-    public string GetInteractionPrompt(
-        PlayerInteraction player
-    )
+        if (IsGenericStorage)
+        {
+            return "any product";
+        }
+
+        return "unconfigured";
+    }
+    
+    public string GetInteractionPrompt(PlayerInteraction player)
     {
         if (storedItem != null)
         {
@@ -166,86 +188,70 @@ public class ShelfSlot :
                 return "Hands full";
             }
 
-            return "[E] Pick up "
-                   + storedItem.GetItemName();
+            return "[E] Pick up " + storedItem.GetItemName();
         }
 
-        if (acceptedProduct == null)
+        if (acceptedProduct == null && !IsGenericStorage)
         {
             return "Shelf slot not configured";
         }
 
-        PickupItem heldItem =
-            player.GetHeldItem();
+        PickupItem heldItem = player.GetHeldItem();
 
         if (heldItem == null)
         {
-            return "Empty - "
-                   + acceptedProduct.ProductName;
+            return "Empty - " + GetAcceptedProductLabel();
         }
 
-        ProductData heldProduct =
-            heldItem.GetProductData();
+        ProductData heldProduct = heldItem.GetProductData();
 
         if (heldProduct == null)
         {
             return "This item cannot be stocked here";
         }
 
-        if (heldProduct != acceptedProduct)
+        if (!CanAcceptProduct(heldProduct))
         {
-            return "This slot is for "
-                   + acceptedProduct.ProductName;
+            return "This slot is for " + GetAcceptedProductLabel();
         }
 
-        return "[E] Stock "
-               + acceptedProduct.ProductName;
+        return "[E] Stock " + GetAcceptedProductLabel();
     }
 
-    public void Interact(
-        PlayerInteraction player
-    )
+    public void Interact(PlayerInteraction player)
     {
         if (storedItem != null)
         {
-            TryRemoveStoredItem(
-                player
-            );
+            TryRemoveStoredItem(player);
 
             return;
         }
 
-        TryStoreHeldItem(
-            player
-        );
+        TryStoreHeldItem(player);
     }
 
-    private void TryStoreHeldItem(
-        PlayerInteraction player
-    )
+    private void TryStoreHeldItem(PlayerInteraction player)
     {
-        if (acceptedProduct == null)
-        {
-            return;
-        }
+        // if (acceptedProduct == null)
+        // {
+        //     return;
+        // }
 
-        PickupItem heldItem =
-            player.GetHeldItem();
+        PickupItem heldItem = player.GetHeldItem();
 
         if (heldItem == null)
         {
             return;
         }
 
-        ProductData heldProduct =
-            heldItem.GetProductData();
+        ProductData heldProduct = heldItem.GetProductData();
 
         if (heldProduct == null)
         {
             return;
         }
 
-        if (heldProduct != acceptedProduct)
+        if (!CanAcceptProduct(heldProduct))
         {
             return;
         }
@@ -261,33 +267,24 @@ public class ShelfSlot :
         PlayerInteraction player
     )
     {
-        storedItem =
-            item;
+        storedItem = item;
 
         player.RemoveHeldItem();
 
-        item.PlaceOnShelf(
-            this
-        );
+        item.PlaceOnShelf(this);
     }
 
-    private void TryRemoveStoredItem(
-        PlayerInteraction player
-    )
+    private void TryRemoveStoredItem(PlayerInteraction player)
     {
         if (player.GetHeldItem() != null)
         {
             return;
         }
 
-        player.TryPickUp(
-            storedItem
-        );
+        player.TryPickUp(storedItem);
     }
 
-    public void RemoveItem(
-        PickupItem item
-    )
+    public void RemoveItem(PickupItem item)
     {
         if (storedItem != item)
         {
@@ -297,9 +294,7 @@ public class ShelfSlot :
         storedItem = null;
     }
 
-    public bool ContainsProduct(
-        ProductData productData
-    )
+    public bool ContainsProduct(ProductData productData)
     {
         if (storedItem == null)
         {
@@ -311,8 +306,7 @@ public class ShelfSlot :
             return false;
         }
 
-        return storedItem.GetProductData()
-               == productData;
+        return storedItem.GetProductData() == productData;
     }
 
     public bool TryTakeItemForCustomer(
@@ -327,15 +321,11 @@ public class ShelfSlot :
             return false;
         }
 
-        PickupItem itemToTake =
-            storedItem;
+        PickupItem itemToTake = storedItem;
 
-        itemToTake.PickUp(
-            carryPoint
-        );
+        itemToTake.PickUp(carryPoint);
 
-        takenItem =
-            itemToTake;
+        takenItem = itemToTake;
 
         return true;
     }
@@ -382,9 +372,7 @@ public class ShelfSlot :
             return;
         }
 
-        registeredStorageRegistry.Register(
-            this
-        );
+        registeredStorageRegistry.Register(this);
     }
 
     private void UnregisterFromCurrentRegistry()
@@ -393,18 +381,14 @@ public class ShelfSlot :
         {
             registeredShelfRegistry.UnregisterSlot(this);
 
-            registeredShelfRegistry =
-                null;
+            registeredShelfRegistry = null;
         }
 
         if (registeredStorageRegistry != null)
         {
-            registeredStorageRegistry.Unregister(
-                this
-            );
+            registeredStorageRegistry.Unregister(this);
 
-            registeredStorageRegistry =
-                null;
+            registeredStorageRegistry = null;
         }
     }
 }

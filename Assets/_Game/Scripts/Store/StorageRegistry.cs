@@ -127,4 +127,42 @@ public class StorageRegistry : MonoBehaviour
 
         return null;
     }
+    
+    public int OccupiedSlotCount
+    {
+        get
+        {
+            int count = 0;
+
+            for (int i = 0;
+                 i < registeredSlots.Count;
+                 i++)
+            {
+                ShelfSlot slot =
+                    registeredSlots[i];
+
+                if (slot == null)
+                {
+                    continue;
+                }
+
+                if (slot.GetStoredProductData()
+                    == null)
+                {
+                    continue;
+                }
+
+                count++;
+            }
+
+            return count;
+        }
+    }
+
+    public int EmptySlotCount =>
+        Mathf.Max(
+            0,
+            RegisteredSlotCount
+            - OccupiedSlotCount
+        );
 }
