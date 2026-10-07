@@ -16,23 +16,33 @@ public class ShelfSlot :
     [SerializeField]
     private Transform customerStandPoint;
 
+    [Header("Access")]
+    [SerializeField]
+    private bool customerAccessible = true;
+    
+    private ShelfRegistry registeredShelfRegistry;
+
+    private StorageRegistry registeredStorageRegistry;
+    
     private PickupItem storedItem;
 
     private ShelfRegistry shelfRegistry;
 
-    public string SlotID =>
-        slotID;
+    public string SlotID => slotID;
 
-    public Transform CustomerStandPoint =>
-        customerStandPoint;
+    public Transform CustomerStandPoint => customerStandPoint;
+    
+    public bool CustomerAccessible => customerAccessible;
 
     private void Start()
     {
-        FindAndRegisterWithShelfRegistry();
+        RegisterWithCorrectRegistry();
     }
 
     private void OnDestroy()
     {
+        UnregisterFromCurrentRegistry();
+            
         if (shelfRegistry == null)
         {
             return;
@@ -328,5 +338,73 @@ public class ShelfSlot :
             itemToTake;
 
         return true;
+    }
+    
+    private void RegisterWithCorrectRegistry()
+    {
+        if (customerAccessible)
+        {
+            registeredShelfRegistry =
+                Object.FindAnyObjectByType<
+                    ShelfRegistry
+                >();
+
+            if (registeredShelfRegistry == null)
+            {
+                Debug.LogError(
+                    "ShelfSlot '"
+                    + gameObject.name
+                    + "' could not find a ShelfRegistry.",
+                    this
+                );
+
+                return;
+            }
+
+            registeredShelfRegistry.RegisterSlot(this);
+            return;
+        }
+
+        registeredStorageRegistry =
+            Object.FindAnyObjectByType<
+                StorageRegistry
+            >();
+
+        if (registeredStorageRegistry == null)
+        {
+            Debug.LogError(
+                "Storage ShelfSlot '"
+                + gameObject.name
+                + "' could not find a StorageRegistry.",
+                this
+            );
+
+            return;
+        }
+
+        registeredStorageRegistry.Register(
+            this
+        );
+    }
+
+    private void UnregisterFromCurrentRegistry()
+    {
+        if (registeredShelfRegistry != null)
+        {
+            registeredShelfRegistry.UnregisterSlot(this);
+
+            registeredShelfRegistry =
+                null;
+        }
+
+        if (registeredStorageRegistry != null)
+        {
+            registeredStorageRegistry.Unregister(
+                this
+            );
+
+            registeredStorageRegistry =
+                null;
+        }
     }
 }

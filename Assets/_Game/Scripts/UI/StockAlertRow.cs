@@ -81,16 +81,8 @@ public class StockAlertRow : MonoBehaviour
         StoreStockOverview stockOverview
     )
     {
-        if (productData == null)
-        {
-            gameObject.SetActive(
-                false
-            );
-
-            return false;
-        }
-
-        if (stockOverview == null)
+        if (productData == null ||
+            stockOverview == null)
         {
             gameObject.SetActive(
                 false
@@ -123,20 +115,44 @@ public class StockAlertRow : MonoBehaviour
                 productData
             );
 
-        int backStockCount =
-            stockOverview.GetBackStockCount(
+        int storageCount =
+            stockOverview.GetStorageCount(
+                productData
+            );
+
+        int deliveryCount =
+            stockOverview.GetDeliveryCount(
+                productData
+            );
+
+        int looseCount =
+            stockOverview.GetLooseCount(
+                productData
+            );
+
+        int heldCount =
+            stockOverview.GetHeldCount(
                 productData
             );
 
         int totalStock =
             shelfCount
-            + backStockCount;
+            + storageCount
+            + deliveryCount
+            + looseCount
+            + heldCount;
 
         countsText.text =
             "Shelf "
             + shelfCount
-            + "  •  Back "
-            + backStockCount
+            + "  •  Storage "
+            + storageCount
+            + "  •  Delivery "
+            + deliveryCount
+            + "\nLoose "
+            + looseCount
+            + "  •  Held "
+            + heldCount
             + "  •  Total "
             + totalStock;
 

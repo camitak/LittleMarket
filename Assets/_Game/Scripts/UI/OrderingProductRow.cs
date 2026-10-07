@@ -340,20 +340,44 @@ public class OrderingProductRow : MonoBehaviour
                 productData
             );
 
-        int backStockCount =
-            stockOverview.GetBackStockCount(
+        int storageCount =
+            stockOverview.GetStorageCount(
+                productData
+            );
+
+        int deliveryCount =
+            stockOverview.GetDeliveryCount(
+                productData
+            );
+
+        int looseCount =
+            stockOverview.GetLooseCount(
+                productData
+            );
+
+        int heldCount =
+            stockOverview.GetHeldCount(
                 productData
             );
 
         int totalStock =
             shelfCount
-            + backStockCount;
+            + storageCount
+            + deliveryCount
+            + looseCount
+            + heldCount;
 
         stockText.text =
             "Shelf "
             + shelfCount
-            + "  •  Back "
-            + backStockCount
+            + "  •  Storage "
+            + storageCount
+            + "  •  Delivery "
+            + deliveryCount
+            + "\nLoose "
+            + looseCount
+            + "  •  Held "
+            + heldCount
             + "  •  Total "
             + totalStock;
 

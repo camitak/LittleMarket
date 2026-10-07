@@ -4,7 +4,7 @@ using UnityEngine;
 
 public class SaveManager : MonoBehaviour
 {
-    private const int CurrentSaveVersion = 8;
+    private const int CurrentSaveVersion = 9;
 
     [Header("Store References")]
     [SerializeField]
@@ -26,14 +26,16 @@ public class SaveManager : MonoBehaviour
     private StoreGoals storeGoals;
 
     [SerializeField]
-    private StoreLevelProgression
-        storeLevelProgression;
+    private StoreLevelProgression storeLevelProgression;
 
     [SerializeField]
     private CustomerFlow customerFlow;
 
     [SerializeField]
     private ShelfRegistry shelfRegistry;
+    
+    [SerializeField]
+    private StorageRegistry storageRegistry;
 
     [SerializeField]
     private DeliveryZone deliveryZone;
@@ -110,6 +112,9 @@ public class SaveManager : MonoBehaviour
 
         saveData.shelfSlots =
             BuildShelfSlotSaveData();
+        
+        saveData.storageSlots =
+            BuildStorageSlotSaveData();
 
         saveData.deliveries =
             BuildDeliverySaveData();
@@ -300,6 +305,161 @@ public class SaveManager : MonoBehaviour
         return savedSlots;
     }
 
+    private List<StorageSlotSaveData>
+        BuildStorageSlotSaveData()
+    {
+        List<StorageSlotSaveData> savedSlots =
+            new List<StorageSlotSaveData>();
+
+        for (int i = 0;
+             i < storageRegistry.RegisteredSlotCount;
+             i++)
+        {
+            ShelfSlot slot =
+                storageRegistry.GetRegisteredSlot(
+                    i
+                );
+
+            if (slot == null)
+            {
+                continue;
+            }
+
+            ProductData product =
+                slot.GetStoredProductData();
+
+            if (product == null)
+            {
+                continue;
+            }
+
+            if (string.IsNullOrWhiteSpace(
+                    slot.SlotID
+                ))
+            {
+                continue;
+            }
+
+            if (string.IsNullOrWhiteSpace(
+                    product.ProductID
+                ))
+            {
+                continue;
+            }
+
+            StorageSlotSaveData slotSaveData =
+                new StorageSlotSaveData();
+
+            slotSaveData.slotID =
+                slot.SlotID;
+
+            slotSaveData.productID =
+                product.ProductID;
+
+            savedSlots.Add(
+                slotSaveData
+            );
+        }
+
+        return savedSlots;
+    }
+    
+    private void RestoreStorageInventory(
+        List<StorageSlotSaveData> savedSlots
+    )
+    {
+        ClearCurrentStorageInventory();
+
+        if (savedSlots == null)
+        {
+            return;
+        }
+
+        for (int i = 0;
+             i < savedSlots.Count;
+             i++)
+        {
+            StorageSlotSaveData slotSaveData =
+                savedSlots[i];
+
+            if (slotSaveData == null)
+            {
+                continue;
+            }
+
+            ShelfSlot slot =
+                storageRegistry.FindSlotByID(
+                    slotSaveData.slotID
+                );
+
+            if (slot == null)
+            {
+                Debug.LogWarning(
+                    "Saved Storage Slot '"
+                    + slotSaveData.slotID
+                    + "' does not exist "
+                    + "in the current scene."
+                );
+
+                continue;
+            }
+
+            ProductData product =
+                storeProgression
+                    .FindCatalogProductByID(
+                        slotSaveData.productID
+                    );
+
+            if (product == null)
+            {
+                Debug.LogWarning(
+                    "Saved storage product ID '"
+                    + slotSaveData.productID
+                    + "' does not exist "
+                    + "in the current catalog."
+                );
+
+                continue;
+            }
+
+            bool restored =
+                slot.RestoreProduct(
+                    product
+                );
+
+            if (!restored)
+            {
+                Debug.LogWarning(
+                    "Could not restore product '"
+                    + slotSaveData.productID
+                    + "' into Storage Slot '"
+                    + slotSaveData.slotID
+                    + "'."
+                );
+            }
+        }
+    }
+    
+    private void ClearCurrentStorageInventory()
+    {
+        for (int i = 0;
+             i < storageRegistry.RegisteredSlotCount;
+             i++)
+        {
+            ShelfSlot slot =
+                storageRegistry.GetRegisteredSlot(
+                    i
+                );
+
+            if (slot == null)
+            {
+                continue;
+            }
+
+            slot.ClearStoredItemForLoad();
+        }
+    }
+    
     private List<DeliveryBoxSaveData>
         BuildDeliverySaveData()
     {
@@ -791,6 +951,23 @@ public class SaveManager : MonoBehaviour
                 + "started at the configured start time."
             );
         }
+        
+        if (saveData.saveVersion >= 9)
+        {
+            RestoreStorageInventory(
+                saveData.storageSlots
+            );
+        }
+        else
+        {
+            ClearCurrentStorageInventory();
+
+            Debug.Log(
+                "Older save loaded. Back-room storage "
+                + "was cleared because that save predates "
+                + "storage persistence."
+            );
+        }
 
         customerFlow.ResetForNewDay();
     }
@@ -919,6 +1096,11 @@ public class SaveManager : MonoBehaviour
         }
 
         if (playerInteraction == null)
+        {
+            return false;
+        }
+        
+        if (storageRegistry == null)
         {
             return false;
         }

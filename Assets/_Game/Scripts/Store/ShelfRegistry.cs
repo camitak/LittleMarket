@@ -3,15 +3,11 @@ using UnityEngine;
 
 public class ShelfRegistry : MonoBehaviour
 {
-    private List<ShelfSlot> registeredSlots =
-        new List<ShelfSlot>();
+    private List<ShelfSlot> registeredSlots = new List<ShelfSlot>();
 
-    public int RegisteredSlotCount =>
-        registeredSlots.Count;
+    public int RegisteredSlotCount => registeredSlots.Count;
 
-    public void RegisterSlot(
-        ShelfSlot shelfSlot
-    )
+    public void RegisterSlot(ShelfSlot shelfSlot)
     {
         if (shelfSlot == null)
         {
@@ -25,9 +21,7 @@ public class ShelfRegistry : MonoBehaviour
             return;
         }
 
-        if (string.IsNullOrWhiteSpace(
-                shelfSlot.SlotID
-            ))
+        if (string.IsNullOrWhiteSpace(shelfSlot.SlotID))
         {
             Debug.LogError(
                 "ShelfSlot '"
@@ -63,9 +57,7 @@ public class ShelfRegistry : MonoBehaviour
         );
     }
 
-    public void UnregisterSlot(
-        ShelfSlot shelfSlot
-    )
+    public void UnregisterSlot(ShelfSlot shelfSlot)
     {
         if (shelfSlot == null)
         {
@@ -77,9 +69,7 @@ public class ShelfRegistry : MonoBehaviour
         );
     }
 
-    public ShelfSlot GetRegisteredSlot(
-        int index
-    )
+    public ShelfSlot GetRegisteredSlot(int index)
     {
         if (index < 0 ||
             index >= registeredSlots.Count)
@@ -90,9 +80,7 @@ public class ShelfRegistry : MonoBehaviour
         return registeredSlots[index];
     }
 
-    public ShelfSlot FindSlotByID(
-        string slotID
-    )
+    public ShelfSlot FindSlotByID(string slotID)
     {
         if (string.IsNullOrWhiteSpace(
                 slotID

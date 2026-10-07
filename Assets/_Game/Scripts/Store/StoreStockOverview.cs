@@ -12,6 +12,9 @@ public class StoreStockOverview : MonoBehaviour
     private ShelfRegistry shelfRegistry;
 
     [SerializeField]
+    private StorageRegistry storageRegistry;
+
+    [SerializeField]
     private DeliveryZone deliveryZone;
 
     [SerializeField]
@@ -27,12 +30,8 @@ public class StoreStockOverview : MonoBehaviour
         ProductData productData
     )
     {
-        if (productData == null)
-        {
-            return 0;
-        }
-
-        if (shelfRegistry == null)
+        if (productData == null ||
+            shelfRegistry == null)
         {
             return 0;
         }
@@ -67,16 +66,52 @@ public class StoreStockOverview : MonoBehaviour
         return count;
     }
 
-    public int GetDeliveryCount(
+    public int GetStorageCount(
         ProductData productData
     )
     {
-        if (productData == null)
+        if (productData == null ||
+            storageRegistry == null)
         {
             return 0;
         }
 
-        if (deliveryZone == null)
+        int count = 0;
+
+        for (int i = 0;
+             i < storageRegistry.RegisteredSlotCount;
+             i++)
+        {
+            ShelfSlot slot =
+                storageRegistry.GetRegisteredSlot(
+                    i
+                );
+
+            if (slot == null)
+            {
+                continue;
+            }
+
+            ProductData storedProduct =
+                slot.GetStoredProductData();
+
+            if (storedProduct != productData)
+            {
+                continue;
+            }
+
+            count++;
+        }
+
+        return count;
+    }
+
+    public int GetDeliveryCount(
+        ProductData productData
+    )
+    {
+        if (productData == null ||
+            deliveryZone == null)
         {
             return 0;
         }
@@ -117,12 +152,8 @@ public class StoreStockOverview : MonoBehaviour
         ProductData productData
     )
     {
-        if (productData == null)
-        {
-            return 0;
-        }
-
-        if (worldItemRegistry == null)
+        if (productData == null ||
+            worldItemRegistry == null)
         {
             return 0;
         }
@@ -164,12 +195,8 @@ public class StoreStockOverview : MonoBehaviour
         ProductData productData
     )
     {
-        if (productData == null)
-        {
-            return 0;
-        }
-
-        if (playerInteraction == null)
+        if (productData == null ||
+            playerInteraction == null)
         {
             return 0;
         }
@@ -191,7 +218,7 @@ public class StoreStockOverview : MonoBehaviour
         return 1;
     }
 
-    public int GetBackStockCount(
+    public int GetOtherBackStockCount(
         ProductData productData
     )
     {
@@ -202,6 +229,18 @@ public class StoreStockOverview : MonoBehaviour
                    productData
                )
                + GetHeldCount(
+                   productData
+               );
+    }
+
+    public int GetBackStockCount(
+        ProductData productData
+    )
+    {
+        return GetStorageCount(
+                   productData
+               )
+               + GetOtherBackStockCount(
                    productData
                );
     }
@@ -260,12 +299,9 @@ public class StoreStockOverview : MonoBehaviour
         ProductData productData
     )
     {
-        StockStatus status =
-            GetStockStatus(
-                productData
-            );
-
-        switch (status)
+        switch (GetStockStatus(
+                    productData
+                ))
         {
             case StockStatus.Low:
                 return "LOW";

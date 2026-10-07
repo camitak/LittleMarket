@@ -19,6 +19,8 @@ public class StoreSaveData
 
     public List<ShelfSlotSaveData> shelfSlots;
 
+    public List<StorageSlotSaveData> storageSlots;
+
     public List<DeliveryBoxSaveData> deliveries;
 
     public DailyStatsSaveData dailyStats;
