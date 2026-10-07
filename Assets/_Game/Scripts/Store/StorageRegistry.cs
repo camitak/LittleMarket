@@ -165,4 +165,25 @@ public class StorageRegistry : MonoBehaviour
             RegisteredSlotCount
             - OccupiedSlotCount
         );
+    
+    public bool HasSpace =>
+        EmptySlotCount > 0;
+
+    public bool IsFull =>
+        RegisteredSlotCount > 0
+        && EmptySlotCount <= 0;
+
+    public float OccupancyRatio
+    {
+        get
+        {
+            if (RegisteredSlotCount <= 0)
+            {
+                return 0f;
+            }
+
+            return (float)OccupiedSlotCount
+                   / RegisteredSlotCount;
+        }
+    }
 }
