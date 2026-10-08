@@ -15,6 +15,8 @@ public class PickupItem :
 
     private Rigidbody itemRigidbody;
 
+    private Collider[] itemColliders;
+
     private ShelfSlot currentShelfSlot;
 
     private WorldItemRegistry worldItemRegistry;
@@ -44,6 +46,13 @@ public class PickupItem :
     {
         itemRigidbody =
             GetComponent<Rigidbody>();
+
+        itemColliders =
+            GetComponentsInChildren<
+                Collider
+            >(
+                true
+            );
     }
 
     private void Start()
@@ -92,6 +101,36 @@ public class PickupItem :
         PlayerInteraction player
     )
     {
+        if (player == null)
+        {
+            return "";
+        }
+
+        RestockBasket heldBasket =
+            player.GetHeldRestockBasket();
+
+        if (heldBasket != null)
+        {
+            if (heldBasket.IsFull)
+            {
+                return "Restock basket full"
+                       + " ("
+                       + heldBasket.ItemCount
+                       + " / "
+                       + heldBasket.Capacity
+                       + ")";
+            }
+
+            return "[E] Load "
+                   + GetItemName()
+                   + " into basket"
+                   + " ("
+                   + heldBasket.ItemCount
+                   + " / "
+                   + heldBasket.Capacity
+                   + ")";
+        }
+
         if (player.GetHeldItem() != null)
         {
             return "Hands full";
@@ -105,6 +144,23 @@ public class PickupItem :
         PlayerInteraction player
     )
     {
+        if (player == null)
+        {
+            return;
+        }
+
+        RestockBasket heldBasket =
+            player.GetHeldRestockBasket();
+
+        if (heldBasket != null)
+        {
+            heldBasket.TryAddItem(
+                this
+            );
+
+            return;
+        }
+
         if (player.GetHeldItem() != null)
         {
             return;
@@ -125,6 +181,10 @@ public class PickupItem :
         }
 
         LeaveShelfIfNeeded();
+
+        SetItemCollidersEnabled(
+            true
+        );
 
         itemRigidbody.useGravity =
             false;
@@ -149,6 +209,10 @@ public class PickupItem :
 
         transform.SetParent(
             null
+        );
+
+        SetItemCollidersEnabled(
+            true
         );
 
         itemRigidbody.useGravity =
@@ -178,6 +242,10 @@ public class PickupItem :
         itemRigidbody.isKinematic =
             true;
 
+        SetItemCollidersEnabled(
+            true
+        );
+
         transform.SetParent(
             null,
             true
@@ -189,6 +257,49 @@ public class PickupItem :
 
         transform.SetParent(
             shelfSlot.transform,
+            true
+        );
+    }
+
+    public void PlaceInContainer(
+        Transform containerPoint
+    )
+    {
+        if (containerPoint == null)
+        {
+            return;
+        }
+
+        LeaveShelfIfNeeded();
+
+        itemRigidbody.useGravity =
+            false;
+
+        itemRigidbody.isKinematic =
+            true;
+
+        /*
+         * Basket contents are visual cargo.
+         *
+         * Their colliders are disabled so four
+         * nested rigidbodies do not fight the
+         * basket or block the player's raycast.
+         */
+        SetItemCollidersEnabled(
+            false
+        );
+
+        transform.SetParent(
+            null,
+            true
+        );
+
+        AlignShelfAnchorTo(
+            containerPoint
+        );
+
+        transform.SetParent(
+            containerPoint,
             true
         );
     }
@@ -207,6 +318,10 @@ public class PickupItem :
         transform.SetPositionAndRotation(
             position,
             rotation
+        );
+
+        SetItemCollidersEnabled(
+            true
         );
 
         itemRigidbody.useGravity =
@@ -286,6 +401,32 @@ public class PickupItem :
         previousShelfSlot.RemoveItem(
             this
         );
+    }
+
+    private void SetItemCollidersEnabled(
+        bool enabled
+    )
+    {
+        if (itemColliders == null)
+        {
+            return;
+        }
+
+        for (int i = 0;
+             i < itemColliders.Length;
+             i++)
+        {
+            Collider itemCollider =
+                itemColliders[i];
+
+            if (itemCollider == null)
+            {
+                continue;
+            }
+
+            itemCollider.enabled =
+                enabled;
+        }
     }
 
     private void OnDrawGizmosSelected()

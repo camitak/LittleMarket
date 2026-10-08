@@ -396,7 +396,7 @@ Transform:
   m_GameObject: {fileID: 43201575}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 3, y: -0, z: -2}
+  m_LocalPosition: {x: -16.71, y: -0, z: -2.91}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
@@ -511,7 +511,7 @@ PrefabInstance:
       objectReference: {fileID: 1929900}
     - target: {fileID: 1090177418780046489, guid: b2ab179c58af96d479747fad85aed525, type: 3}
       propertyPath: m_LocalPosition.x
-      value: -9.01
+      value: -6.16
       objectReference: {fileID: 0}
     - target: {fileID: 1090177418780046489, guid: b2ab179c58af96d479747fad85aed525, type: 3}
       propertyPath: m_LocalPosition.y
@@ -6827,7 +6827,7 @@ Transform:
   m_GameObject: {fileID: 1020754482}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -6.082, y: 1, z: 3.88}
+  m_LocalPosition: {x: -15.7, y: 1, z: 3.88}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
@@ -7741,6 +7741,7 @@ MonoBehaviour:
   worldItemRegistry: {fileID: 1117834537}
   deliveryBoxPrefab: {fileID: 2451739325236826120, guid: d6fd02bc723a5674ebd36140829485fc, type: 3}
   playerInteraction: {fileID: 1349577615}
+  restockBasket: {fileID: 1787645993}
 --- !u!114 &1117834537
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -7799,6 +7800,7 @@ MonoBehaviour:
   deliveryZone: {fileID: 43201577}
   worldItemRegistry: {fileID: 1117834537}
   playerInteraction: {fileID: 1349577615}
+  restockBasket: {fileID: 1787645993}
 --- !u!114 &1117834541
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -11492,6 +11494,74 @@ Transform:
   - {fileID: 163798430}
   m_Father: {fileID: 1991773052}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 90}
+--- !u!1001 &1787645992
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 0}
+    m_Modifications:
+    - target: {fileID: 1617301540143670688, guid: 19ffaa5ccdd7bee4bbfbec22373cf554, type: 3}
+      propertyPath: m_Name
+      value: PF_RestockBasket
+      objectReference: {fileID: 0}
+    - target: {fileID: 8485013355144152520, guid: 19ffaa5ccdd7bee4bbfbec22373cf554, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: -19.214987
+      objectReference: {fileID: 0}
+    - target: {fileID: 8485013355144152520, guid: 19ffaa5ccdd7bee4bbfbec22373cf554, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 0.128
+      objectReference: {fileID: 0}
+    - target: {fileID: 8485013355144152520, guid: 19ffaa5ccdd7bee4bbfbec22373cf554, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: -3.5179799
+      objectReference: {fileID: 0}
+    - target: {fileID: 8485013355144152520, guid: 19ffaa5ccdd7bee4bbfbec22373cf554, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 8485013355144152520, guid: 19ffaa5ccdd7bee4bbfbec22373cf554, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8485013355144152520, guid: 19ffaa5ccdd7bee4bbfbec22373cf554, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8485013355144152520, guid: 19ffaa5ccdd7bee4bbfbec22373cf554, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8485013355144152520, guid: 19ffaa5ccdd7bee4bbfbec22373cf554, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8485013355144152520, guid: 19ffaa5ccdd7bee4bbfbec22373cf554, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8485013355144152520, guid: 19ffaa5ccdd7bee4bbfbec22373cf554, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: 19ffaa5ccdd7bee4bbfbec22373cf554, type: 3}
+--- !u!114 &1787645993 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 2511569686100188906, guid: 19ffaa5ccdd7bee4bbfbec22373cf554, type: 3}
+  m_PrefabInstance: {fileID: 1787645992}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8ea64ee5013922043a489a0198199e9d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::RestockBasket
 --- !u!1 &1795430325
 GameObject:
   m_ObjectHideFlags: 0
@@ -13148,3 +13218,4 @@ SceneRoots:
   - {fileID: 743655634}
   - {fileID: 1987282631}
   - {fileID: 1449493394}
+  - {fileID: 1787645992}

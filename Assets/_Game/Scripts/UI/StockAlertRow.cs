@@ -120,6 +120,11 @@ public class StockAlertRow : MonoBehaviour
                 productData
             );
 
+        int basketCount =
+            stockOverview.GetBasketCount(
+                productData
+            );
+
         int deliveryCount =
             stockOverview.GetDeliveryCount(
                 productData
@@ -136,17 +141,17 @@ public class StockAlertRow : MonoBehaviour
             );
 
         int totalStock =
-            shelfCount
-            + storageCount
-            + deliveryCount
-            + looseCount
-            + heldCount;
+            stockOverview.GetTotalStockCount(
+                productData
+            );
 
         countsText.text =
             "Shelf "
             + shelfCount
             + "  •  Storage "
             + storageCount
+            + "\nBasket "
+            + basketCount
             + "  •  Delivery "
             + deliveryCount
             + "\nLoose "

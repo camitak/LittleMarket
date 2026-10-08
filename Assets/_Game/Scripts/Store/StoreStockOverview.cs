@@ -23,6 +23,9 @@ public class StoreStockOverview : MonoBehaviour
     [SerializeField]
     private PlayerInteraction playerInteraction;
 
+    [SerializeField]
+    private RestockBasket restockBasket;
+
     public int LowStockThreshold =>
         lowStockThreshold;
 
@@ -36,7 +39,8 @@ public class StoreStockOverview : MonoBehaviour
             return 0;
         }
 
-        int count = 0;
+        int count =
+            0;
 
         for (int i = 0;
              i < shelfRegistry.RegisteredSlotCount;
@@ -52,15 +56,11 @@ public class StoreStockOverview : MonoBehaviour
                 continue;
             }
 
-            ProductData storedProduct =
-                slot.GetStoredProductData();
-
-            if (storedProduct != productData)
+            if (slot.GetStoredProductData()
+                == productData)
             {
-                continue;
+                count++;
             }
-
-            count++;
         }
 
         return count;
@@ -76,7 +76,8 @@ public class StoreStockOverview : MonoBehaviour
             return 0;
         }
 
-        int count = 0;
+        int count =
+            0;
 
         for (int i = 0;
              i < storageRegistry.RegisteredSlotCount;
@@ -92,18 +93,30 @@ public class StoreStockOverview : MonoBehaviour
                 continue;
             }
 
-            ProductData storedProduct =
-                slot.GetStoredProductData();
-
-            if (storedProduct != productData)
+            if (slot.GetStoredProductData()
+                == productData)
             {
-                continue;
+                count++;
             }
-
-            count++;
         }
 
         return count;
+    }
+
+    public int GetBasketCount(
+        ProductData productData
+    )
+    {
+        if (productData == null ||
+            restockBasket == null)
+        {
+            return 0;
+        }
+
+        return restockBasket
+            .GetProductCount(
+                productData
+            );
     }
 
     public int GetDeliveryCount(
@@ -116,7 +129,8 @@ public class StoreStockOverview : MonoBehaviour
             return 0;
         }
 
-        int count = 0;
+        int count =
+            0;
 
         for (int i = 0;
              i < deliveryZone.DeliverySlotCount;
@@ -158,7 +172,8 @@ public class StoreStockOverview : MonoBehaviour
             return 0;
         }
 
-        int count = 0;
+        int count =
+            0;
 
         for (int i = 0;
              i < worldItemRegistry.RegisteredItemCount;
@@ -223,6 +238,9 @@ public class StoreStockOverview : MonoBehaviour
     )
     {
         return GetDeliveryCount(
+                   productData
+               )
+               + GetBasketCount(
                    productData
                )
                + GetLooseCount(

@@ -163,6 +163,16 @@ public class ShelfSlot :
             return "";
         }
 
+        RestockBasket heldBasket =
+            player.GetHeldRestockBasket();
+
+        if (heldBasket != null)
+        {
+            return GetBasketInteractionPrompt(
+                heldBasket
+            );
+        }
+
         PickupItem heldItem =
             player.GetHeldItem();
 
@@ -223,6 +233,18 @@ public class ShelfSlot :
             return;
         }
 
+        RestockBasket heldBasket =
+            player.GetHeldRestockBasket();
+
+        if (heldBasket != null)
+        {
+            HandleBasketInteraction(
+                heldBasket
+            );
+
+            return;
+        }
+
         if (storedItem != null)
         {
             TryRemoveStoredItem(
@@ -234,6 +256,163 @@ public class ShelfSlot :
 
         TryStoreHeldItem(
             player
+        );
+    }
+
+    private string GetBasketInteractionPrompt(
+        RestockBasket basket
+    )
+    {
+        if (basket == null)
+        {
+            return "";
+        }
+
+        if (storedItem != null)
+        {
+            if (basket.IsFull)
+            {
+                return "Restock basket full"
+                       + " ("
+                       + basket.ItemCount
+                       + " / "
+                       + basket.Capacity
+                       + ")";
+            }
+
+            return "[E] Load "
+                   + storedItem.GetItemName()
+                   + " into basket"
+                   + " ("
+                   + basket.ItemCount
+                   + " / "
+                   + basket.Capacity
+                   + ")";
+        }
+
+        if (basket.IsEmpty)
+        {
+            return "Restock basket empty";
+        }
+
+        if (!IsGenericStorage &&
+            acceptedProduct == null)
+        {
+            if (customerAccessible)
+            {
+                return "Shelf slot not configured";
+            }
+
+            return "Storage slot not configured";
+        }
+
+        if (IsGenericStorage)
+        {
+            ProductData firstProduct =
+                basket.GetFirstProductData();
+
+            if (firstProduct == null)
+            {
+                return "Restock basket empty";
+            }
+
+            return "[E] Store "
+                   + firstProduct.ProductName
+                   + " from basket";
+        }
+
+        int matchingCount =
+            basket.GetProductCount(
+                acceptedProduct
+            );
+
+        if (matchingCount <= 0)
+        {
+            return "Basket has no "
+                   + acceptedProduct.ProductName;
+        }
+
+        if (customerAccessible)
+        {
+            return "[E] Stock "
+                   + acceptedProduct.ProductName
+                   + " from basket";
+        }
+
+        return "[E] Store "
+               + acceptedProduct.ProductName
+               + " from basket";
+    }
+
+    private void HandleBasketInteraction(
+        RestockBasket basket
+    )
+    {
+        if (basket == null)
+        {
+            return;
+        }
+
+        if (storedItem != null)
+        {
+            basket.TryAddItem(
+                storedItem
+            );
+
+            return;
+        }
+
+        TryStoreItemFromBasket(
+            basket
+        );
+    }
+
+    private void TryStoreItemFromBasket(
+        RestockBasket basket
+    )
+    {
+        if (basket == null ||
+            basket.IsEmpty)
+        {
+            return;
+        }
+
+        PickupItem basketItem;
+
+        bool tookItem;
+
+        if (IsGenericStorage)
+        {
+            tookItem =
+                basket.TryTakeFirstItem(
+                    out basketItem
+                );
+        }
+        else
+        {
+            if (acceptedProduct == null)
+            {
+                return;
+            }
+
+            tookItem =
+                basket.TryTakeMatchingProduct(
+                    acceptedProduct,
+                    out basketItem
+                );
+        }
+
+        if (!tookItem ||
+            basketItem == null)
+        {
+            return;
+        }
+
+        storedItem =
+            basketItem;
+
+        basketItem.PlaceOnShelf(
+            this
         );
     }
 
@@ -316,12 +495,8 @@ public class ShelfSlot :
         ProductData productData
     )
     {
-        if (storedItem == null)
-        {
-            return false;
-        }
-
-        if (productData == null)
+        if (storedItem == null ||
+            productData == null)
         {
             return false;
         }
@@ -338,11 +513,6 @@ public class ShelfSlot :
         takenItem =
             null;
 
-        /*
-         * Storage slots should never be used
-         * by customers, even if one is passed
-         * here directly by mistake.
-         */
         if (!customerAccessible)
         {
             return false;

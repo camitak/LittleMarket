@@ -50,6 +50,9 @@ public class SaveManager : MonoBehaviour
     [Header("Player")]
     [SerializeField]
     private PlayerInteraction playerInteraction;
+    
+    [SerializeField]
+    private RestockBasket restockBasket;
 
     public string LastOperationMessage
     {
@@ -997,6 +1000,45 @@ public class SaveManager : MonoBehaviour
 
             return false;
         }
+        
+        RestockBasket heldBasket =
+            playerInteraction
+                .GetHeldRestockBasket();
+
+        if (heldBasket != null)
+        {
+            if (heldBasket.ItemCount > 0)
+            {
+                LastOperationMessage =
+                    "Empty and put down the restock "
+                    + "basket before saving or loading.";
+            }
+            else
+            {
+                LastOperationMessage =
+                    "Put down the restock basket "
+                    + "before saving or loading.";
+            }
+
+            Debug.LogWarning(
+                LastOperationMessage
+            );
+
+            return false;
+        }
+
+        if (restockBasket.ItemCount > 0)
+        {
+            LastOperationMessage =
+                "Empty the restock basket before "
+                + "saving or loading.";
+
+            Debug.LogWarning(
+                LastOperationMessage
+            );
+
+            return false;
+        }
 
         if (playerInteraction.GetHeldItem() != null)
         {
@@ -1104,7 +1146,12 @@ public class SaveManager : MonoBehaviour
         {
             return false;
         }
-
+        
+        if (restockBasket == null)
+        {
+            return false;
+        }
+        
         return true;
     }
 }

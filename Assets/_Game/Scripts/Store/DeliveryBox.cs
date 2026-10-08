@@ -48,12 +48,39 @@ public class DeliveryBox :
 
         if (quantity <= 0)
         {
-            if (player.GetHeldItem() != null)
+            if (player.GetHeldItem() != null ||
+                player.GetHeldRestockBasket() != null)
             {
-                return "Put down item to remove box";
+                return "Put down what you're carrying "
+                       + "to remove box";
             }
 
             return "[E] Remove empty box";
+        }
+
+        RestockBasket heldBasket =
+            player.GetHeldRestockBasket();
+
+        if (heldBasket != null)
+        {
+            if (heldBasket.IsFull)
+            {
+                return "Restock basket full"
+                       + " ("
+                       + heldBasket.ItemCount
+                       + " / "
+                       + heldBasket.Capacity
+                       + ")";
+            }
+
+            return "[E] Load "
+                   + productData.ProductName
+                   + " into basket"
+                   + " ("
+                   + heldBasket.ItemCount
+                   + " / "
+                   + heldBasket.Capacity
+                   + ")";
         }
 
         if (player.GetHeldItem() != null)
@@ -75,12 +102,14 @@ public class DeliveryBox :
         if (!isOpen)
         {
             OpenBox();
+
             return;
         }
 
         if (quantity <= 0)
         {
-            if (player.GetHeldItem() != null)
+            if (player.GetHeldItem() != null ||
+                player.GetHeldRestockBasket() != null)
             {
                 return;
             }
@@ -92,17 +121,30 @@ public class DeliveryBox :
             return;
         }
 
+        RestockBasket heldBasket =
+            player.GetHeldRestockBasket();
+
+        if (heldBasket != null)
+        {
+            if (heldBasket.IsFull)
+            {
+                return;
+            }
+
+            DispenseItemToBasket(
+                heldBasket
+            );
+
+            return;
+        }
+
         if (player.GetHeldItem() != null)
         {
             return;
         }
 
-        if (productData == null)
-        {
-            return;
-        }
-
-        if (productData.WorldPrefab == null)
+        if (productData == null ||
+            productData.WorldPrefab == null)
         {
             return;
         }
@@ -114,7 +156,8 @@ public class DeliveryBox :
 
     private void OpenBox()
     {
-        isOpen = true;
+        isOpen =
+            true;
     }
 
     private void DispenseItem(
@@ -134,6 +177,34 @@ public class DeliveryBox :
             );
 
         if (pickupSucceeded)
+        {
+            quantity--;
+        }
+        else
+        {
+            Destroy(
+                spawnedItem.gameObject
+            );
+        }
+    }
+
+    private void DispenseItemToBasket(
+        RestockBasket basket
+    )
+    {
+        PickupItem spawnedItem =
+            Instantiate(
+                productData.WorldPrefab,
+                spawnPoint.position,
+                spawnPoint.rotation
+            );
+
+        bool added =
+            basket.TryAddItem(
+                spawnedItem
+            );
+
+        if (added)
         {
             quantity--;
         }
