@@ -202,7 +202,8 @@ public class PlayerInteraction : MonoBehaviour
             basket;
 
         heldRestockBasket.PickUp(
-            holdPoint
+            holdPoint,
+            playerCamera.transform
         );
 
         return true;

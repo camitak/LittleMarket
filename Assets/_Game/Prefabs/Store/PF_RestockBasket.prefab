@@ -253,8 +253,13 @@ MonoBehaviour:
   - {fileID: 32814138892820882}
   - {fileID: 3103824021499811521}
   - {fileID: 4464802481728407378}
-  heldLocalPosition: {x: 0, y: -0.1, z: 0.1}
-  heldLocalEulerAngles: {x: 0, y: 0, z: 0}
+  heldViewOffset: {x: 0, y: -0.7, z: 1.07}
+  dropForwardDistance: 1.55
+  dropGroundClearance: 0.04
+  dropRayDistance: 3.5
+  dropSurfaceLayers:
+    serializedVersion: 2
+    m_Bits: 4294967295
 --- !u!1 &2814806079276172092
 GameObject:
   m_ObjectHideFlags: 0

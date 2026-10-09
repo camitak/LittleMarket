@@ -1,3 +1,4 @@
+
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -17,57 +18,58 @@ public class RestockBasket :
     [SerializeField]
     private Transform[] itemPoints;
 
-    [Header("Held Pose")]
+    [Header("Held View Position")]
     [SerializeField]
-    private Vector3 heldLocalPosition =
-        new Vector3(
-            0f,
-            -0.10f,
-            0.10f
-        );
+    private Vector3 heldViewOffset =
+        new Vector3(0.67f, -0.58f, 1.07f);
+
+    [Header("Drop Placement")]
+    [Min(0.5f)]
+    [SerializeField]
+    private float dropForwardDistance = 1.55f;
+
+    [Min(0.01f)]
+    [SerializeField]
+    private float dropGroundClearance = 0.04f;
+
+    [Min(1f)]
+    [SerializeField]
+    private float dropRayDistance = 3.5f;
 
     [SerializeField]
-    private Vector3 heldLocalEulerAngles =
-        Vector3.zero;
+    private LayerMask dropSurfaceLayers = ~0;
 
-    private readonly List<PickupItem>
-        items =
-            new List<PickupItem>();
+    private readonly List<PickupItem> items =
+        new List<PickupItem>();
 
     private Rigidbody basketRigidbody;
-
     private Collider basketCollider;
+
+    private Transform heldView;
+    private bool isHeld;
 
     public int Capacity
     {
         get
         {
-            if (itemPoints == null)
-            {
-                return 0;
-            }
-
-            if (itemPoints.Length <= 0)
+            if (itemPoints == null ||
+                itemPoints.Length <= 0)
             {
                 return 0;
             }
 
             return Mathf.Min(
-                Mathf.Max(
-                    1,
-                    capacity
-                ),
+                Mathf.Max(1, capacity),
                 itemPoints.Length
             );
         }
     }
 
-    public int ItemCount =>
-        items.Count;
+    public int ItemCount => items.Count;
 
     public bool IsFull =>
-        Capacity <= 0
-        || ItemCount >= Capacity;
+        Capacity <= 0 ||
+        ItemCount >= Capacity;
 
     public bool IsEmpty =>
         ItemCount <= 0;
@@ -79,6 +81,20 @@ public class RestockBasket :
 
         basketCollider =
             GetComponent<Collider>();
+
+        basketRigidbody.constraints |=
+            RigidbodyConstraints.FreezeRotationX |
+            RigidbodyConstraints.FreezeRotationZ;
+    }
+
+    private void LateUpdate()
+    {
+        if (!isHeld || heldView == null)
+        {
+            return;
+        }
+
+        UpdateHeldPose();
     }
 
     public string GetInteractionPrompt(
@@ -95,8 +111,7 @@ public class RestockBasket :
             return "Restock basket not configured";
         }
 
-        if (player.GetHeldRestockBasket()
-            != null)
+        if (player.GetHeldRestockBasket() != null)
         {
             return "Hands full";
         }
@@ -108,42 +123,25 @@ public class RestockBasket :
         {
             if (IsFull)
             {
-                return "Restock basket full"
-                       + " ("
-                       + ItemCount
-                       + " / "
-                       + Capacity
-                       + ")";
+                return "Restock basket full (" +
+                       ItemCount + " / " + Capacity + ")";
             }
 
-            return "[E] Add "
-                   + heldItem.GetItemName()
-                   + " to basket"
-                   + " ("
-                   + ItemCount
-                   + " / "
-                   + Capacity
-                   + ")";
+            return "[E] Add " +
+                   heldItem.GetItemName() +
+                   " to basket (" +
+                   ItemCount + " / " + Capacity + ")";
         }
 
-        return "[E] Pick up restock basket"
-               + " ("
-               + ItemCount
-               + " / "
-               + Capacity
-               + ")";
+        return "[E] Pick up restock basket (" +
+               ItemCount + " / " + Capacity + ")";
     }
 
     public void Interact(
         PlayerInteraction player
     )
     {
-        if (player == null)
-        {
-            return;
-        }
-
-        if (Capacity <= 0)
+        if (player == null || Capacity <= 0)
         {
             return;
         }
@@ -153,12 +151,7 @@ public class RestockBasket :
 
         if (heldItem != null)
         {
-            bool added =
-                TryAddItem(
-                    heldItem
-                );
-
-            if (added)
+            if (TryAddItem(heldItem))
             {
                 player.RemoveHeldItem();
             }
@@ -166,60 +159,35 @@ public class RestockBasket :
             return;
         }
 
-        if (player.GetHeldRestockBasket()
-            != null)
+        if (player.GetHeldRestockBasket() != null)
         {
             return;
         }
 
-        player.TryPickUpRestockBasket(
-            this
-        );
+        player.TryPickUpRestockBasket(this);
     }
 
-    public bool TryAddItem(
-        PickupItem item
-    )
+    public bool TryAddItem(PickupItem item)
     {
-        if (item == null)
-        {
-            return false;
-        }
-
-        if (item.GetProductData() == null)
-        {
-            return false;
-        }
-
-        if (IsFull)
-        {
-            return false;
-        }
-
-        if (items.Contains(
-                item
-            ))
+        if (item == null ||
+            item.GetProductData() == null ||
+            IsFull ||
+            items.Contains(item))
         {
             return false;
         }
 
         Transform targetPoint =
-            itemPoints[
-                items.Count
-            ];
+            itemPoints[items.Count];
 
         if (targetPoint == null)
         {
             return false;
         }
 
-        items.Add(
-            item
-        );
+        items.Add(item);
 
-        item.PlaceInContainer(
-            targetPoint
-        );
+        item.PlaceInContainer(targetPoint);
 
         return true;
     }
@@ -229,38 +197,26 @@ public class RestockBasket :
         out PickupItem item
     )
     {
-        item =
-            null;
+        item = null;
 
         if (productData == null)
         {
             return false;
         }
 
-        for (int i = 0;
-             i < items.Count;
-             i++)
+        for (int i = 0; i < items.Count; i++)
         {
-            PickupItem candidate =
-                items[i];
+            PickupItem candidate = items[i];
 
-            if (candidate == null)
+            if (candidate == null ||
+                candidate.GetProductData() != productData)
             {
                 continue;
             }
 
-            if (candidate.GetProductData()
-                != productData)
-            {
-                continue;
-            }
+            item = candidate;
 
-            item =
-                candidate;
-
-            items.RemoveAt(
-                i
-            );
+            items.RemoveAt(i);
 
             RepackItems();
 
@@ -274,20 +230,16 @@ public class RestockBasket :
         out PickupItem item
     )
     {
-        item =
-            null;
+        item = null;
 
         if (items.Count <= 0)
         {
             return false;
         }
 
-        item =
-            items[0];
+        item = items[0];
 
-        items.RemoveAt(
-            0
-        );
+        items.RemoveAt(0);
 
         RepackItems();
 
@@ -296,20 +248,12 @@ public class RestockBasket :
 
     public ProductData GetFirstProductData()
     {
-        if (items.Count <= 0)
+        if (items.Count <= 0 || items[0] == null)
         {
             return null;
         }
 
-        PickupItem firstItem =
-            items[0];
-
-        if (firstItem == null)
-        {
-            return null;
-        }
-
-        return firstItem.GetProductData();
+        return items[0].GetProductData();
     }
 
     public int GetProductCount(
@@ -321,113 +265,204 @@ public class RestockBasket :
             return 0;
         }
 
-        int count =
-            0;
+        int count = 0;
 
-        for (int i = 0;
-             i < items.Count;
-             i++)
+        for (int i = 0; i < items.Count; i++)
         {
-            PickupItem item =
-                items[i];
+            PickupItem item = items[i];
 
-            if (item == null)
+            if (item != null &&
+                item.GetProductData() == productData)
             {
-                continue;
+                count++;
             }
-
-            if (item.GetProductData()
-                != productData)
-            {
-                continue;
-            }
-
-            count++;
         }
 
         return count;
     }
 
     public void PickUp(
-        Transform holdPoint
+        Transform holdPoint,
+        Transform viewTransform
     )
     {
-        if (holdPoint == null)
+        if (holdPoint == null ||
+            viewTransform == null)
         {
             return;
         }
 
-        basketRigidbody.useGravity =
-            false;
+        heldView = viewTransform;
+        isHeld = true;
 
-        basketRigidbody.isKinematic =
-            true;
+        basketRigidbody.useGravity = false;
+        basketRigidbody.isKinematic = true;
 
         if (basketCollider != null)
         {
-            basketCollider.enabled =
-                false;
+            basketCollider.enabled = false;
         }
 
-        transform.SetParent(
-            holdPoint
-        );
+        transform.SetParent(holdPoint, true);
 
-        transform.localPosition =
-            heldLocalPosition;
+        UpdateHeldPose();
+    }
 
-        transform.localRotation =
-            Quaternion.Euler(
-                heldLocalEulerAngles
+    private void UpdateHeldPose()
+    {
+        if (heldView == null)
+        {
+            return;
+        }
+
+        // Camera-relative position keeps the basket
+        // in a consistent lower-right screen area.
+        Vector3 targetPosition =
+            heldView.position +
+            heldView.right * heldViewOffset.x +
+            heldView.up * heldViewOffset.y +
+            heldView.forward * heldViewOffset.z;
+
+        // World-upright rotation ignores camera pitch.
+        Vector3 horizontalForward =
+            GetHorizontalForward(heldView);
+
+        Quaternion targetRotation =
+            Quaternion.LookRotation(
+                -horizontalForward,
+                Vector3.up
             );
+
+        transform.SetPositionAndRotation(
+            targetPosition,
+            targetRotation
+        );
     }
 
     public void Drop()
     {
-        transform.SetParent(
-            null
+        if (!isHeld)
+        {
+            return;
+        }
+
+        Vector3 horizontalForward =
+            GetHorizontalForward(heldView);
+
+        Vector3 targetPosition =
+            transform.position;
+
+        if (heldView != null)
+        {
+            targetPosition =
+                heldView.position +
+                horizontalForward * dropForwardDistance;
+
+            Vector3 rayOrigin =
+                targetPosition + Vector3.up * 0.25f;
+
+            if (Physics.Raycast(
+                    rayOrigin,
+                    Vector3.down,
+                    out RaycastHit hit,
+                    dropRayDistance,
+                    dropSurfaceLayers,
+                    QueryTriggerInteraction.Ignore
+                ))
+            {
+                targetPosition.y =
+                    hit.point.y + dropGroundClearance;
+            }
+            else
+            {
+                // If no supporting surface is found,
+                // let physics settle it naturally.
+                targetPosition.y =
+                    heldView.position.y - 1.0f;
+            }
+        }
+
+        isHeld = false;
+        heldView = null;
+
+        transform.SetParent(null, true);
+
+        transform.SetPositionAndRotation(
+            targetPosition,
+            Quaternion.LookRotation(
+                -horizontalForward,
+                Vector3.up
+            )
         );
+
+        basketRigidbody.linearVelocity =
+            Vector3.zero;
+
+        basketRigidbody.angularVelocity =
+            Vector3.zero;
+
+        basketRigidbody.constraints |=
+            RigidbodyConstraints.FreezeRotationX |
+            RigidbodyConstraints.FreezeRotationZ;
 
         if (basketCollider != null)
         {
-            basketCollider.enabled =
-                true;
+            basketCollider.enabled = true;
         }
 
-        basketRigidbody.useGravity =
-            true;
+        basketRigidbody.isKinematic = false;
+        basketRigidbody.useGravity = true;
+    }
 
-        basketRigidbody.isKinematic =
-            false;
+    private Vector3 GetHorizontalForward(
+        Transform reference
+    )
+    {
+        Vector3 direction =
+            reference != null
+                ? reference.forward
+                : transform.forward;
+
+        direction.y = 0f;
+
+        if (direction.sqrMagnitude < 0.001f)
+        {
+            // Handles the camera looking nearly
+            // straight up or down.
+            if (reference != null)
+            {
+                direction =
+                    Vector3.Cross(
+                        reference.right,
+                        Vector3.up
+                    );
+            }
+            else
+            {
+                direction = Vector3.forward;
+            }
+        }
+
+        return direction.normalized;
     }
 
     private void RepackItems()
     {
         int usableCount =
-            Mathf.Min(
-                items.Count,
-                Capacity
-            );
+            Mathf.Min(items.Count, Capacity);
 
-        for (int i = 0;
-             i < usableCount;
-             i++)
+        for (int i = 0; i < usableCount; i++)
         {
-            PickupItem item =
-                items[i];
+            PickupItem item = items[i];
 
-            Transform targetPoint =
-                itemPoints[i];
+            Transform targetPoint = itemPoints[i];
 
-            if (item == null ||
-                targetPoint == null)
+            if (item == null || targetPoint == null)
             {
                 continue;
             }
 
-            item.PlaceInContainer(
-                targetPoint
-            );
+            item.PlaceInContainer(targetPoint);
         }
     }
 
@@ -438,12 +473,9 @@ public class RestockBasket :
             return;
         }
 
-        for (int i = 0;
-             i < itemPoints.Length;
-             i++)
+        for (int i = 0; i < itemPoints.Length; i++)
         {
-            Transform itemPoint =
-                itemPoints[i];
+            Transform itemPoint = itemPoints[i];
 
             if (itemPoint == null)
             {
@@ -457,9 +489,8 @@ public class RestockBasket :
 
             Gizmos.DrawLine(
                 itemPoint.position,
-                itemPoint.position
-                + itemPoint.forward
-                * 0.12f
+                itemPoint.position +
+                itemPoint.forward * 0.12f
             );
         }
     }
