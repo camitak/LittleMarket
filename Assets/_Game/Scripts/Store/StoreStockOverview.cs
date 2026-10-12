@@ -56,11 +56,10 @@ public class StoreStockOverview : MonoBehaviour
                 continue;
             }
 
-            if (slot.GetStoredProductData()
-                == productData)
-            {
-                count++;
-            }
+            count +=
+                slot.GetStoredProductCount(
+                    productData
+                );
         }
 
         return count;
@@ -96,7 +95,10 @@ public class StoreStockOverview : MonoBehaviour
             if (slot.GetStoredProductData()
                 == productData)
             {
-                count++;
+                count +=
+                    slot.GetStoredProductCount(
+                        productData
+                    );
             }
         }
 

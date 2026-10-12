@@ -270,12 +270,33 @@ public class PickupItem :
         ShelfSlot shelfSlot
     )
     {
+        PlaceOnShelf(
+            shelfSlot,
+            0
+        );
+    }
+
+    public void PlaceOnShelf(
+        ShelfSlot shelfSlot,
+        int displayIndex
+    )
+    {
         if (shelfSlot == null)
         {
             return;
         }
 
-        LeaveShelfIfNeeded();
+        /*
+         * Repositioning an item inside the SAME
+         * shelf should not remove it from that shelf.
+         *
+         * This is important when another product is
+         * sold and the remaining display repacks.
+         */
+        if (currentShelfSlot != shelfSlot)
+        {
+            LeaveShelfIfNeeded();
+        }
 
         currentShelfSlot =
             shelfSlot;
@@ -296,7 +317,10 @@ public class PickupItem :
         );
 
         AlignShelfAnchorTo(
-            shelfSlot.transform
+            shelfSlot.GetDisplayWorldPosition(
+                displayIndex
+            ),
+            shelfSlot.GetDisplayWorldRotation()
         );
 
         transform.SetParent(
@@ -399,11 +423,22 @@ public class PickupItem :
             return;
         }
 
+        AlignShelfAnchorTo(
+            shelfTarget.position,
+            shelfTarget.rotation
+        );
+    }
+
+    private void AlignShelfAnchorTo(
+        Vector3 targetPosition,
+        Quaternion targetRotation
+    )
+    {
         if (shelfPlacementAnchor == null)
         {
             transform.SetPositionAndRotation(
-                shelfTarget.position,
-                shelfTarget.rotation
+                targetPosition,
+                targetRotation
             );
 
             return;
@@ -416,13 +451,13 @@ public class PickupItem :
             * shelfPlacementAnchor.rotation;
 
         transform.rotation =
-            shelfTarget.rotation
+            targetRotation
             * Quaternion.Inverse(
                 anchorRotationRelativeToRoot
             );
 
         Vector3 positionCorrection =
-            shelfTarget.position
+            targetPosition
             - shelfPlacementAnchor.position;
 
         transform.position +=

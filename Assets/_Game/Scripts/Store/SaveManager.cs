@@ -4,7 +4,7 @@ using UnityEngine;
 
 public class SaveManager : MonoBehaviour
 {
-    private const int CurrentSaveVersion = 9;
+    private const int CurrentSaveVersion = 10;
 
     [Header("Store References")]
     [SerializeField]
@@ -299,6 +299,9 @@ public class SaveManager : MonoBehaviour
 
             slotSaveData.productID =
                 product.ProductID;
+            
+            slotSaveData.quantity =
+                slot.StoredItemCount;
 
             savedSlots.Add(
                 slotSaveData
@@ -639,9 +642,16 @@ public class SaveManager : MonoBehaviour
                 continue;
             }
 
+            int quantity =
+                Mathf.Max(
+                    1,
+                    slotSaveData.quantity
+                );
+
             bool restored =
                 slot.RestoreProduct(
-                    product
+                    product,
+                    quantity
                 );
 
             if (!restored)
