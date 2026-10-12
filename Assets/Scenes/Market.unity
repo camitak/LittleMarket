@@ -9365,6 +9365,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerInteraction
   interactionDistance: 3
+  interactionAssistRadius: 0.14
   playerCamera: {fileID: 330585545}
   holdPoint: {fileID: 1641586007}
   interactionUI: {fileID: 766562198}

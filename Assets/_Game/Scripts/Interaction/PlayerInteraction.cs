@@ -11,6 +11,15 @@ public class PlayerInteraction : MonoBehaviour
     [SerializeField]
     private float interactionAssistRadius = 0.14f;
 
+    [Header("Held Interaction")]
+    [Min(0.05f)]
+    [SerializeField]
+    private float holdRepeatInitialDelay = 0.30f;
+
+    [Min(0.05f)]
+    [SerializeField]
+    private float holdRepeatInterval = 0.18f;
+    
     [Header("References")]
     [SerializeField]
     private Camera playerCamera;
@@ -26,6 +35,10 @@ public class PlayerInteraction : MonoBehaviour
     private RestockBasket heldRestockBasket;
 
     private IInteractable focusedInteractable;
+    
+    private ShelfSlot repeatingShelfSlot;
+
+    private float holdRepeatTimer;
 
     private void Update()
     {
@@ -44,15 +57,20 @@ public class PlayerInteraction : MonoBehaviour
             return;
         }
 
-        /*
-         * E means INTERACT only.
-         *
-         * Missing an interactable must never
-         * drop what the player is carrying.
-         */
-        if (Keyboard.current.eKey
-            .wasPressedThisFrame)
+        bool interactPressed =
+            Keyboard.current.eKey
+                .wasPressedThisFrame;
+
+        bool interactHeld =
+            Keyboard.current.eKey
+                .isPressed;
+
+        if (interactPressed)
         {
+            /*
+             * One press always means exactly
+             * one interaction.
+             */
             if (focusedInteractable != null)
             {
                 focusedInteractable.Interact(
@@ -60,14 +78,29 @@ public class PlayerInteraction : MonoBehaviour
                 );
             }
 
+            BeginHeldInteractionIfPossible();
+
             return;
         }
 
         /*
-         * Q is now the dedicated DROP input.
+         * Repeated interactions are deliberately
+         * limited to ShelfSlot + basket for now.
+         */
+        if (interactHeld)
+        {
+            UpdateHeldInteraction();
+
+            return;
+        }
+
+        ResetHeldInteraction();
+
+        /*
+         * Q remains the dedicated Drop button.
          */
         if (!Keyboard.current.qKey
-            .wasPressedThisFrame)
+                .wasPressedThisFrame)
         {
             return;
         }
@@ -83,6 +116,90 @@ public class PlayerInteraction : MonoBehaviour
         {
             DropHeldItem();
         }
+    }
+    
+    private void BeginHeldInteractionIfPossible()
+    {
+        if (heldRestockBasket == null)
+        {
+            ResetHeldInteraction();
+
+            return;
+        }
+
+        if (!(focusedInteractable
+                is ShelfSlot shelfSlot))
+        {
+            ResetHeldInteraction();
+
+            return;
+        }
+
+        repeatingShelfSlot =
+            shelfSlot;
+
+        holdRepeatTimer =
+            holdRepeatInitialDelay;
+    }
+
+    private void UpdateHeldInteraction()
+    {
+        if (heldRestockBasket == null)
+        {
+            ResetHeldInteraction();
+
+            return;
+        }
+
+        if (!(focusedInteractable
+                is ShelfSlot currentShelfSlot))
+        {
+            ResetHeldInteraction();
+
+            return;
+        }
+
+        /*
+         * If the player's aim moves to another
+         * shelf section, restart the initial delay
+         * instead of immediately transferring stock
+         * to the new target.
+         */
+        if (currentShelfSlot
+            != repeatingShelfSlot)
+        {
+            repeatingShelfSlot =
+                currentShelfSlot;
+
+            holdRepeatTimer =
+                holdRepeatInitialDelay;
+
+            return;
+        }
+
+        holdRepeatTimer -=
+            Time.unscaledDeltaTime;
+
+        if (holdRepeatTimer > 0f)
+        {
+            return;
+        }
+
+        repeatingShelfSlot.Interact(
+            this
+        );
+
+        holdRepeatTimer =
+            holdRepeatInterval;
+    }
+
+    private void ResetHeldInteraction()
+    {
+        repeatingShelfSlot =
+            null;
+
+        holdRepeatTimer =
+            0f;
     }
 
     private void UpdateInteractionPrompt()

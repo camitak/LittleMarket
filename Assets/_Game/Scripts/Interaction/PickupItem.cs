@@ -285,14 +285,7 @@ public class PickupItem :
         {
             return;
         }
-
-        /*
-         * Repositioning an item inside the SAME
-         * shelf should not remove it from that shelf.
-         *
-         * This is important when another product is
-         * sold and the remaining display repacks.
-         */
+        
         if (currentShelfSlot != shelfSlot)
         {
             LeaveShelfIfNeeded();
@@ -306,9 +299,9 @@ public class PickupItem :
 
         itemRigidbody.isKinematic =
             true;
-
+        
         SetItemCollidersEnabled(
-            true
+            false
         );
 
         transform.SetParent(

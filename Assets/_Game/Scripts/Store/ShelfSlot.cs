@@ -470,7 +470,8 @@ public class ShelfSlot :
                        + "  •  "
                        + StoredItemCount
                        + " / "
-                       + Capacity;
+                       + Capacity
+                       + "  •  Hold for more";
             }
 
             if (HasStoredItem)
@@ -615,47 +616,64 @@ public class ShelfSlot :
         RestockBasket basket
     )
     {
-        if (acceptedProduct == null)
+        if (basket == null ||
+            acceptedProduct == null)
         {
             return;
         }
 
         /*
-         * Restocking takes priority.
+         * Basket -> Shelf
          *
-         * One interaction transfers every matching
-         * basket item that fits on this section.
+         * Transfer exactly ONE matching unit for
+         * every interaction.
+         *
+         * PlayerInteraction will handle repeating
+         * this action when E is held.
          */
-        while (!IsFull)
+        if (!IsFull)
         {
-            bool tookItem =
+            bool tookMatchingItem =
                 basket.TryTakeMatchingProduct(
                     acceptedProduct,
                     out PickupItem basketItem
                 );
 
-            if (!tookItem ||
-                basketItem == null)
+            if (tookMatchingItem &&
+                basketItem != null)
             {
-                break;
-            }
+                AddStoredItem(
+                    basketItem
+                );
 
-            AddStoredItem(
-                basketItem
-            );
+                return;
+            }
         }
 
         /*
-         * If no matching basket product existed,
-         * E can still remove one shelf item into
-         * the basket.
+         * Shelf -> Basket
+         *
+         * If the basket contains no matching product
+         * to stock, allow one displayed unit to be
+         * moved back into the basket.
          */
-        if (basket.GetProductCount(
-                acceptedProduct
-            ) > 0)
+        if (!HasStoredItem ||
+            basket.IsFull)
         {
             return;
         }
+
+        PickupItem shelfItem =
+            GetLastStoredItem();
+
+        if (shelfItem == null)
+        {
+            return;
+        }
+
+        basket.TryAddItem(
+            shelfItem
+        );
     }
 
     private void HandleStorageBasketInteraction(

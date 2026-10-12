@@ -347,7 +347,9 @@ public class RestockBasket :
         }
 
         Vector3 horizontalForward =
-            GetHorizontalForward(heldView);
+            GetHorizontalForward(
+                heldView
+            );
 
         Vector3 targetPosition =
             transform.position;
@@ -355,11 +357,13 @@ public class RestockBasket :
         if (heldView != null)
         {
             targetPosition =
-                heldView.position +
-                horizontalForward * dropForwardDistance;
+                heldView.position
+                + horizontalForward
+                * dropForwardDistance;
 
             Vector3 rayOrigin =
-                targetPosition + Vector3.up * 0.25f;
+                targetPosition
+                + Vector3.up * 0.25f;
 
             if (Physics.Raycast(
                     rayOrigin,
@@ -371,21 +375,27 @@ public class RestockBasket :
                 ))
             {
                 targetPosition.y =
-                    hit.point.y + dropGroundClearance;
+                    hit.point.y
+                    + dropGroundClearance;
             }
             else
             {
-                // If no supporting surface is found,
-                // let physics settle it naturally.
                 targetPosition.y =
-                    heldView.position.y - 1.0f;
+                    heldView.position.y
+                    - 1.0f;
             }
         }
 
-        isHeld = false;
-        heldView = null;
+        isHeld =
+            false;
 
-        transform.SetParent(null, true);
+        heldView =
+            null;
+
+        transform.SetParent(
+            null,
+            true
+        );
 
         transform.SetPositionAndRotation(
             targetPosition,
@@ -395,23 +405,31 @@ public class RestockBasket :
             )
         );
 
+        basketRigidbody.constraints |=
+            RigidbodyConstraints.FreezeRotationX
+            | RigidbodyConstraints.FreezeRotationZ;
+
+        if (basketCollider != null)
+        {
+            basketCollider.enabled =
+                true;
+        }
+
+        /*
+         * Make the body dynamic BEFORE attempting
+         * to change its velocity.
+         */
+        basketRigidbody.isKinematic =
+            false;
+
+        basketRigidbody.useGravity =
+            true;
+
         basketRigidbody.linearVelocity =
             Vector3.zero;
 
         basketRigidbody.angularVelocity =
             Vector3.zero;
-
-        basketRigidbody.constraints |=
-            RigidbodyConstraints.FreezeRotationX |
-            RigidbodyConstraints.FreezeRotationZ;
-
-        if (basketCollider != null)
-        {
-            basketCollider.enabled = true;
-        }
-
-        basketRigidbody.isKinematic = false;
-        basketRigidbody.useGravity = true;
     }
 
     private Vector3 GetHorizontalForward(
