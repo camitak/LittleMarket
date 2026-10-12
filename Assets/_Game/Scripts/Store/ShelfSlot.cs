@@ -350,6 +350,11 @@ public class ShelfSlot :
         RestockBasket heldBasket =
             player.GetHeldRestockBasket();
 
+        /*
+         * E with basket:
+         *
+         * Basket -> target only.
+         */
         if (heldBasket != null)
         {
             HandleBasketInteraction(
@@ -359,21 +364,84 @@ public class ShelfSlot :
             return;
         }
 
+        /*
+         * E with individual product:
+         *
+         * Hand -> target only.
+         */
         if (player.GetHeldItem() != null)
         {
             TryStoreHeldItem(
                 player
             );
+        }
+
+        /*
+         * E with empty hands does not remove stock.
+         *
+         * R owns that action now.
+         */
+    }
+    
+    public void TakeOne(
+        PlayerInteraction player
+    )
+    {
+        if (player == null)
+        {
+            return;
+        }
+
+        RemoveNullEntries();
+
+        if (!HasStoredItem)
+        {
+            return;
+        }
+
+        RestockBasket basket =
+            player.GetHeldRestockBasket();
+
+        /*
+         * R while carrying basket:
+         *
+         * Shelf/Storage -> Basket
+         */
+        if (basket != null)
+        {
+            if (basket.IsFull)
+            {
+                return;
+            }
+
+            PickupItem item =
+                GetLastStoredItem();
+
+            if (item == null)
+            {
+                return;
+            }
+
+            basket.TryAddItem(
+                item
+            );
 
             return;
         }
 
-        if (HasStoredItem)
+        /*
+         * R with empty hands:
+         *
+         * Shelf/Storage -> Hand
+         */
+        if (player.GetHeldItem() != null)
         {
-            TryRemoveStoredItem(
-                player
-            );
+            return;
         }
+
+        TryRemoveStoredItem(
+            player
+        );
     }
 
     private string GetHeldItemPrompt(
@@ -428,111 +496,131 @@ public class ShelfSlot :
     }
 
     private string GetBasketInteractionPrompt(
-        RestockBasket basket
-    )
+    RestockBasket basket
+)
+{
+    if (basket == null)
     {
-        if (basket == null)
+        return "";
+    }
+
+    /*
+     * SALES SHELF
+     */
+    if (customerAccessible)
+    {
+        if (acceptedProduct == null)
         {
-            return "";
+            return "Shelf section not configured";
         }
 
-        /*
-         * Sales shelves:
-         *
-         * Matching products in the basket take
-         * priority and one E press fills as many
-         * shelf spaces as possible.
-         */
-        if (customerAccessible)
+        int matchingCount =
+            basket.GetProductCount(
+                acceptedProduct
+            );
+
+        bool canStock =
+            matchingCount > 0
+            && !IsFull;
+
+        bool canTake =
+            HasStoredItem
+            && !basket.IsFull;
+
+        string shelfCount =
+            StoredItemCount
+            + " / "
+            + Capacity;
+
+        if (canStock && canTake)
         {
-            if (acceptedProduct == null)
-            {
-                return "Shelf slot not configured";
-            }
-
-            int matchingCount =
-                basket.GetProductCount(
-                    acceptedProduct
-                );
-
-            if (matchingCount > 0)
-            {
-                if (IsFull)
-                {
-                    return "Shelf full  "
-                           + StoredItemCount
-                           + " / "
-                           + Capacity;
-                }
-
-                return "[E] Restock "
-                       + acceptedProduct.ProductName
-                       + "  •  "
-                       + StoredItemCount
-                       + " / "
-                       + Capacity
-                       + "  •  Hold for more";
-            }
-
-            if (HasStoredItem)
-            {
-                if (basket.IsFull)
-                {
-                    return "Restock basket full";
-                }
-
-                return "[E] Take "
-                       + acceptedProduct.ProductName
-                       + " into basket  •  "
-                       + StoredItemCount
-                       + " / "
-                       + Capacity;
-            }
-
-            return "Basket has no "
-                   + acceptedProduct.ProductName;
+            return "[E] Stock "
+                   + acceptedProduct.ProductName
+                   + "  •  "
+                   + shelfCount
+                   + "  •  Hold"
+                   + "\n[R] Take one";
         }
 
-        /*
-         * Back-room storage stays single-unit
-         * until its container redesign.
-         */
-        if (HasStoredItem)
+        if (canStock)
         {
-            if (basket.IsFull)
-            {
-                return "Restock basket full";
-            }
-
-            ProductData storedProduct =
-                GetStoredProductData();
-
-            string productName =
-                storedProduct != null
-                    ? storedProduct.ProductName
-                    : "product";
-
-            return "[E] Load "
-                   + productName
-                   + " into basket";
+            return "[E] Stock "
+                   + acceptedProduct.ProductName
+                   + "  •  "
+                   + shelfCount
+                   + "  •  Hold";
         }
 
-        if (basket.IsEmpty)
+        if (canTake)
         {
-            return "Restock basket empty";
+            return "[R] Take "
+                   + acceptedProduct.ProductName
+                   + " into basket  •  "
+                   + shelfCount
+                   + "  •  Hold";
         }
 
-        ProductData firstProduct =
-            basket.GetFirstProductData();
-
-        if (firstProduct == null)
+        if (IsFull)
         {
-            return "Restock basket empty";
+            return "Shelf full  "
+                   + shelfCount;
         }
 
-        return "[E] Store "
-               + firstProduct.ProductName
-               + " from basket";
+        if (basket.IsFull)
+        {
+            return "Restock basket full";
+        }
+
+        return "Basket has no "
+               + acceptedProduct.ProductName;
+    }
+
+    /*
+     * CURRENT SINGLE-UNIT STORAGE
+     */
+    if (HasStoredItem)
+    {
+        ProductData storedProduct =
+            GetStoredProductData();
+
+        string productName =
+            storedProduct != null
+                ? storedProduct.ProductName
+                : "product";
+
+        if (basket.IsFull)
+        {
+            return "Restock basket full";
+        }
+
+        return "[R] Take "
+               + productName
+               + " into basket";
+    }
+
+    if (basket.IsEmpty)
+    {
+        return "Restock basket empty";
+    }
+
+    ProductData firstProduct =
+        basket.GetFirstProductData();
+
+    if (firstProduct == null)
+    {
+        return "Restock basket empty";
+    }
+
+    if (!CanAcceptProduct(
+            firstProduct
+        ))
+    {
+        return GetRejectedProductPrompt();
+    }
+
+    return "[E] Store "
+           + firstProduct.ProductName
+           + " from basket";
     }
 
     private string GetOccupiedEmptyHandsPrompt()
@@ -547,7 +635,7 @@ public class ShelfSlot :
 
         if (customerAccessible)
         {
-            return "[E] Pick up "
+            return "[R] Take "
                    + productName
                    + "  •  "
                    + StoredItemCount
@@ -555,7 +643,7 @@ public class ShelfSlot :
                    + Capacity;
         }
 
-        return "[E] Take "
+        return "[R] Take "
                + productName
                + " from storage";
     }
@@ -622,57 +710,30 @@ public class ShelfSlot :
             return;
         }
 
+        if (IsFull)
+        {
+            return;
+        }
+
         /*
+         * E has ONE direction:
+         *
          * Basket -> Shelf
-         *
-         * Transfer exactly ONE matching unit for
-         * every interaction.
-         *
-         * PlayerInteraction will handle repeating
-         * this action when E is held.
          */
-        if (!IsFull)
-        {
-            bool tookMatchingItem =
-                basket.TryTakeMatchingProduct(
-                    acceptedProduct,
-                    out PickupItem basketItem
-                );
+        bool tookMatchingItem =
+            basket.TryTakeMatchingProduct(
+                acceptedProduct,
+                out PickupItem basketItem
+            );
 
-            if (tookMatchingItem &&
-                basketItem != null)
-            {
-                AddStoredItem(
-                    basketItem
-                );
-
-                return;
-            }
-        }
-
-        /*
-         * Shelf -> Basket
-         *
-         * If the basket contains no matching product
-         * to stock, allow one displayed unit to be
-         * moved back into the basket.
-         */
-        if (!HasStoredItem ||
-            basket.IsFull)
+        if (!tookMatchingItem ||
+            basketItem == null)
         {
             return;
         }
 
-        PickupItem shelfItem =
-            GetLastStoredItem();
-
-        if (shelfItem == null)
-        {
-            return;
-        }
-
-        basket.TryAddItem(
-            shelfItem
+        AddStoredItem(
+            basketItem
         );
     }
 
@@ -680,23 +741,18 @@ public class ShelfSlot :
         RestockBasket basket
     )
     {
+        if (basket == null)
+        {
+            return;
+        }
+
+        /*
+         * E never removes an existing storage item.
+         *
+         * Use R for that.
+         */
         if (HasStoredItem)
         {
-            if (basket.IsFull)
-            {
-                return;
-            }
-
-            PickupItem item =
-                GetLastStoredItem();
-
-            if (item != null)
-            {
-                basket.TryAddItem(
-                    item
-                );
-            }
-
             return;
         }
 

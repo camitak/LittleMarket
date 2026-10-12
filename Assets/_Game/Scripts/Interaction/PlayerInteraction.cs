@@ -3,6 +3,13 @@ using UnityEngine.InputSystem;
 
 public class PlayerInteraction : MonoBehaviour
 {
+    private enum ShelfRepeatMode
+    {
+        None,
+        Stock,
+        Take
+    }
+    
     [Header("Interaction")]
     [SerializeField]
     private float interactionDistance = 3f;
@@ -38,6 +45,9 @@ public class PlayerInteraction : MonoBehaviour
     
     private ShelfSlot repeatingShelfSlot;
 
+    private ShelfRepeatMode repeatingShelfMode =
+        ShelfRepeatMode.None;
+
     private float holdRepeatTimer;
 
     private void Update()
@@ -57,20 +67,27 @@ public class PlayerInteraction : MonoBehaviour
             return;
         }
 
-        bool interactPressed =
+        bool stockPressed =
             Keyboard.current.eKey
                 .wasPressedThisFrame;
 
-        bool interactHeld =
+        bool stockHeld =
             Keyboard.current.eKey
                 .isPressed;
 
-        if (interactPressed)
+        bool takePressed =
+            Keyboard.current.rKey
+                .wasPressedThisFrame;
+
+        bool takeHeld =
+            Keyboard.current.rKey
+                .isPressed;
+
+        /*
+         * E = primary/use/stock.
+         */
+        if (stockPressed)
         {
-            /*
-             * One press always means exactly
-             * one interaction.
-             */
             if (focusedInteractable != null)
             {
                 focusedInteractable.Interact(
@@ -78,26 +95,56 @@ public class PlayerInteraction : MonoBehaviour
                 );
             }
 
-            BeginHeldInteractionIfPossible();
+            BeginShelfRepeat(
+                ShelfRepeatMode.Stock
+            );
 
             return;
         }
 
         /*
-         * Repeated interactions are deliberately
-         * limited to ShelfSlot + basket for now.
+         * R = deliberately take something
+         * out of a shelf/storage position.
          */
-        if (interactHeld)
+        if (takePressed)
         {
-            UpdateHeldInteraction();
+            if (focusedInteractable
+                is ShelfSlot shelfSlot)
+            {
+                shelfSlot.TakeOne(
+                    this
+                );
+            }
+
+            BeginShelfRepeat(
+                ShelfRepeatMode.Take
+            );
 
             return;
         }
 
-        ResetHeldInteraction();
+        if (stockHeld)
+        {
+            UpdateShelfRepeat(
+                ShelfRepeatMode.Stock
+            );
+
+            return;
+        }
+
+        if (takeHeld)
+        {
+            UpdateShelfRepeat(
+                ShelfRepeatMode.Take
+            );
+
+            return;
+        }
+
+        ResetShelfRepeat();
 
         /*
-         * Q remains the dedicated Drop button.
+         * Q = Drop.
          */
         if (!Keyboard.current.qKey
                 .wasPressedThisFrame)
@@ -118,11 +165,17 @@ public class PlayerInteraction : MonoBehaviour
         }
     }
     
-    private void BeginHeldInteractionIfPossible()
+    private void BeginShelfRepeat(
+        ShelfRepeatMode mode
+    )
     {
+        /*
+         * Continuous shelf transfers currently
+         * only make sense while carrying the basket.
+         */
         if (heldRestockBasket == null)
         {
-            ResetHeldInteraction();
+            ResetShelfRepeat();
 
             return;
         }
@@ -130,7 +183,7 @@ public class PlayerInteraction : MonoBehaviour
         if (!(focusedInteractable
                 is ShelfSlot shelfSlot))
         {
-            ResetHeldInteraction();
+            ResetShelfRepeat();
 
             return;
         }
@@ -138,15 +191,20 @@ public class PlayerInteraction : MonoBehaviour
         repeatingShelfSlot =
             shelfSlot;
 
+        repeatingShelfMode =
+            mode;
+
         holdRepeatTimer =
             holdRepeatInitialDelay;
     }
 
-    private void UpdateHeldInteraction()
+    private void UpdateShelfRepeat(
+        ShelfRepeatMode mode
+    )
     {
         if (heldRestockBasket == null)
         {
-            ResetHeldInteraction();
+            ResetShelfRepeat();
 
             return;
         }
@@ -154,22 +212,24 @@ public class PlayerInteraction : MonoBehaviour
         if (!(focusedInteractable
                 is ShelfSlot currentShelfSlot))
         {
-            ResetHeldInteraction();
+            ResetShelfRepeat();
 
             return;
         }
 
         /*
-         * If the player's aim moves to another
-         * shelf section, restart the initial delay
-         * instead of immediately transferring stock
-         * to the new target.
+         * Moving aim to another shelf OR changing
+         * direction restarts the safety delay.
          */
         if (currentShelfSlot
-            != repeatingShelfSlot)
+            != repeatingShelfSlot ||
+            mode != repeatingShelfMode)
         {
             repeatingShelfSlot =
                 currentShelfSlot;
+
+            repeatingShelfMode =
+                mode;
 
             holdRepeatTimer =
                 holdRepeatInitialDelay;
@@ -185,18 +245,30 @@ public class PlayerInteraction : MonoBehaviour
             return;
         }
 
-        repeatingShelfSlot.Interact(
-            this
-        );
+        if (mode == ShelfRepeatMode.Stock)
+        {
+            repeatingShelfSlot.Interact(
+                this
+            );
+        }
+        else if (mode == ShelfRepeatMode.Take)
+        {
+            repeatingShelfSlot.TakeOne(
+                this
+            );
+        }
 
         holdRepeatTimer =
             holdRepeatInterval;
     }
 
-    private void ResetHeldInteraction()
+    private void ResetShelfRepeat()
     {
         repeatingShelfSlot =
             null;
+
+        repeatingShelfMode =
+            ShelfRepeatMode.None;
 
         holdRepeatTimer =
             0f;
