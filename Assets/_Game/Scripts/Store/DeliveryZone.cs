@@ -149,6 +149,7 @@ public class DeliveryZone : MonoBehaviour
         int slotIndex,
         ProductData productData,
         int quantity,
+        int capacity,
         bool isOpen,
         out DeliveryBox createdDelivery
     )
@@ -206,6 +207,7 @@ public class DeliveryZone : MonoBehaviour
         createdDelivery.RestoreState(
             productData,
             quantity,
+            capacity,
             isOpen
         );
 

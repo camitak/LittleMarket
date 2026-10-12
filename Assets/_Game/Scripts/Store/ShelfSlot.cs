@@ -307,6 +307,16 @@ public class ShelfSlot :
         }
 
         RemoveNullEntries();
+        
+        DeliveryBox heldDeliveryBox =
+            player.GetHeldDeliveryBox();
+
+        if (heldDeliveryBox != null)
+        {
+            return GetDeliveryBoxInteractionPrompt(
+                heldDeliveryBox
+            );
+        }
 
         RestockBasket heldBasket =
             player.GetHeldRestockBasket();
@@ -346,6 +356,18 @@ public class ShelfSlot :
         }
 
         RemoveNullEntries();
+        
+        DeliveryBox heldDeliveryBox =
+            player.GetHeldDeliveryBox();
+
+        if (heldDeliveryBox != null)
+        {
+            TryStockFromDeliveryBox(
+                heldDeliveryBox
+            );
+
+            return;
+        }
 
         RestockBasket heldBasket =
             player.GetHeldRestockBasket();
@@ -396,6 +418,18 @@ public class ShelfSlot :
 
         if (!HasStoredItem)
         {
+            return;
+        }
+        
+        DeliveryBox heldDeliveryBox =
+            player.GetHeldDeliveryBox();
+
+        if (heldDeliveryBox != null)
+        {
+            TryTakeOneIntoDeliveryBox(
+                heldDeliveryBox
+            );
+
             return;
         }
 
@@ -494,133 +528,322 @@ public class ShelfSlot :
         return "[E] Store "
                + heldProduct.ProductName;
     }
-
-    private string GetBasketInteractionPrompt(
-    RestockBasket basket
-)
-{
-    if (basket == null)
+    
+    private string GetDeliveryBoxInteractionPrompt(
+        DeliveryBox deliveryBox
+    )
     {
-        return "";
-    }
-
-    /*
-     * SALES SHELF
-     */
-    if (customerAccessible)
-    {
-        if (acceptedProduct == null)
+        if (deliveryBox == null ||
+            deliveryBox.ProductData == null)
         {
-            return "Shelf section not configured";
+            return "";
         }
 
-        int matchingCount =
-            basket.GetProductCount(
-                acceptedProduct
-            );
+        ProductData boxProduct =
+            deliveryBox.ProductData;
+
+        if (!CanAcceptProduct(
+                boxProduct
+            ))
+        {
+            return GetRejectedProductPrompt();
+        }
 
         bool canStock =
-            matchingCount > 0
+            deliveryBox.RemainingQuantity > 0
             && !IsFull;
 
-        bool canTake =
-            HasStoredItem
-            && !basket.IsFull;
+        ProductData storedProduct =
+            GetStoredProductData();
 
-        string shelfCount =
+        bool canReturn =
+            HasStoredItem
+            && storedProduct == boxProduct
+            && !deliveryBox.IsFull;
+
+        string locationCount =
             StoredItemCount
             + " / "
             + Capacity;
 
-        if (canStock && canTake)
+        string boxCount =
+            deliveryBox.RemainingQuantity
+            + " / "
+            + deliveryBox.Capacity;
+
+        string putVerb =
+            customerAccessible
+                ? "Stock "
+                : "Store ";
+
+        if (canStock && canReturn)
         {
-            return "[E] Stock "
-                   + acceptedProduct.ProductName
-                   + "  •  "
-                   + shelfCount
+            return "[E] "
+                   + putVerb
+                   + boxProduct.ProductName
+                   + " from box  •  "
+                   + locationCount
                    + "  •  Hold"
-                   + "\n[R] Take one";
+                   + "\n[R] Return one to box  •  Box "
+                   + boxCount;
         }
 
         if (canStock)
         {
-            return "[E] Stock "
-                   + acceptedProduct.ProductName
-                   + "  •  "
-                   + shelfCount
+            return "[E] "
+                   + putVerb
+                   + boxProduct.ProductName
+                   + " from box  •  "
+                   + locationCount
                    + "  •  Hold";
         }
 
-        if (canTake)
+        if (canReturn)
         {
-            return "[R] Take "
-                   + acceptedProduct.ProductName
-                   + " into basket  •  "
-                   + shelfCount
+            return "[R] Return "
+                   + boxProduct.ProductName
+                   + " to box  •  Box "
+                   + boxCount
                    + "  •  Hold";
         }
 
         if (IsFull)
         {
-            return "Shelf full  "
-                   + shelfCount;
+            return customerAccessible
+                ? "Shelf full  " + locationCount
+                : "Storage occupied";
         }
 
-        if (basket.IsFull)
+        if (deliveryBox.IsEmpty)
         {
-            return "Restock basket full";
+            return "Delivery box empty";
         }
 
-        return "Basket has no "
-               + acceptedProduct.ProductName;
+        return "";
     }
 
-    /*
-     * CURRENT SINGLE-UNIT STORAGE
-     */
-    if (HasStoredItem)
+    private void TryStockFromDeliveryBox(
+        DeliveryBox deliveryBox
+    )
     {
-        ProductData storedProduct =
-            GetStoredProductData();
-
-        string productName =
-            storedProduct != null
-                ? storedProduct.ProductName
-                : "product";
-
-        if (basket.IsFull)
+        if (deliveryBox == null ||
+            deliveryBox.ProductData == null ||
+            deliveryBox.ProductData.WorldPrefab == null)
         {
-            return "Restock basket full";
+            return;
         }
 
-        return "[R] Take "
-               + productName
-               + " into basket";
+        ProductData product =
+            deliveryBox.ProductData;
+
+        if (!CanAcceptProduct(
+                product
+            ))
+        {
+            return;
+        }
+
+        if (IsFull)
+        {
+            return;
+        }
+
+        bool tookUnit =
+            deliveryBox.TryTakeOneUnit(
+                out ProductData takenProduct
+            );
+
+        if (!tookUnit ||
+            takenProduct == null)
+        {
+            return;
+        }
+
+        PickupItem item =
+            Instantiate(
+                takenProduct.WorldPrefab,
+                transform.position,
+                transform.rotation
+            );
+
+        AddStoredItem(
+            item
+        );
     }
 
-    if (basket.IsEmpty)
+    private void TryTakeOneIntoDeliveryBox(
+        DeliveryBox deliveryBox
+    )
     {
-        return "Restock basket empty";
+        if (deliveryBox == null ||
+            deliveryBox.IsFull ||
+            !HasStoredItem)
+        {
+            return;
+        }
+
+        PickupItem item =
+            GetLastStoredItem();
+
+        if (item == null)
+        {
+            return;
+        }
+
+        ProductData itemProduct =
+            item.GetProductData();
+
+        if (itemProduct == null ||
+            itemProduct != deliveryBox.ProductData)
+        {
+            return;
+        }
+
+        bool accepted =
+            deliveryBox.TryAddOneUnit(
+                itemProduct
+            );
+
+        if (!accepted)
+        {
+            return;
+        }
+
+        RemoveItem(
+            item
+        );
+
+        Destroy(
+            item.gameObject
+        );
     }
 
-    ProductData firstProduct =
-        basket.GetFirstProductData();
-
-    if (firstProduct == null)
+    private string GetBasketInteractionPrompt(
+        RestockBasket basket
+    )
     {
-        return "Restock basket empty";
-    }
+        if (basket == null)
+        {
+            return "";
+        }
 
-    if (!CanAcceptProduct(
-            firstProduct
-        ))
-    {
-        return GetRejectedProductPrompt();
-    }
+        /*
+         * SALES SHELF
+         */
+        if (customerAccessible)
+        {
+            if (acceptedProduct == null)
+            {
+                return "Shelf section not configured";
+            }
 
-    return "[E] Store "
-           + firstProduct.ProductName
-           + " from basket";
+            int matchingCount =
+                basket.GetProductCount(
+                    acceptedProduct
+                );
+
+            bool canStock =
+                matchingCount > 0
+                && !IsFull;
+
+            bool canTake =
+                HasStoredItem
+                && !basket.IsFull;
+
+            string shelfCount =
+                StoredItemCount
+                + " / "
+                + Capacity;
+
+            if (canStock && canTake)
+            {
+                return "[E] Stock "
+                       + acceptedProduct.ProductName
+                       + "  •  "
+                       + shelfCount
+                       + "  •  Hold"
+                       + "\n[R] Take one";
+            }
+
+            if (canStock)
+            {
+                return "[E] Stock "
+                       + acceptedProduct.ProductName
+                       + "  •  "
+                       + shelfCount
+                       + "  •  Hold";
+            }
+
+            if (canTake)
+            {
+                return "[R] Take "
+                       + acceptedProduct.ProductName
+                       + " into basket  •  "
+                       + shelfCount
+                       + "  •  Hold";
+            }
+
+            if (IsFull)
+            {
+                return "Shelf full  "
+                       + shelfCount;
+            }
+
+            if (basket.IsFull)
+            {
+                return "Restock basket full";
+            }
+
+            return "Basket has no "
+                   + acceptedProduct.ProductName;
+        }
+
+        /*
+         * CURRENT SINGLE-UNIT STORAGE
+         */
+        if (HasStoredItem)
+        {
+            ProductData storedProduct =
+                GetStoredProductData();
+
+            string productName =
+                storedProduct != null
+                    ? storedProduct.ProductName
+                    : "product";
+
+            if (basket.IsFull)
+            {
+                return "Restock basket full";
+            }
+
+            return "[R] Take "
+                   + productName
+                   + " into basket";
+        }
+
+        if (basket.IsEmpty)
+        {
+            return "Restock basket empty";
+        }
+
+        ProductData firstProduct =
+            basket.GetFirstProductData();
+
+        if (firstProduct == null)
+        {
+            return "Restock basket empty";
+        }
+
+        if (!CanAcceptProduct(
+                firstProduct
+            ))
+        {
+            return GetRejectedProductPrompt();
+        }
+
+        return "[E] Store "
+               + firstProduct.ProductName
+               + " from basket";
     }
 
     private string GetOccupiedEmptyHandsPrompt()

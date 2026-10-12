@@ -3,10 +3,10 @@ using UnityEngine.InputSystem;
 
 public class PlayerInteraction : MonoBehaviour
 {
-    private enum ShelfRepeatMode
+    private enum TransferRepeatMode
     {
         None,
-        Stock,
+        Put,
         Take
     }
     
@@ -40,13 +40,15 @@ public class PlayerInteraction : MonoBehaviour
     private PickupItem heldItem;
 
     private RestockBasket heldRestockBasket;
+    
+    private DeliveryBox heldDeliveryBox;
 
     private IInteractable focusedInteractable;
     
-    private ShelfSlot repeatingShelfSlot;
+    private IInteractable repeatingTransferTarget;
 
-    private ShelfRepeatMode repeatingShelfMode =
-        ShelfRepeatMode.None;
+    private TransferRepeatMode repeatingTransferMode =
+        TransferRepeatMode.None;
 
     private float holdRepeatTimer;
 
@@ -67,11 +69,11 @@ public class PlayerInteraction : MonoBehaviour
             return;
         }
 
-        bool stockPressed =
+        bool putPressed =
             Keyboard.current.eKey
                 .wasPressedThisFrame;
 
-        bool stockHeld =
+        bool putHeld =
             Keyboard.current.eKey
                 .isPressed;
 
@@ -84,9 +86,9 @@ public class PlayerInteraction : MonoBehaviour
                 .isPressed;
 
         /*
-         * E = primary/use/stock.
+         * E = put / use / stock.
          */
-        if (stockPressed)
+        if (putPressed)
         {
             if (focusedInteractable != null)
             {
@@ -95,38 +97,33 @@ public class PlayerInteraction : MonoBehaviour
                 );
             }
 
-            BeginShelfRepeat(
-                ShelfRepeatMode.Stock
+            BeginTransferRepeat(
+                TransferRepeatMode.Put
             );
 
             return;
         }
 
         /*
-         * R = deliberately take something
-         * out of a shelf/storage position.
+         * R = take toward the player/container.
          */
         if (takePressed)
         {
-            if (focusedInteractable
-                is ShelfSlot shelfSlot)
-            {
-                shelfSlot.TakeOne(
-                    this
-                );
-            }
+            PerformTakeAction(
+                focusedInteractable
+            );
 
-            BeginShelfRepeat(
-                ShelfRepeatMode.Take
+            BeginTransferRepeat(
+                TransferRepeatMode.Take
             );
 
             return;
         }
 
-        if (stockHeld)
+        if (putHeld)
         {
-            UpdateShelfRepeat(
-                ShelfRepeatMode.Stock
+            UpdateTransferRepeat(
+                TransferRepeatMode.Put
             );
 
             return;
@@ -134,20 +131,20 @@ public class PlayerInteraction : MonoBehaviour
 
         if (takeHeld)
         {
-            UpdateShelfRepeat(
-                ShelfRepeatMode.Take
+            UpdateTransferRepeat(
+                TransferRepeatMode.Take
             );
 
             return;
         }
 
-        ResetShelfRepeat();
+        ResetTransferRepeat();
 
         /*
-         * Q = Drop.
+         * Q = drop.
          */
         if (!Keyboard.current.qKey
-                .wasPressedThisFrame)
+            .wasPressedThisFrame)
         {
             return;
         }
@@ -159,76 +156,84 @@ public class PlayerInteraction : MonoBehaviour
             return;
         }
 
+        if (heldDeliveryBox != null)
+        {
+            DropHeldDeliveryBox();
+
+            return;
+        }
+
         if (heldItem != null)
         {
             DropHeldItem();
         }
     }
-    
-    private void BeginShelfRepeat(
-        ShelfRepeatMode mode
+
+    private void PerformTakeAction(
+        IInteractable target
     )
     {
-        /*
-         * Continuous shelf transfers currently
-         * only make sense while carrying the basket.
-         */
-        if (heldRestockBasket == null)
+        if (target is ShelfSlot shelfSlot)
         {
-            ResetShelfRepeat();
+            shelfSlot.TakeOne(
+                this
+            );
 
             return;
         }
 
-        if (!(focusedInteractable
-                is ShelfSlot shelfSlot))
+        if (target is DeliveryBox deliveryBox)
         {
-            ResetShelfRepeat();
+            deliveryBox.TakeOne(
+                this
+            );
+        }
+    }
+
+    private void BeginTransferRepeat(
+        TransferRepeatMode mode
+    )
+    {
+        if (!CanRepeatTransfer(
+                focusedInteractable
+            ))
+        {
+            ResetTransferRepeat();
 
             return;
         }
 
-        repeatingShelfSlot =
-            shelfSlot;
+        repeatingTransferTarget =
+            focusedInteractable;
 
-        repeatingShelfMode =
+        repeatingTransferMode =
             mode;
 
         holdRepeatTimer =
             holdRepeatInitialDelay;
     }
 
-    private void UpdateShelfRepeat(
-        ShelfRepeatMode mode
+    private void UpdateTransferRepeat(
+        TransferRepeatMode mode
     )
     {
-        if (heldRestockBasket == null)
+        if (!CanRepeatTransfer(
+                focusedInteractable
+            ))
         {
-            ResetShelfRepeat();
+            ResetTransferRepeat();
 
             return;
         }
 
-        if (!(focusedInteractable
-                is ShelfSlot currentShelfSlot))
+        if (focusedInteractable
+                != repeatingTransferTarget ||
+            mode != repeatingTransferMode)
         {
-            ResetShelfRepeat();
+            repeatingTransferTarget =
+                focusedInteractable;
 
-            return;
-        }
-
-        /*
-         * Moving aim to another shelf OR changing
-         * direction restarts the safety delay.
-         */
-        if (currentShelfSlot
-            != repeatingShelfSlot ||
-            mode != repeatingShelfMode)
-        {
-            repeatingShelfSlot =
-                currentShelfSlot;
-
-            repeatingShelfMode =
+            repeatingTransferMode =
                 mode;
 
             holdRepeatTimer =
@@ -245,16 +250,17 @@ public class PlayerInteraction : MonoBehaviour
             return;
         }
 
-        if (mode == ShelfRepeatMode.Stock)
+        if (mode == TransferRepeatMode.Put)
         {
-            repeatingShelfSlot.Interact(
-                this
-            );
+            repeatingTransferTarget
+                .Interact(
+                    this
+                );
         }
-        else if (mode == ShelfRepeatMode.Take)
+        else if (mode == TransferRepeatMode.Take)
         {
-            repeatingShelfSlot.TakeOne(
-                this
+            PerformTakeAction(
+                repeatingTransferTarget
             );
         }
 
@@ -262,18 +268,48 @@ public class PlayerInteraction : MonoBehaviour
             holdRepeatInterval;
     }
 
-    private void ResetShelfRepeat()
+    private bool CanRepeatTransfer(
+        IInteractable target
+    )
     {
-        repeatingShelfSlot =
+        if (target == null)
+        {
+            return false;
+        }
+
+        /*
+         * Basket <-> shelf
+         * Delivery box <-> shelf
+         */
+        if (target is ShelfSlot)
+        {
+            return heldRestockBasket != null
+                   || heldDeliveryBox != null;
+        }
+
+        /*
+         * Basket <-> delivery box.
+         */
+        if (target is DeliveryBox)
+        {
+            return heldRestockBasket != null;
+        }
+
+        return false;
+    }
+
+    private void ResetTransferRepeat()
+    {
+        repeatingTransferTarget =
             null;
 
-        repeatingShelfMode =
-            ShelfRepeatMode.None;
+        repeatingTransferMode =
+            TransferRepeatMode.None;
 
         holdRepeatTimer =
             0f;
     }
-
+    
     private void UpdateInteractionPrompt()
     {
         if (interactionUI == null)
@@ -309,6 +345,29 @@ public class PlayerInteraction : MonoBehaviour
                 + heldRestockBasket.ItemCount
                 + " / "
                 + heldRestockBasket.Capacity
+            );
+
+            return;
+        }
+        
+        if (heldDeliveryBox != null)
+        {
+            ProductData boxProduct =
+                heldDeliveryBox.ProductData;
+
+            string boxName =
+                boxProduct != null
+                    ? boxProduct.ProductName
+                    : "Delivery";
+
+            interactionUI.ShowPrompt(
+                "[Q] Drop "
+                + boxName
+                + " box"
+                + "  •  "
+                + heldDeliveryBox.RemainingQuantity
+                + " / "
+                + heldDeliveryBox.Capacity
             );
 
             return;
@@ -545,6 +604,11 @@ public class PlayerInteraction : MonoBehaviour
         {
             return false;
         }
+        
+        if (heldDeliveryBox != null)
+        {
+            return false;
+        }
 
         heldItem =
             item;
@@ -571,6 +635,11 @@ public class PlayerInteraction : MonoBehaviour
         }
 
         if (heldRestockBasket != null)
+        {
+            return false;
+        }
+        
+        if (heldDeliveryBox != null)
         {
             return false;
         }
@@ -631,6 +700,57 @@ public class PlayerInteraction : MonoBehaviour
     public void RemoveHeldRestockBasket()
     {
         heldRestockBasket =
+            null;
+    }
+    
+    public bool TryPickUpDeliveryBox(
+        DeliveryBox deliveryBox
+    )
+    {
+        if (deliveryBox == null)
+        {
+            return false;
+        }
+
+        if (heldItem != null ||
+            heldRestockBasket != null ||
+            heldDeliveryBox != null)
+        {
+            return false;
+        }
+
+        heldDeliveryBox =
+            deliveryBox;
+
+        heldDeliveryBox.PickUp(
+            holdPoint,
+            playerCamera.transform
+        );
+
+        return true;
+    }
+
+    private void DropHeldDeliveryBox()
+    {
+        if (heldDeliveryBox == null)
+        {
+            return;
+        }
+
+        heldDeliveryBox.Drop();
+
+        heldDeliveryBox =
+            null;
+    }
+
+    public DeliveryBox GetHeldDeliveryBox()
+    {
+        return heldDeliveryBox;
+    }
+
+    public void RemoveHeldDeliveryBox()
+    {
+        heldDeliveryBox =
             null;
     }
 }

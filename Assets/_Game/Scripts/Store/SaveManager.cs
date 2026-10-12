@@ -4,7 +4,7 @@ using UnityEngine;
 
 public class SaveManager : MonoBehaviour
 {
-    private const int CurrentSaveVersion = 10;
+    private const int CurrentSaveVersion = 11;
 
     [Header("Store References")]
     [SerializeField]
@@ -515,6 +515,18 @@ public class SaveManager : MonoBehaviour
 
             deliverySaveData.isOpen =
                 delivery.IsOpen;
+            
+            deliverySaveData.capacity =
+                delivery.Capacity;
+
+            deliverySaveData.hasWorldTransform =
+                true;
+
+            deliverySaveData.position =
+                delivery.transform.position;
+
+            deliverySaveData.rotation =
+                delivery.transform.rotation;
 
             savedDeliveries.Add(
                 deliverySaveData
@@ -715,9 +727,20 @@ public class SaveManager : MonoBehaviour
                     deliverySaveData.slotIndex,
                     product,
                     deliverySaveData.quantity,
+                    deliverySaveData.capacity,
                     deliverySaveData.isOpen,
                     out DeliveryBox restoredDelivery
                 );
+            
+            if (restored &&
+                restoredDelivery != null &&
+                deliverySaveData.hasWorldTransform)
+            {
+                restoredDelivery.RestoreWorldTransform(
+                    deliverySaveData.position,
+                    deliverySaveData.rotation
+                );
+            }
 
             if (!restored)
             {
@@ -1041,6 +1064,23 @@ public class SaveManager : MonoBehaviour
         {
             LastOperationMessage =
                 "Empty the restock basket before "
+                + "saving or loading.";
+
+            Debug.LogWarning(
+                LastOperationMessage
+            );
+
+            return false;
+        }
+        
+        DeliveryBox heldDeliveryBox =
+            playerInteraction
+                .GetHeldDeliveryBox();
+
+        if (heldDeliveryBox != null)
+        {
+            LastOperationMessage =
+                "Put down the delivery box before "
                 + "saving or loading.";
 
             Debug.LogWarning(
