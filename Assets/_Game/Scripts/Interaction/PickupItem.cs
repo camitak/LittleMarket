@@ -182,8 +182,15 @@ public class PickupItem :
 
         LeaveShelfIfNeeded();
 
+        /*
+         * A product held directly in front of the
+         * player must not block the interaction ray.
+         *
+         * Colliders come back when the item is
+         * dropped or placed somewhere.
+         */
         SetItemCollidersEnabled(
-            true
+            false
         );
 
         itemRigidbody.useGravity =
@@ -194,6 +201,43 @@ public class PickupItem :
 
         transform.SetParent(
             holdPoint
+        );
+
+        transform.localPosition =
+            Vector3.zero;
+
+        transform.localRotation =
+            Quaternion.identity;
+    }
+    
+    public void PickUpForCustomer(
+        Transform carryPoint
+    )
+    {
+        if (carryPoint == null)
+        {
+            return;
+        }
+
+        LeaveShelfIfNeeded();
+
+        /*
+         * Once a customer owns this product,
+         * it is visual cargo rather than something
+         * the player can interact with.
+         */
+        SetItemCollidersEnabled(
+            false
+        );
+
+        itemRigidbody.useGravity =
+            false;
+
+        itemRigidbody.isKinematic =
+            true;
+
+        transform.SetParent(
+            carryPoint
         );
 
         transform.localPosition =

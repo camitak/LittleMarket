@@ -526,7 +526,7 @@ public class ShelfSlot :
         PickupItem itemToTake =
             storedItem;
 
-        itemToTake.PickUp(
+        itemToTake.PickUpForCustomer(
             carryPoint
         );
 

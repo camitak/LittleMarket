@@ -7,6 +7,10 @@ public class PlayerInteraction : MonoBehaviour
     [SerializeField]
     private float interactionDistance = 3f;
 
+    [Range(0.02f, 0.3f)]
+    [SerializeField]
+    private float interactionAssistRadius = 0.14f;
+
     [Header("References")]
     [SerializeField]
     private Camera playerCamera;
@@ -21,8 +25,13 @@ public class PlayerInteraction : MonoBehaviour
 
     private RestockBasket heldRestockBasket;
 
+    private IInteractable focusedInteractable;
+
     private void Update()
     {
+        focusedInteractable =
+            FindFocusedInteractable();
+
         UpdateInteractionPrompt();
 
         HandleInteractionInput();
@@ -35,7 +44,29 @@ public class PlayerInteraction : MonoBehaviour
             return;
         }
 
-        if (!Keyboard.current.eKey
+        /*
+         * E means INTERACT only.
+         *
+         * Missing an interactable must never
+         * drop what the player is carrying.
+         */
+        if (Keyboard.current.eKey
+            .wasPressedThisFrame)
+        {
+            if (focusedInteractable != null)
+            {
+                focusedInteractable.Interact(
+                    this
+                );
+            }
+
+            return;
+        }
+
+        /*
+         * Q is now the dedicated DROP input.
+         */
+        if (!Keyboard.current.qKey
             .wasPressedThisFrame)
         {
             return;
@@ -43,51 +74,38 @@ public class PlayerInteraction : MonoBehaviour
 
         if (heldRestockBasket != null)
         {
-            if (!TryInteract())
-            {
-                DropHeldRestockBasket();
-            }
+            DropHeldRestockBasket();
 
             return;
         }
 
         if (heldItem != null)
         {
-            if (!TryInteract())
-            {
-                DropHeldItem();
-            }
-
-            return;
+            DropHeldItem();
         }
-
-        TryInteract();
     }
 
     private void UpdateInteractionPrompt()
     {
-        Ray ray = new Ray(
-            playerCamera.transform.position,
-            playerCamera.transform.forward
-        );
-
-        if (Physics.Raycast(
-                ray,
-                out RaycastHit hit,
-                interactionDistance
-            ))
+        if (interactionUI == null)
         {
-            IInteractable interactable =
-                hit.collider
-                    .GetComponent<IInteractable>();
+            return;
+        }
 
-            if (interactable != null)
+        if (focusedInteractable != null)
+        {
+            string prompt =
+                focusedInteractable
+                    .GetInteractionPrompt(
+                        this
+                    );
+
+            if (!string.IsNullOrWhiteSpace(
+                    prompt
+                ))
             {
                 interactionUI.ShowPrompt(
-                    interactable
-                        .GetInteractionPrompt(
-                            this
-                        )
+                    prompt
                 );
 
                 return;
@@ -97,7 +115,7 @@ public class PlayerInteraction : MonoBehaviour
         if (heldRestockBasket != null)
         {
             interactionUI.ShowPrompt(
-                "[E] Drop restock basket"
+                "[Q] Drop restock basket"
                 + "  •  "
                 + heldRestockBasket.ItemCount
                 + " / "
@@ -110,7 +128,7 @@ public class PlayerInteraction : MonoBehaviour
         if (heldItem != null)
         {
             interactionUI.ShowPrompt(
-                "[E] Drop "
+                "[Q] Drop "
                 + heldItem.GetItemName()
             );
 
@@ -120,34 +138,204 @@ public class PlayerInteraction : MonoBehaviour
         interactionUI.HidePrompt();
     }
 
-    private bool TryInteract()
+    private IInteractable FindFocusedInteractable()
     {
-        Ray ray = new Ray(
-            playerCamera.transform.position,
-            playerCamera.transform.forward
-        );
-
-        if (Physics.Raycast(
-                ray,
-                out RaycastHit hit,
-                interactionDistance
-            ))
+        if (playerCamera == null)
         {
-            IInteractable interactable =
-                hit.collider
-                    .GetComponent<IInteractable>();
+            return null;
+        }
 
-            if (interactable != null)
-            {
-                interactable.Interact(
-                    this
+        Ray ray =
+            new Ray(
+                playerCamera.transform.position,
+                playerCamera.transform.forward
+            );
+
+        /*
+         * First try a normal precise ray.
+         *
+         * If the crosshair is directly over
+         * something interactable, that always wins.
+         */
+        bool hasCenterHit =
+            Physics.Raycast(
+                ray,
+                out RaycastHit centerHit,
+                interactionDistance
+            );
+
+        if (hasCenterHit)
+        {
+            IInteractable directInteractable =
+                FindInteractableOnCollider(
+                    centerHit.collider
                 );
 
-                return true;
+            if (directInteractable != null)
+            {
+                return directInteractable;
             }
         }
 
-        return false;
+        /*
+         * If the precise ray missed the interaction
+         * collider, look in a small radius around it.
+         *
+         * This makes shelves and objects easier to
+         * target without turning interaction into a
+         * huge invisible cone.
+         */
+        RaycastHit[] assistedHits =
+            Physics.SphereCastAll(
+                ray,
+                interactionAssistRadius,
+                interactionDistance
+            );
+
+        IInteractable bestInteractable =
+            null;
+
+        float bestScore =
+            float.MaxValue;
+
+        float maximumAllowedDistance =
+            interactionDistance;
+
+        /*
+         * If our exact centre ray hit solid geometry,
+         * don't allow the assist to select something
+         * far behind that obstruction.
+         */
+        if (hasCenterHit)
+        {
+            maximumAllowedDistance =
+                centerHit.distance
+                + interactionAssistRadius
+                * 2f;
+        }
+
+        for (int i = 0;
+             i < assistedHits.Length;
+             i++)
+        {
+            RaycastHit assistedHit =
+                assistedHits[i];
+
+            if (assistedHit.collider == null)
+            {
+                continue;
+            }
+
+            if (assistedHit.distance
+                > maximumAllowedDistance)
+            {
+                continue;
+            }
+
+            IInteractable interactable =
+                FindInteractableOnCollider(
+                    assistedHit.collider
+                );
+
+            if (interactable == null)
+            {
+                continue;
+            }
+
+            Vector3 toCenter =
+                assistedHit.collider.bounds.center
+                - ray.origin;
+
+            float forwardDistance =
+                Vector3.Dot(
+                    toCenter,
+                    ray.direction
+                );
+
+            if (forwardDistance < 0f)
+            {
+                continue;
+            }
+
+            Vector3 closestPointOnRay =
+                ray.origin
+                + ray.direction
+                * forwardDistance;
+
+            float distanceFromCrosshair =
+                Vector3.SqrMagnitude(
+                    assistedHit.collider
+                        .bounds.center
+                    - closestPointOnRay
+                );
+
+            /*
+             * Crosshair alignment matters much more
+             * than a tiny distance difference.
+             */
+            float score =
+                distanceFromCrosshair
+                + assistedHit.distance
+                * 0.0001f;
+
+            if (score >= bestScore)
+            {
+                continue;
+            }
+
+            bestScore =
+                score;
+
+            bestInteractable =
+                interactable;
+        }
+
+        return bestInteractable;
+    }
+
+    private IInteractable FindInteractableOnCollider(
+        Collider targetCollider
+    )
+    {
+        if (targetCollider == null)
+        {
+            return null;
+        }
+
+        Transform currentTransform =
+            targetCollider.transform;
+
+        /*
+         * Some interactable objects may have their
+         * collider on a child object.
+         *
+         * Walk upward until an IInteractable is found.
+         */
+        while (currentTransform != null)
+        {
+            MonoBehaviour[] behaviours =
+                currentTransform
+                    .GetComponents<MonoBehaviour>();
+
+            for (int i = 0;
+                 i < behaviours.Length;
+                 i++)
+            {
+                MonoBehaviour behaviour =
+                    behaviours[i];
+
+                if (behaviour
+                    is IInteractable interactable)
+                {
+                    return interactable;
+                }
+            }
+
+            currentTransform =
+                currentTransform.parent;
+        }
+
+        return null;
     }
 
     public bool TryPickUp(
