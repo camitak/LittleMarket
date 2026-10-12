@@ -11,7 +11,7 @@ public class StoreClock : MonoBehaviour
     [Header("Starting Time")]
     [Range(0, 23)]
     [SerializeField]
-    private int startHour = 8;
+    private int startHour = 7;
 
     [Range(0, 59)]
     [SerializeField]
@@ -68,6 +68,14 @@ public class StoreClock : MonoBehaviour
             111,
             207,
             151,
+            255
+        );
+
+    private static readonly Color32 PreOpenStatusColor =
+        new Color32(
+            143,
+            197,
+            232,
             255
         );
 
@@ -271,21 +279,10 @@ public class StoreClock : MonoBehaviour
             return;
         }
 
-        int wholeMinutes =
-            Mathf.FloorToInt(
+        timeText.text =
+            FormatTime(
                 currentMinutes
             );
-
-        int hours =
-            wholeMinutes / 60;
-
-        int minutes =
-            wholeMinutes % 60;
-
-        timeText.text =
-            hours.ToString("00")
-            + ":"
-            + minutes.ToString("00");
     }
 
     private void UpdateStatusText()
@@ -306,6 +303,21 @@ public class StoreClock : MonoBehaviour
             return;
         }
 
+        if (currentMinutes
+            < OpeningTimeMinutes)
+        {
+            statusText.text =
+                "OPENS "
+                + FormatTime(
+                    OpeningTimeMinutes
+                );
+
+            statusText.color =
+                PreOpenStatusColor;
+
+            return;
+        }
+
         if (IsStoreOpen)
         {
             statusText.text =
@@ -322,5 +334,29 @@ public class StoreClock : MonoBehaviour
 
         statusText.color =
             ClosedStatusColor;
+    }
+
+    private string FormatTime(
+        float minutesValue
+    )
+    {
+        int wholeMinutes =
+            Mathf.FloorToInt(
+                Mathf.Clamp(
+                    minutesValue,
+                    0f,
+                    1439f
+                )
+            );
+
+        int hours =
+            wholeMinutes / 60;
+
+        int minutes =
+            wholeMinutes % 60;
+
+        return hours.ToString("00")
+               + ":"
+               + minutes.ToString("00");
     }
 }

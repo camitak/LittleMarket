@@ -7903,7 +7903,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::StoreClock
   startingDay: 1
-  startHour: 8
+  startHour: 7
   startMinute: 0
   openingHour: 8
   openingMinute: 0
