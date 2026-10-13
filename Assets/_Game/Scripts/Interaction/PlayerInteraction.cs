@@ -137,11 +137,21 @@ public class PlayerInteraction : MonoBehaviour
                 deliveryBox.Carry(
                     this
                 );
+
+                ResetTransferRepeat();
+
+                return;
             }
 
-            ResetTransferRepeat();
+            if (focusedInteractable
+                is StorageBay storageBay)
+            {
+                storageBay.ClearAssignment();
 
-            return;
+                ResetTransferRepeat();
+
+                return;
+            }
         }
 
         if (primaryHeld)
@@ -200,6 +210,15 @@ public class PlayerInteraction : MonoBehaviour
         if (target is ShelfSlot shelfSlot)
         {
             shelfSlot.TakeOne(
+                this
+            );
+
+            return;
+        }
+        
+        if (target is StorageBay storageBay)
+        {
+            storageBay.ReturnOne(
                 this
             );
 
@@ -323,6 +342,16 @@ public class PlayerInteraction : MonoBehaviour
         if (target is DeliveryBox)
         {
             return heldRestockBasket != null;
+        }
+        
+        /*
+         * Storage transfers repeat while using
+         * either stock container.
+         */
+        if (target is StorageBay)
+        {
+            return heldRestockBasket != null
+                   || heldDeliveryBox != null;
         }
 
         return false;

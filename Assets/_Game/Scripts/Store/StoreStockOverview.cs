@@ -82,24 +82,20 @@ public class StoreStockOverview : MonoBehaviour
              i < storageRegistry.RegisteredSlotCount;
              i++)
         {
-            ShelfSlot slot =
+            StorageBay bay =
                 storageRegistry.GetRegisteredSlot(
                     i
                 );
 
-            if (slot == null)
+            if (bay == null)
             {
                 continue;
             }
 
-            if (slot.GetStoredProductData()
-                == productData)
-            {
-                count +=
-                    slot.GetStoredProductCount(
-                        productData
-                    );
-            }
+            count +=
+                bay.GetStoredProductCount(
+                    productData
+                );
         }
 
         return count;

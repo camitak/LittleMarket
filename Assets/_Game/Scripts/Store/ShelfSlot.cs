@@ -27,8 +27,6 @@ public class ShelfSlot :
 
     private ShelfRegistry registeredShelfRegistry;
 
-    private StorageRegistry registeredStorageRegistry;
-
     public string SlotID =>
         slotID;
 
@@ -1271,77 +1269,57 @@ public class ShelfSlot :
 
         return "that storage slot is not configured";
     }
-
     private void RegisterWithCorrectRegistry()
     {
-        if (customerAccessible)
+        /*
+         * ShelfSlot is now exclusively registered
+         * as a customer-facing sales shelf.
+         *
+         * Back-room storage uses StorageBay instead.
+         *
+         * During the Lesson 61 prefab conversion,
+         * old non-customer ShelfSlots may still exist
+         * temporarily. They simply do not register.
+         */
+        if (!customerAccessible)
         {
-            registeredShelfRegistry =
-                Object.FindAnyObjectByType<
-                    ShelfRegistry
-                >();
-
-            if (registeredShelfRegistry == null)
-            {
-                Debug.LogError(
-                    "ShelfSlot '"
-                    + gameObject.name
-                    + "' could not find a ShelfRegistry.",
-                    this
-                );
-
-                return;
-            }
-
-            registeredShelfRegistry.RegisterSlot(
-                this
-            );
-
             return;
         }
 
-        registeredStorageRegistry =
+        registeredShelfRegistry =
             Object.FindAnyObjectByType<
-                StorageRegistry
+                ShelfRegistry
             >();
 
-        if (registeredStorageRegistry == null)
+        if (registeredShelfRegistry == null)
         {
             Debug.LogError(
-                "Storage ShelfSlot '"
+                "ShelfSlot '"
                 + gameObject.name
-                + "' could not find a StorageRegistry.",
+                + "' could not find a ShelfRegistry.",
                 this
             );
 
             return;
         }
 
-        registeredStorageRegistry.Register(
+        registeredShelfRegistry.RegisterSlot(
             this
         );
     }
 
     private void UnregisterFromCurrentRegistry()
     {
-        if (registeredShelfRegistry != null)
+        if (registeredShelfRegistry == null)
         {
-            registeredShelfRegistry.UnregisterSlot(
-                this
-            );
-
-            registeredShelfRegistry =
-                null;
+            return;
         }
 
-        if (registeredStorageRegistry != null)
-        {
-            registeredStorageRegistry.Unregister(
-                this
-            );
+        registeredShelfRegistry.UnregisterSlot(
+            this
+        );
 
-            registeredStorageRegistry =
-                null;
-        }
+        registeredShelfRegistry =
+            null;
     }
 }

@@ -3,13 +3,80 @@ using UnityEngine;
 
 public class StorageRegistry : MonoBehaviour
 {
-    [SerializeField]
-    private List<ShelfSlot> registeredSlots = new List<ShelfSlot>();
+    private readonly List<StorageBay>
+        registeredSlots =
+            new List<StorageBay>();
 
-    public int RegisteredSlotCount => registeredSlots.Count;
+    public int RegisteredSlotCount =>
+        registeredSlots.Count;
+
+    public int AssignedBayCount
+    {
+        get
+        {
+            int count =
+                0;
+
+            for (int i = 0;
+                 i < registeredSlots.Count;
+                 i++)
+            {
+                StorageBay bay =
+                    registeredSlots[i];
+
+                if (bay == null ||
+                    !bay.IsAssigned)
+                {
+                    continue;
+                }
+
+                count++;
+            }
+
+            return count;
+        }
+    }
+
+    public int UnassignedBayCount =>
+        Mathf.Max(
+            0,
+            RegisteredSlotCount
+            - AssignedBayCount
+        );
+
+    /*
+     * Compatibility with the existing
+     * StorageCapacityUI terminology.
+     */
+    public int OccupiedSlotCount =>
+        AssignedBayCount;
+
+    public int EmptySlotCount =>
+        UnassignedBayCount;
+
+    public bool HasSpace =>
+        UnassignedBayCount > 0;
+
+    public bool IsFull =>
+        RegisteredSlotCount > 0
+        && UnassignedBayCount <= 0;
+
+    public float OccupancyRatio
+    {
+        get
+        {
+            if (RegisteredSlotCount <= 0)
+            {
+                return 0f;
+            }
+
+            return (float)AssignedBayCount
+                   / RegisteredSlotCount;
+        }
+    }
 
     public void Register(
-        ShelfSlot slot
+        StorageBay slot
     )
     {
         if (slot == null)
@@ -22,7 +89,7 @@ public class StorageRegistry : MonoBehaviour
             ))
         {
             Debug.LogError(
-                "Storage ShelfSlot '"
+                "StorageBay '"
                 + slot.gameObject.name
                 + "' has no Slot ID.",
                 slot
@@ -35,7 +102,7 @@ public class StorageRegistry : MonoBehaviour
              i < registeredSlots.Count;
              i++)
         {
-            ShelfSlot existingSlot =
+            StorageBay existingSlot =
                 registeredSlots[i];
 
             if (existingSlot == null)
@@ -57,7 +124,7 @@ public class StorageRegistry : MonoBehaviour
             Debug.LogError(
                 "Duplicate storage Slot ID '"
                 + slot.SlotID
-                + "'. Storage Slot IDs must be unique.",
+                + "'. Storage IDs must be unique.",
                 slot
             );
 
@@ -70,7 +137,7 @@ public class StorageRegistry : MonoBehaviour
     }
 
     public void Unregister(
-        ShelfSlot slot
+        StorageBay slot
     )
     {
         if (slot == null)
@@ -83,7 +150,7 @@ public class StorageRegistry : MonoBehaviour
         );
     }
 
-    public ShelfSlot GetRegisteredSlot(
+    public StorageBay GetRegisteredSlot(
         int index
     )
     {
@@ -96,7 +163,7 @@ public class StorageRegistry : MonoBehaviour
         return registeredSlots[index];
     }
 
-    public ShelfSlot FindSlotByID(
+    public StorageBay FindSlotByID(
         string slotID
     )
     {
@@ -111,79 +178,20 @@ public class StorageRegistry : MonoBehaviour
              i < registeredSlots.Count;
              i++)
         {
-            ShelfSlot slot =
+            StorageBay bay =
                 registeredSlots[i];
 
-            if (slot == null)
+            if (bay == null)
             {
                 continue;
             }
 
-            if (slot.SlotID == slotID)
+            if (bay.SlotID == slotID)
             {
-                return slot;
+                return bay;
             }
         }
 
         return null;
-    }
-    
-    public int OccupiedSlotCount
-    {
-        get
-        {
-            int count = 0;
-
-            for (int i = 0;
-                 i < registeredSlots.Count;
-                 i++)
-            {
-                ShelfSlot slot =
-                    registeredSlots[i];
-
-                if (slot == null)
-                {
-                    continue;
-                }
-
-                if (slot.GetStoredProductData()
-                    == null)
-                {
-                    continue;
-                }
-
-                count++;
-            }
-
-            return count;
-        }
-    }
-
-    public int EmptySlotCount =>
-        Mathf.Max(
-            0,
-            RegisteredSlotCount
-            - OccupiedSlotCount
-        );
-    
-    public bool HasSpace =>
-        EmptySlotCount > 0;
-
-    public bool IsFull =>
-        RegisteredSlotCount > 0
-        && EmptySlotCount <= 0;
-
-    public float OccupancyRatio
-    {
-        get
-        {
-            if (RegisteredSlotCount <= 0)
-            {
-                return 0f;
-            }
-
-            return (float)OccupiedSlotCount
-                   / RegisteredSlotCount;
-        }
     }
 }

@@ -4,7 +4,7 @@ using UnityEngine;
 
 public class SaveManager : MonoBehaviour
 {
-    private const int CurrentSaveVersion = 11;
+    private const int CurrentSaveVersion = 12;
 
     [Header("Store References")]
     [SerializeField]
@@ -321,18 +321,19 @@ public class SaveManager : MonoBehaviour
              i < storageRegistry.RegisteredSlotCount;
              i++)
         {
-            ShelfSlot slot =
+            StorageBay bay =
                 storageRegistry.GetRegisteredSlot(
                     i
                 );
 
-            if (slot == null)
+            if (bay == null ||
+                !bay.IsAssigned)
             {
                 continue;
             }
 
             ProductData product =
-                slot.GetStoredProductData();
+                bay.AssignedProduct;
 
             if (product == null)
             {
@@ -340,7 +341,7 @@ public class SaveManager : MonoBehaviour
             }
 
             if (string.IsNullOrWhiteSpace(
-                    slot.SlotID
+                    bay.SlotID
                 ))
             {
                 continue;
@@ -357,10 +358,13 @@ public class SaveManager : MonoBehaviour
                 new StorageSlotSaveData();
 
             slotSaveData.slotID =
-                slot.SlotID;
+                bay.SlotID;
 
             slotSaveData.productID =
                 product.ProductID;
+
+            slotSaveData.quantity =
+                bay.Quantity;
 
             savedSlots.Add(
                 slotSaveData
@@ -371,7 +375,8 @@ public class SaveManager : MonoBehaviour
     }
     
     private void RestoreStorageInventory(
-        List<StorageSlotSaveData> savedSlots
+        List<StorageSlotSaveData> savedSlots,
+        int saveVersion
     )
     {
         ClearCurrentStorageInventory();
@@ -393,15 +398,15 @@ public class SaveManager : MonoBehaviour
                 continue;
             }
 
-            ShelfSlot slot =
+            StorageBay bay =
                 storageRegistry.FindSlotByID(
                     slotSaveData.slotID
                 );
 
-            if (slot == null)
+            if (bay == null)
             {
                 Debug.LogWarning(
-                    "Saved Storage Slot '"
+                    "Saved Storage Bay '"
                     + slotSaveData.slotID
                     + "' does not exist "
                     + "in the current scene."
@@ -428,21 +433,22 @@ public class SaveManager : MonoBehaviour
                 continue;
             }
 
-            bool restored =
-                slot.RestoreProduct(
-                    product
-                );
+            /*
+             * Before Version 12, each storage slot
+             * represented exactly one product.
+             */
+            int restoredQuantity =
+                saveVersion >= 12
+                    ? Mathf.Max(
+                        0,
+                        slotSaveData.quantity
+                    )
+                    : 1;
 
-            if (!restored)
-            {
-                Debug.LogWarning(
-                    "Could not restore product '"
-                    + slotSaveData.productID
-                    + "' into Storage Slot '"
-                    + slotSaveData.slotID
-                    + "'."
-                );
-            }
+            bay.RestoreState(
+                product,
+                restoredQuantity
+            );
         }
     }
     
@@ -452,17 +458,17 @@ public class SaveManager : MonoBehaviour
              i < storageRegistry.RegisteredSlotCount;
              i++)
         {
-            ShelfSlot slot =
+            StorageBay bay =
                 storageRegistry.GetRegisteredSlot(
                     i
                 );
 
-            if (slot == null)
+            if (bay == null)
             {
                 continue;
             }
 
-            slot.ClearStoredItemForLoad();
+            bay.ClearForLoad();
         }
     }
     
@@ -991,7 +997,8 @@ public class SaveManager : MonoBehaviour
         if (saveData.saveVersion >= 9)
         {
             RestoreStorageInventory(
-                saveData.storageSlots
+                saveData.storageSlots,
+                saveData.saveVersion
             );
         }
         else
