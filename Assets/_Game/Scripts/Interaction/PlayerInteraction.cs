@@ -6,8 +6,8 @@ public class PlayerInteraction : MonoBehaviour
     private enum TransferRepeatMode
     {
         None,
-        Put,
-        Take
+        Primary,
+        Reverse
     }
     
     [Header("Interaction")]
@@ -69,26 +69,30 @@ public class PlayerInteraction : MonoBehaviour
             return;
         }
 
-        bool putPressed =
+        bool primaryPressed =
             Keyboard.current.eKey
                 .wasPressedThisFrame;
 
-        bool putHeld =
+        bool primaryHeld =
             Keyboard.current.eKey
                 .isPressed;
 
-        bool takePressed =
+        bool reversePressed =
             Keyboard.current.rKey
                 .wasPressedThisFrame;
 
-        bool takeHeld =
+        bool reverseHeld =
             Keyboard.current.rKey
                 .isPressed;
+
+        bool carryPressed =
+            Keyboard.current.fKey
+                .wasPressedThisFrame;
 
         /*
-         * E = put / use / stock.
+         * E = natural primary action for the target.
          */
-        if (putPressed)
+        if (primaryPressed)
         {
             if (focusedInteractable != null)
             {
@@ -98,41 +102,61 @@ public class PlayerInteraction : MonoBehaviour
             }
 
             BeginTransferRepeat(
-                TransferRepeatMode.Put
+                TransferRepeatMode.Primary
             );
 
             return;
         }
 
         /*
-         * R = take toward the player/container.
+         * R = reverse the normal transfer direction.
          */
-        if (takePressed)
+        if (reversePressed)
         {
-            PerformTakeAction(
+            PerformReverseAction(
                 focusedInteractable
             );
 
             BeginTransferRepeat(
-                TransferRepeatMode.Take
+                TransferRepeatMode.Reverse
             );
 
             return;
         }
 
-        if (putHeld)
+        /*
+         * F = carry an entire container.
+         *
+         * For now this applies to DeliveryBox.
+         */
+        if (carryPressed)
+        {
+            if (focusedInteractable
+                is DeliveryBox deliveryBox)
+            {
+                deliveryBox.Carry(
+                    this
+                );
+            }
+
+            ResetTransferRepeat();
+
+            return;
+        }
+
+        if (primaryHeld)
         {
             UpdateTransferRepeat(
-                TransferRepeatMode.Put
+                TransferRepeatMode.Primary
             );
 
             return;
         }
 
-        if (takeHeld)
+        if (reverseHeld)
         {
             UpdateTransferRepeat(
-                TransferRepeatMode.Take
+                TransferRepeatMode.Reverse
             );
 
             return;
@@ -141,7 +165,7 @@ public class PlayerInteraction : MonoBehaviour
         ResetTransferRepeat();
 
         /*
-         * Q = drop.
+         * Q = drop the carried object.
          */
         if (!Keyboard.current.qKey
             .wasPressedThisFrame)
@@ -169,7 +193,7 @@ public class PlayerInteraction : MonoBehaviour
         }
     }
 
-    private void PerformTakeAction(
+    private void PerformReverseAction(
         IInteractable target
     )
     {
@@ -184,7 +208,7 @@ public class PlayerInteraction : MonoBehaviour
 
         if (target is DeliveryBox deliveryBox)
         {
-            deliveryBox.TakeOne(
+            deliveryBox.ReturnOne(
                 this
             );
         }
@@ -250,16 +274,17 @@ public class PlayerInteraction : MonoBehaviour
             return;
         }
 
-        if (mode == TransferRepeatMode.Put)
+        if (mode
+            == TransferRepeatMode.Primary)
         {
-            repeatingTransferTarget
-                .Interact(
-                    this
-                );
+            repeatingTransferTarget.Interact(
+                this
+            );
         }
-        else if (mode == TransferRepeatMode.Take)
+        else if (mode
+                 == TransferRepeatMode.Reverse)
         {
-            PerformTakeAction(
+            PerformReverseAction(
                 repeatingTransferTarget
             );
         }
@@ -278,8 +303,8 @@ public class PlayerInteraction : MonoBehaviour
         }
 
         /*
-         * Basket <-> shelf
-         * Delivery box <-> shelf
+         * Shelf transfers can repeat when we're
+         * carrying either stock container.
          */
         if (target is ShelfSlot)
         {
@@ -288,7 +313,12 @@ public class PlayerInteraction : MonoBehaviour
         }
 
         /*
-         * Basket <-> delivery box.
+         * Grounded DeliveryBox transfers repeat
+         * while using the basket.
+         *
+         * Empty hands intentionally do not repeat:
+         * the first E gives us one product and
+         * our hands become full.
          */
         if (target is DeliveryBox)
         {
@@ -309,7 +339,6 @@ public class PlayerInteraction : MonoBehaviour
         holdRepeatTimer =
             0f;
     }
-    
     private void UpdateInteractionPrompt()
     {
         if (interactionUI == null)

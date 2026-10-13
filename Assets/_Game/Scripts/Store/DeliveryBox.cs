@@ -111,7 +111,7 @@ public class DeliveryBox :
         }
 
         /*
-         * Basket <-> Box
+         * BASKET + BOX
          */
         RestockBasket basket =
             player.GetHeldRestockBasket();
@@ -124,7 +124,7 @@ public class DeliveryBox :
         }
 
         /*
-         * Individual held item -> Box
+         * PRODUCT IN HAND + BOX
          */
         PickupItem heldItem =
             player.GetHeldItem();
@@ -136,33 +136,37 @@ public class DeliveryBox :
             );
         }
 
+        /*
+         * Another box is already being carried.
+         */
         if (player.GetHeldDeliveryBox()
             != null)
         {
             return "Hands full";
         }
 
+        /*
+         * EMPTY BOX
+         */
         if (quantity <= 0)
         {
-            return "[R] Carry empty box"
-                   + "\n[E] Remove empty box";
+            return "[E] Remove empty box"
+                   + "\n[F] Carry empty box";
         }
 
-        string carryPrompt =
-            "[R] Carry "
-            + productData.ProductName
-            + " box  •  "
-            + quantity
-            + " / "
-            + Capacity;
-
-        if (!isOpen)
-        {
-            return carryPrompt
-                   + "\n[E] Open box";
-        }
-
-        return carryPrompt;
+        /*
+         * NORMAL GROUNDED BOX
+         *
+         * E works with the contents.
+         * F works with the container itself.
+         */
+        return "[E] Take "
+               + productData.ProductName
+               + "  •  "
+               + quantity
+               + " / "
+               + Capacity
+               + "\n[F] Carry box";
     }
 
     public void Interact(
@@ -175,81 +179,9 @@ public class DeliveryBox :
         }
 
         /*
-         * E with basket:
+         * E + basket:
          *
-         * Basket -> Box
-         */
-        RestockBasket basket =
-            player.GetHeldRestockBasket();
-
-        if (basket != null)
-        {
-            TryReturnOneFromBasket(
-                basket
-            );
-
-            return;
-        }
-
-        /*
-         * E with individual product:
-         *
-         * Hand -> Box
-         */
-        PickupItem heldItem =
-            player.GetHeldItem();
-
-        if (heldItem != null)
-        {
-            TryReturnHeldItem(
-                player,
-                heldItem
-            );
-
-            return;
-        }
-
-        if (player.GetHeldDeliveryBox()
-            != null)
-        {
-            return;
-        }
-
-        if (quantity <= 0)
-        {
-            Destroy(
-                gameObject
-            );
-
-            return;
-        }
-
-        /*
-         * Opening is now optional.
-         *
-         * Carrying or transferring products can
-         * automatically open the box when needed.
-         */
-        if (!isOpen)
-        {
-            isOpen =
-                true;
-        }
-    }
-
-    public void TakeOne(
-        PlayerInteraction player
-    )
-    {
-        if (player == null)
-        {
-            return;
-        }
-
-        /*
-         * R with basket:
-         *
-         * Box -> Basket
+         * Box -> Basket.
          */
         RestockBasket basket =
             player.GetHeldRestockBasket();
@@ -264,12 +196,94 @@ public class DeliveryBox :
         }
 
         /*
-         * R with empty hands:
+         * E is NOT used to return an individual
+         * product to the box anymore.
          *
-         * Take the whole box.
+         * R owns the reverse action.
          */
-        if (player.GetHeldItem() != null ||
-            player.GetHeldDeliveryBox() != null)
+        if (player.GetHeldItem() != null)
+        {
+            return;
+        }
+
+        if (player.GetHeldDeliveryBox()
+            != null)
+        {
+            return;
+        }
+
+        /*
+         * Empty box:
+         *
+         * E removes the cardboard.
+         */
+        if (quantity <= 0)
+        {
+            Destroy(
+                gameObject
+            );
+
+            return;
+        }
+
+        /*
+         * E + empty hands:
+         *
+         * Take exactly one product.
+         */
+        TryDispenseOneToHand(
+            player
+        );
+    }
+
+    public void ReturnOne(
+        PlayerInteraction player
+    )
+    {
+        if (player == null)
+        {
+            return;
+        }
+
+        /*
+         * R + basket:
+         *
+         * Basket -> Box.
+         */
+        RestockBasket basket =
+            player.GetHeldRestockBasket();
+
+        if (basket != null)
+        {
+            TryReturnOneFromBasket(
+                basket
+            );
+
+            return;
+        }
+
+        /*
+         * R + individual matching product:
+         *
+         * Hand -> Box.
+         */
+        PickupItem heldItem =
+            player.GetHeldItem();
+
+        if (heldItem != null)
+        {
+            TryReturnHeldItem(
+                player,
+                heldItem
+            );
+        }
+    }
+
+    public void Carry(
+        PlayerInteraction player
+    )
+    {
+        if (player == null)
         {
             return;
         }
@@ -292,7 +306,7 @@ public class DeliveryBox :
             quantity > 0
             && !basket.IsFull;
 
-        bool canPut =
+        bool canReturn =
             matchingBasketCount > 0
             && !IsFull;
 
@@ -301,32 +315,33 @@ public class DeliveryBox :
             + " / "
             + Capacity;
 
-        if (canTake && canPut)
+        if (canTake && canReturn)
         {
-            return "[E] Put back "
+            return "[E] Take "
                    + productData.ProductName
                    + "  •  Box "
                    + boxCount
                    + "  •  Hold"
-                   + "\n[R] Take one  •  Basket "
+                   + "\n[R] Put back one"
+                   + "  •  Basket "
                    + basket.ItemCount
                    + " / "
                    + basket.Capacity
                    + "  •  Hold";
         }
 
-        if (canPut)
+        if (canTake)
         {
-            return "[E] Put back "
+            return "[E] Take "
                    + productData.ProductName
                    + "  •  Box "
                    + boxCount
                    + "  •  Hold";
         }
 
-        if (canTake)
+        if (canReturn)
         {
-            return "[R] Take "
+            return "[R] Put back "
                    + productData.ProductName
                    + "  •  Box "
                    + boxCount
@@ -347,10 +362,10 @@ public class DeliveryBox :
 
         if (quantity <= 0)
         {
-            return "Empty delivery box";
+            return "Delivery box empty";
         }
 
-        return "No matching basket product";
+        return "No matching product in basket";
     }
 
     private string GetHeldItemPrompt(
@@ -379,12 +394,67 @@ public class DeliveryBox :
                    + Capacity;
         }
 
-        return "[E] Put "
+        return "[R] Put "
                + productData.ProductName
                + " back into box  •  "
                + quantity
                + " / "
                + Capacity;
+    }
+
+    private bool TryDispenseOneToHand(
+        PlayerInteraction player
+    )
+    {
+        if (player == null ||
+            player.GetHeldItem() != null ||
+            player.GetHeldRestockBasket() != null ||
+            player.GetHeldDeliveryBox() != null ||
+            quantity <= 0 ||
+            productData == null ||
+            productData.WorldPrefab == null)
+        {
+            return false;
+        }
+
+        Transform sourcePoint =
+            spawnPoint != null
+                ? spawnPoint
+                : transform;
+
+        PickupItem spawnedItem =
+            Instantiate(
+                productData.WorldPrefab,
+                sourcePoint.position,
+                sourcePoint.rotation
+            );
+
+        bool pickupSucceeded =
+            player.TryPickUp(
+                spawnedItem
+            );
+
+        if (!pickupSucceeded)
+        {
+            Destroy(
+                spawnedItem.gameObject
+            );
+
+            return false;
+        }
+
+        quantity--;
+
+        /*
+         * Kept internally for future visual
+         * open/close animation state.
+         *
+         * Opening is NOT a player command anymore.
+         */
+        isOpen =
+            true;
+
+        return true;
     }
 
     private bool TryDispenseOneToBasket(
@@ -504,6 +574,10 @@ public class DeliveryBox :
         return true;
     }
 
+    /*
+     * Used while the whole box itself is being
+     * carried to a shelf/storage position.
+     */
     public bool TryTakeOneUnit(
         out ProductData takenProduct
     )
@@ -528,6 +602,10 @@ public class DeliveryBox :
         return true;
     }
 
+    /*
+     * Used when reversing a transfer from
+     * a shelf/storage position into the held box.
+     */
     public bool TryAddOneUnit(
         ProductData incomingProduct
     )
@@ -593,6 +671,18 @@ public class DeliveryBox :
         Vector3 targetPosition =
             transform.position;
 
+        Quaternion targetRotation =
+            Quaternion.LookRotation(
+                -horizontalForward,
+                Vector3.up
+            );
+
+        bool foundSurface =
+            false;
+
+        float surfaceY =
+            0f;
+
         if (heldView != null)
         {
             targetPosition =
@@ -613,9 +703,27 @@ public class DeliveryBox :
                     QueryTriggerInteraction.Ignore
                 ))
             {
+                foundSurface =
+                    true;
+
+                surfaceY =
+                    hit.point.y;
+
+                /*
+                 * Temporary height.
+                 *
+                 * Once the collider is re-enabled
+                 * below, we'll align its real bottom
+                 * to this surface.
+                 */
                 targetPosition.y =
-                    hit.point.y
-                    + dropGroundClearance;
+                    surfaceY;
+            }
+            else
+            {
+                targetPosition.y =
+                    heldView.position.y
+                    - 1f;
             }
         }
 
@@ -632,16 +740,41 @@ public class DeliveryBox :
 
         transform.SetPositionAndRotation(
             targetPosition,
-            Quaternion.LookRotation(
-                -horizontalForward,
-                Vector3.up
-            )
+            targetRotation
         );
 
         if (boxCollider != null)
         {
             boxCollider.enabled =
                 true;
+
+            /*
+             * The object pivot is at the CENTRE of
+             * the current box collider.
+             *
+             * PF_DeliveryBox currently has a
+             * 0.5 m tall collider, so placing the
+             * pivot directly on the floor buried
+             * roughly half of it underground.
+             *
+             * Using bounds.min makes this work even
+             * if we later resize or reposition the
+             * collider.
+             */
+            if (foundSurface)
+            {
+                float desiredBottomY =
+                    surfaceY
+                    + dropGroundClearance;
+
+                float heightCorrection =
+                    desiredBottomY
+                    - boxCollider.bounds.min.y;
+
+                transform.position +=
+                    Vector3.up
+                    * heightCorrection;
+            }
         }
     }
 
