@@ -1074,8 +1074,26 @@ public class StorageBay :
                     )
                     : 0f;
 
-            fillBar.fillAmount =
-                ratio;
+            RectTransform fillRect =
+                fillBar.rectTransform;
+
+            fillRect.anchorMin =
+                new Vector2(
+                    0f,
+                    0f
+                );
+
+            fillRect.anchorMax =
+                new Vector2(
+                    ratio,
+                    1f
+                );
+
+            fillRect.offsetMin =
+                Vector2.zero;
+
+            fillRect.offsetMax =
+                Vector2.zero;
 
             if (ratio <= 0.25f)
             {
