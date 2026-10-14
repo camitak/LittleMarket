@@ -7,9 +7,9 @@ public class PlayerInteraction : MonoBehaviour
     {
         None,
         Primary,
-        Reverse
+        Secondary
     }
-    
+
     [Header("Interaction")]
     [SerializeField]
     private float interactionDistance = 3f;
@@ -26,7 +26,7 @@ public class PlayerInteraction : MonoBehaviour
     [Min(0.05f)]
     [SerializeField]
     private float holdRepeatInterval = 0.18f;
-    
+
     [Header("References")]
     [SerializeField]
     private Camera playerCamera;
@@ -40,18 +40,23 @@ public class PlayerInteraction : MonoBehaviour
     private PickupItem heldItem;
 
     private RestockBasket heldRestockBasket;
-    
+
     private DeliveryBox heldDeliveryBox;
 
     private IInteractable focusedInteractable;
-    
+
     private IInteractable repeatingTransferTarget;
 
     private TransferRepeatMode repeatingTransferMode =
         TransferRepeatMode.None;
 
     private float holdRepeatTimer;
-    
+
+    private IManagementInteractable
+        managementHoldTarget;
+
+    private float managementHoldTimer;
+
     public bool HasAnythingHeld =>
         heldItem != null
         || heldRestockBasket != null
@@ -82,11 +87,11 @@ public class PlayerInteraction : MonoBehaviour
             Keyboard.current.eKey
                 .isPressed;
 
-        bool reversePressed =
+        bool secondaryPressed =
             Keyboard.current.rKey
                 .wasPressedThisFrame;
 
-        bool reverseHeld =
+        bool secondaryHeld =
             Keyboard.current.rKey
                 .isPressed;
 
@@ -94,11 +99,17 @@ public class PlayerInteraction : MonoBehaviour
             Keyboard.current.fKey
                 .wasPressedThisFrame;
 
+        bool managementHeld =
+            Keyboard.current.xKey
+                .isPressed;
+
         /*
-         * E = natural primary action for the target.
+         * E = primary contextual action.
          */
         if (primaryPressed)
         {
+            ResetManagementHold();
+
             if (focusedInteractable != null)
             {
                 focusedInteractable.Interact(
@@ -114,53 +125,58 @@ public class PlayerInteraction : MonoBehaviour
         }
 
         /*
-         * R = reverse the normal transfer direction.
+         * R = optional secondary action.
          */
-        if (reversePressed)
+        if (secondaryPressed)
         {
-            PerformReverseAction(
+            ResetManagementHold();
+
+            PerformSecondaryAction(
                 focusedInteractable
             );
 
             BeginTransferRepeat(
-                TransferRepeatMode.Reverse
+                TransferRepeatMode.Secondary
             );
 
             return;
         }
 
         /*
-         * F = carry an entire container.
-         *
-         * For now this applies to DeliveryBox.
+         * F = optional carry / bulk action.
          */
         if (carryPressed)
         {
-            if (focusedInteractable
-                is DeliveryBox deliveryBox)
-            {
-                deliveryBox.Carry(
-                    this
-                );
+            ResetTransferRepeat();
 
-                ResetTransferRepeat();
+            ResetManagementHold();
 
-                return;
-            }
+            PerformCarryAction(
+                focusedInteractable
+            );
 
-            if (focusedInteractable
-                is StorageBay storageBay)
-            {
-                storageBay.HandleCarryAction(
-                    this
-                );
-
-                ResetTransferRepeat();
-
-                return;
-            }
+            return;
         }
 
+        /*
+         * X = optional hold-to-confirm
+         * management action.
+         */
+        if (managementHeld)
+        {
+            ResetTransferRepeat();
+
+            UpdateManagementHold();
+
+            return;
+        }
+
+        ResetManagementHold();
+
+        /*
+         * Held E / R only repeat if the focused
+         * interactable explicitly allows it.
+         */
         if (primaryHeld)
         {
             UpdateTransferRepeat(
@@ -170,10 +186,10 @@ public class PlayerInteraction : MonoBehaviour
             return;
         }
 
-        if (reverseHeld)
+        if (secondaryHeld)
         {
             UpdateTransferRepeat(
-                TransferRepeatMode.Reverse
+                TransferRepeatMode.Secondary
             );
 
             return;
@@ -182,7 +198,7 @@ public class PlayerInteraction : MonoBehaviour
         ResetTransferRepeat();
 
         /*
-         * Q = drop the carried object.
+         * Q = drop whatever we're carrying.
          */
         if (!Keyboard.current.qKey
             .wasPressedThisFrame)
@@ -210,43 +226,34 @@ public class PlayerInteraction : MonoBehaviour
         }
     }
 
-    private void PerformReverseAction(
+    private void PerformSecondaryAction(
         IInteractable target
     )
     {
-        if (target is ShelfSlot shelfSlot)
+        if (!(target
+              is ISecondaryInteractable secondary))
         {
-            shelfSlot.TakeOne(
-                this
-            );
-
-            return;
-        }
-        
-        if (target is StorageBay storageBay)
-        {
-            storageBay.ReturnOne(
-                this
-            );
-
-            return;
-        }
-        
-        if (target is RestockBasket restockBasket)
-        {
-            restockBasket.TakeOne(
-                this
-            );
-
             return;
         }
 
-        if (target is DeliveryBox deliveryBox)
+        secondary.SecondaryInteract(
+            this
+        );
+    }
+
+    private void PerformCarryAction(
+        IInteractable target
+    )
+    {
+        if (!(target
+              is ICarryInteractable carry))
         {
-            deliveryBox.ReturnOne(
-                this
-            );
+            return;
         }
+
+        carry.CarryInteract(
+            this
+        );
     }
 
     private void BeginTransferRepeat(
@@ -254,7 +261,8 @@ public class PlayerInteraction : MonoBehaviour
     )
     {
         if (!CanRepeatTransfer(
-                focusedInteractable
+                focusedInteractable,
+                mode
             ))
         {
             ResetTransferRepeat();
@@ -277,7 +285,8 @@ public class PlayerInteraction : MonoBehaviour
     )
     {
         if (!CanRepeatTransfer(
-                focusedInteractable
+                focusedInteractable,
+                mode
             ))
         {
             ResetTransferRepeat();
@@ -317,9 +326,9 @@ public class PlayerInteraction : MonoBehaviour
             );
         }
         else if (mode
-                 == TransferRepeatMode.Reverse)
+                 == TransferRepeatMode.Secondary)
         {
-            PerformReverseAction(
+            PerformSecondaryAction(
                 repeatingTransferTarget
             );
         }
@@ -329,51 +338,30 @@ public class PlayerInteraction : MonoBehaviour
     }
 
     private bool CanRepeatTransfer(
-        IInteractable target
+        IInteractable target,
+        TransferRepeatMode mode
     )
     {
-        if (target == null)
+        if (!(target
+              is IRepeatableInteractable repeatable))
         {
             return false;
         }
 
-        /*
-         * Shelf transfers can repeat when we're
-         * carrying either stock container.
-         */
-        if (target is ShelfSlot)
+        if (mode
+            == TransferRepeatMode.Primary)
         {
-            return heldRestockBasket != null
-                   || heldDeliveryBox != null;
+            return repeatable.CanRepeatPrimary(
+                this
+            );
         }
 
-        /*
-         * Grounded DeliveryBox transfers repeat
-         * while using the basket.
-         *
-         * Empty hands intentionally do not repeat:
-         * the first E gives us one product and
-         * our hands become full.
-         */
-        if (target is DeliveryBox)
+        if (mode
+            == TransferRepeatMode.Secondary)
         {
-            return heldRestockBasket != null;
-        }
-        
-        /*
-         * Storage transfers repeat while using
-         * either stock container.
-         */
-        if (target is StorageBay)
-        {
-            /*
-             * Basket transfers happen one unit at a time,
-             * so holding E/R repeats.
-             *
-             * Cartons transfer as one whole physical
-             * packing action, so they do NOT repeat.
-             */
-            return heldRestockBasket != null;
+            return repeatable.CanRepeatSecondary(
+                this
+            );
         }
 
         return false;
@@ -390,6 +378,70 @@ public class PlayerInteraction : MonoBehaviour
         holdRepeatTimer =
             0f;
     }
+
+    private void UpdateManagementHold()
+    {
+        if (!(focusedInteractable
+              is IManagementInteractable
+                  managementTarget))
+        {
+            ResetManagementHold();
+
+            return;
+        }
+
+        if (!managementTarget
+            .CanUseManagementAction(
+                this
+            ))
+        {
+            ResetManagementHold();
+
+            return;
+        }
+
+        if (managementHoldTarget
+            != managementTarget)
+        {
+            managementHoldTarget =
+                managementTarget;
+
+            managementHoldTimer =
+                0f;
+        }
+
+        managementHoldTimer +=
+            Time.unscaledDeltaTime;
+
+        float requiredDuration =
+            Mathf.Max(
+                0.05f,
+                managementTarget
+                    .ManagementHoldDuration
+            );
+
+        if (managementHoldTimer
+            < requiredDuration)
+        {
+            return;
+        }
+
+        managementTarget.ManagementInteract(
+            this
+        );
+
+        ResetManagementHold();
+    }
+
+    private void ResetManagementHold()
+    {
+        managementHoldTarget =
+            null;
+
+        managementHoldTimer =
+            0f;
+    }
+
     private void UpdateInteractionPrompt()
     {
         if (interactionUI == null)
@@ -429,7 +481,7 @@ public class PlayerInteraction : MonoBehaviour
 
             return;
         }
-        
+
         if (heldDeliveryBox != null)
         {
             ProductData boxProduct =
@@ -445,7 +497,8 @@ public class PlayerInteraction : MonoBehaviour
                 + boxName
                 + " box"
                 + "  •  "
-                + heldDeliveryBox.RemainingQuantity
+                + heldDeliveryBox
+                    .RemainingQuantity
                 + " / "
                 + heldDeliveryBox.Capacity
             );
@@ -479,12 +532,6 @@ public class PlayerInteraction : MonoBehaviour
                 playerCamera.transform.forward
             );
 
-        /*
-         * First try a normal precise ray.
-         *
-         * If the crosshair is directly over
-         * something interactable, that always wins.
-         */
         bool hasCenterHit =
             Physics.Raycast(
                 ray,
@@ -505,14 +552,6 @@ public class PlayerInteraction : MonoBehaviour
             }
         }
 
-        /*
-         * If the precise ray missed the interaction
-         * collider, look in a small radius around it.
-         *
-         * This makes shelves and objects easier to
-         * target without turning interaction into a
-         * huge invisible cone.
-         */
         RaycastHit[] assistedHits =
             Physics.SphereCastAll(
                 ray,
@@ -529,11 +568,6 @@ public class PlayerInteraction : MonoBehaviour
         float maximumAllowedDistance =
             interactionDistance;
 
-        /*
-         * If our exact centre ray hit solid geometry,
-         * don't allow the assist to select something
-         * far behind that obstruction.
-         */
         if (hasCenterHit)
         {
             maximumAllowedDistance =
@@ -571,7 +605,8 @@ public class PlayerInteraction : MonoBehaviour
             }
 
             Vector3 toCenter =
-                assistedHit.collider.bounds.center
+                assistedHit.collider
+                    .bounds.center
                 - ray.origin;
 
             float forwardDistance =
@@ -597,10 +632,6 @@ public class PlayerInteraction : MonoBehaviour
                     - closestPointOnRay
                 );
 
-            /*
-             * Crosshair alignment matters much more
-             * than a tiny distance difference.
-             */
             float score =
                 distanceFromCrosshair
                 + assistedHit.distance
@@ -633,17 +664,13 @@ public class PlayerInteraction : MonoBehaviour
         Transform currentTransform =
             targetCollider.transform;
 
-        /*
-         * Some interactable objects may have their
-         * collider on a child object.
-         *
-         * Walk upward until an IInteractable is found.
-         */
         while (currentTransform != null)
         {
             MonoBehaviour[] behaviours =
                 currentTransform
-                    .GetComponents<MonoBehaviour>();
+                    .GetComponents<
+                        MonoBehaviour
+                    >();
 
             for (int i = 0;
                  i < behaviours.Length;
@@ -675,17 +702,9 @@ public class PlayerInteraction : MonoBehaviour
             return false;
         }
 
-        if (heldItem != null)
-        {
-            return false;
-        }
-
-        if (heldRestockBasket != null)
-        {
-            return false;
-        }
-        
-        if (heldDeliveryBox != null)
+        if (heldItem != null ||
+            heldRestockBasket != null ||
+            heldDeliveryBox != null)
         {
             return false;
         }
@@ -709,17 +728,9 @@ public class PlayerInteraction : MonoBehaviour
             return false;
         }
 
-        if (heldItem != null)
-        {
-            return false;
-        }
-
-        if (heldRestockBasket != null)
-        {
-            return false;
-        }
-        
-        if (heldDeliveryBox != null)
+        if (heldItem != null ||
+            heldRestockBasket != null ||
+            heldDeliveryBox != null)
         {
             return false;
         }
@@ -728,6 +739,33 @@ public class PlayerInteraction : MonoBehaviour
             basket;
 
         heldRestockBasket.PickUp(
+            holdPoint,
+            playerCamera.transform
+        );
+
+        return true;
+    }
+
+    public bool TryPickUpDeliveryBox(
+        DeliveryBox deliveryBox
+    )
+    {
+        if (deliveryBox == null)
+        {
+            return false;
+        }
+
+        if (heldItem != null ||
+            heldRestockBasket != null ||
+            heldDeliveryBox != null)
+        {
+            return false;
+        }
+
+        heldDeliveryBox =
+            deliveryBox;
+
+        heldDeliveryBox.PickUp(
             holdPoint,
             playerCamera.transform
         );
@@ -761,55 +799,6 @@ public class PlayerInteraction : MonoBehaviour
             null;
     }
 
-    public PickupItem GetHeldItem()
-    {
-        return heldItem;
-    }
-
-    public RestockBasket GetHeldRestockBasket()
-    {
-        return heldRestockBasket;
-    }
-
-    public void RemoveHeldItem()
-    {
-        heldItem =
-            null;
-    }
-
-    public void RemoveHeldRestockBasket()
-    {
-        heldRestockBasket =
-            null;
-    }
-    
-    public bool TryPickUpDeliveryBox(
-        DeliveryBox deliveryBox
-    )
-    {
-        if (deliveryBox == null)
-        {
-            return false;
-        }
-
-        if (heldItem != null ||
-            heldRestockBasket != null ||
-            heldDeliveryBox != null)
-        {
-            return false;
-        }
-
-        heldDeliveryBox =
-            deliveryBox;
-
-        heldDeliveryBox.PickUp(
-            holdPoint,
-            playerCamera.transform
-        );
-
-        return true;
-    }
-
     private void DropHeldDeliveryBox()
     {
         if (heldDeliveryBox == null)
@@ -823,9 +812,31 @@ public class PlayerInteraction : MonoBehaviour
             null;
     }
 
+    public PickupItem GetHeldItem()
+    {
+        return heldItem;
+    }
+
+    public RestockBasket GetHeldRestockBasket()
+    {
+        return heldRestockBasket;
+    }
+
     public DeliveryBox GetHeldDeliveryBox()
     {
         return heldDeliveryBox;
+    }
+
+    public void RemoveHeldItem()
+    {
+        heldItem =
+            null;
+    }
+
+    public void RemoveHeldRestockBasket()
+    {
+        heldRestockBasket =
+            null;
     }
 
     public void RemoveHeldDeliveryBox()

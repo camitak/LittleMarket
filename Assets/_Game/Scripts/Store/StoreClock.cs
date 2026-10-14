@@ -73,9 +73,9 @@ public class StoreClock : MonoBehaviour
 
     private static readonly Color32 PreOpenStatusColor =
         new Color32(
-            143,
-            197,
-            232,
+            79,
+            113,
+            135,
             255
         );
 

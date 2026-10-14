@@ -2,7 +2,10 @@ using UnityEngine;
 
 public class DeliveryBox :
     MonoBehaviour,
-    IInteractable
+    IInteractable,
+    ISecondaryInteractable,
+    ICarryInteractable,
+    IRepeatableInteractable
 {
     [Header("Contents")]
     [SerializeField]
@@ -279,6 +282,15 @@ public class DeliveryBox :
         }
     }
 
+    public void SecondaryInteract(
+        PlayerInteraction player
+    )
+    {
+        ReturnOne(
+            player
+        );
+    }
+    
     public void Carry(
         PlayerInteraction player
     )
@@ -291,6 +303,41 @@ public class DeliveryBox :
         player.TryPickUpDeliveryBox(
             this
         );
+    }
+    
+    public void CarryInteract(
+        PlayerInteraction player
+    )
+    {
+        Carry(
+            player
+        );
+    }
+
+    public bool CanRepeatPrimary(
+        PlayerInteraction player
+    )
+    {
+        if (player == null)
+        {
+            return false;
+        }
+
+        return player.GetHeldRestockBasket()
+               != null;
+    }
+
+    public bool CanRepeatSecondary(
+        PlayerInteraction player
+    )
+    {
+        if (player == null)
+        {
+            return false;
+        }
+
+        return player.GetHeldRestockBasket()
+               != null;
     }
 
     private string GetBasketPrompt(

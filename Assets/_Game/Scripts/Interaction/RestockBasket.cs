@@ -8,7 +8,8 @@ using UnityEngine;
 )]
 public class RestockBasket :
     MonoBehaviour,
-    IInteractable
+    IInteractable,
+    ISecondaryInteractable
 {
     [Header("Contents")]
     [Min(1)]
@@ -243,6 +244,15 @@ public class RestockBasket :
         );
     }
 
+    public void SecondaryInteract(
+        PlayerInteraction player
+    )
+    {
+        TakeOne(
+            player
+        );
+    }
+    
     public bool TryAddItem(PickupItem item)
     {
         if (item == null ||

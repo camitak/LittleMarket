@@ -1,7 +1,9 @@
+using System.Collections;
 using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
+using UnityEngine.EventSystems;
 
 public class OrderingUI : MonoBehaviour
 {
@@ -106,11 +108,7 @@ public class OrderingUI : MonoBehaviour
         playerInteraction.enabled =
             false;
 
-        Cursor.lockState =
-            CursorLockMode.None;
-
-        Cursor.visible =
-            true;
+        playerController.ReleaseCursor();
     }
 
     public void Close()
@@ -132,11 +130,36 @@ public class OrderingUI : MonoBehaviour
         playerInteraction.enabled =
             true;
 
-        Cursor.lockState =
-            CursorLockMode.Locked;
+        StartCoroutine(
+            RecaptureCursorAfterClose()
+        );
+    }
+    
+    private IEnumerator
+        RecaptureCursorAfterClose()
+    {
+        /*
+         * Wait until the UI Button mouse-release
+         * event has finished.
+         *
+         * Otherwise the same click that closes the
+         * panel can leave the cursor released in the
+         * Unity Game view.
+         */
+        yield return null;
 
-        Cursor.visible =
-            false;
+        if (EventSystem.current != null)
+        {
+            EventSystem.current
+                .SetSelectedGameObject(
+                    null
+                );
+        }
+
+        if (playerController != null)
+        {
+            playerController.CaptureCursor();
+        }
     }
 
     private void RebuildCatalogRows()

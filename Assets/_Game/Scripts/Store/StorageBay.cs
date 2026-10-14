@@ -4,7 +4,11 @@ using UnityEngine.UI;
 
 public class StorageBay :
     MonoBehaviour,
-    IInteractable
+    IInteractable,
+    ISecondaryInteractable,
+    ICarryInteractable,
+    IManagementInteractable,
+    IRepeatableInteractable
 {
     [Header("Identity")]
     [SerializeField]
@@ -234,7 +238,7 @@ public class StorageBay :
             return assignedProduct.ProductName
                    + "  •  0 / "
                    + Capacity
-                   + "\n[F] Clear assignment";
+                   + "\n[Hold X] Clear assignment";
         }
 
         int cartonQuantity =
@@ -283,7 +287,12 @@ public class StorageBay :
 
         if (basket != null)
         {
-            TryTakeIntoBasket(
+            /*
+             * E mirrors the sales shelf:
+             *
+             * Basket -> Storage
+             */
+            TryReturnFromBasket(
                 basket
             );
 
@@ -321,6 +330,15 @@ public class StorageBay :
         PlayerInteraction player
     )
     {
+        SecondaryInteract(
+            player
+        );
+    }
+
+    public void SecondaryInteract(
+        PlayerInteraction player
+    )
+    {
         if (player == null)
         {
             return;
@@ -343,18 +361,17 @@ public class StorageBay :
 
         if (basket != null)
         {
-            TryReturnFromBasket(
+            /*
+             * R mirrors the sales shelf:
+             *
+             * Storage -> Basket
+             */
+            TryTakeIntoBasket(
                 basket
             );
         }
     }
-
-    /*
-     * F has two storage-specific meanings:
-     *
-     * stocked bay -> take one portable carton
-     * assigned empty bay -> clear assignment
-     */
+    
     public void HandleCarryAction(
         PlayerInteraction player
     )
@@ -365,19 +382,22 @@ public class StorageBay :
             return;
         }
 
-        if (!IsAssigned)
+        if (!IsAssigned ||
+            quantity <= 0)
         {
-            return;
-        }
-
-        if (quantity <= 0)
-        {
-            ClearAssignment();
-
             return;
         }
 
         TryTakeCarton(
+            player
+        );
+    }
+
+    public void CarryInteract(
+        PlayerInteraction player
+    )
+    {
+        HandleCarryAction(
             player
         );
     }
@@ -527,13 +547,16 @@ public class StorageBay :
         RestockBasket basket
     )
     {
+        if (basket == null)
+        {
+            return "";
+        }
+
         /*
-         * An unassigned bay can now be assigned
-         * directly from the basket.
+         * Empty bay:
          *
-         * R is Basket -> Storage, which remains
-         * stable after assignment and avoids the
-         * old direction-changing loop.
+         * E places the first available basket SKU
+         * into storage and assigns the bay.
          */
         if (!IsAssigned)
         {
@@ -545,7 +568,7 @@ public class StorageBay :
                 return "Empty storage bay";
             }
 
-            return "[R] Store "
+            return "[E] Store "
                    + firstProduct.ProductName
                    + "  •  Assign bay  •  Hold";
         }
@@ -555,62 +578,61 @@ public class StorageBay :
                 assignedProduct
             );
 
+        bool canStore =
+            matchingBasketCount > 0
+            && !IsFull;
+
         bool canTake =
             quantity > 0
             && !basket.IsFull;
-
-        bool canReturn =
-            matchingBasketCount > 0
-            && !IsFull;
 
         string bayCount =
             quantity
             + " / "
             + Capacity;
 
-        if (canTake && canReturn)
+        if (canStore &&
+            canTake)
         {
-            return "[E] Take "
+            return "[E] Store "
                    + assignedProduct.ProductName
                    + "  •  Bay "
                    + bayCount
                    + "  •  Hold"
-                   + "\n[R] Put back one"
-                   + "  •  Basket "
-                   + basket.ItemCount
-                   + " / "
-                   + basket.Capacity
+                   + "\n[R] Take "
+                   + assignedProduct.ProductName
+                   + " into basket  •  Hold";
+        }
+
+        if (canStore)
+        {
+            return "[E] Store "
+                   + assignedProduct.ProductName
+                   + "  •  Bay "
+                   + bayCount
                    + "  •  Hold";
         }
 
         if (canTake)
         {
-            return "[E] Take "
+            return "[R] Take "
                    + assignedProduct.ProductName
-                   + "  •  Bay "
+                   + " into basket  •  Bay "
                    + bayCount
                    + "  •  Hold";
         }
 
-        if (canReturn)
+        if (IsFull &&
+            matchingBasketCount > 0)
         {
-            return "[R] Put back "
-                   + assignedProduct.ProductName
-                   + "  •  Bay "
-                   + bayCount
-                   + "  •  Hold";
+            return "Storage bay full  "
+                   + bayCount;
         }
 
         if (basket.IsFull &&
             quantity > 0)
         {
             return "Restock basket full";
-        }
-
-        if (IsFull &&
-            matchingBasketCount > 0)
-        {
-            return "Storage bay full";
         }
 
         return assignedProduct.ProductName
@@ -1139,5 +1161,68 @@ public class StorageBay :
             quantity <= 0
                 ? LowColor
                 : NormalColor;
+    }
+    
+    public float ManagementHoldDuration =>
+        0.6f;
+
+    public bool CanUseManagementAction(
+        PlayerInteraction player
+    )
+    {
+        if (player == null ||
+            player.HasAnythingHeld)
+        {
+            return false;
+        }
+
+        return IsAssigned
+               && quantity <= 0;
+    }
+
+    public void ManagementInteract(
+        PlayerInteraction player
+    )
+    {
+        if (!CanUseManagementAction(
+                player
+            ))
+        {
+            return;
+        }
+
+        ClearAssignment();
+    }
+
+    public bool CanRepeatPrimary(
+        PlayerInteraction player
+    )
+    {
+        if (player == null)
+        {
+            return false;
+        }
+
+        /*
+         * Individual basket products move one
+         * at a time, so holding E may repeat.
+         *
+         * Whole cartons are a one-action transfer.
+         */
+        return player.GetHeldRestockBasket()
+               != null;
+    }
+
+    public bool CanRepeatSecondary(
+        PlayerInteraction player
+    )
+    {
+        if (player == null)
+        {
+            return false;
+        }
+
+        return player.GetHeldRestockBasket()
+               != null;
     }
 }

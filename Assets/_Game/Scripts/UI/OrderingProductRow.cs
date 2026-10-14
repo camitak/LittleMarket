@@ -35,13 +35,13 @@ public class OrderingProductRow : MonoBehaviour
         0.25f;
 
     private const string PositiveColor =
-        "#6FCF97";
+        "#4F7F62";
 
     private const string NegativeColor =
-        "#C46B6B";
+        "#9A4F4F";
 
     private const string NewColor =
-        "#6FCF97";
+        "#4F7F62";
 
     private static readonly Color32 HealthyStockColor =
         new Color32(
@@ -53,25 +53,25 @@ public class OrderingProductRow : MonoBehaviour
 
     private static readonly Color32 LowStockColor =
         new Color32(
-            246,
-            215,
-            122,
+            139,
+            106,
+            31,
             255
         );
 
     private static readonly Color32 RestockColor =
         new Color32(
-            143,
-            197,
-            232,
+            79,
+            113,
+            135,
             255
         );
 
     private static readonly Color32 OutOfStockColor =
         new Color32(
-            196,
-            107,
-            107,
+            154,
+            79,
+            79,
             255
         );
 

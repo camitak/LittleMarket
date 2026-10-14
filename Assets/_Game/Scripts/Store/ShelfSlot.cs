@@ -3,7 +3,9 @@ using UnityEngine;
 
 public class ShelfSlot :
     MonoBehaviour,
-    IInteractable
+    IInteractable,
+    ISecondaryInteractable,
+    IRepeatableInteractable
 {
     [Header("Identity")]
     [SerializeField]
@@ -476,6 +478,47 @@ public class ShelfSlot :
         );
     }
 
+    public void SecondaryInteract(
+        PlayerInteraction player
+    )
+    {
+        TakeOne(
+            player
+        );
+    }
+
+    public bool CanRepeatPrimary(
+        PlayerInteraction player
+    )
+    {
+        if (player == null)
+        {
+            return false;
+        }
+
+        return player.GetHeldRestockBasket()
+               != null
+               ||
+               player.GetHeldDeliveryBox()
+               != null;
+    }
+
+    public bool CanRepeatSecondary(
+        PlayerInteraction player
+    )
+    {
+        if (player == null)
+        {
+            return false;
+        }
+
+        return player.GetHeldRestockBasket()
+               != null
+               ||
+               player.GetHeldDeliveryBox()
+               != null;
+    }
+    
     private string GetHeldItemPrompt(
         PickupItem heldItem
     )

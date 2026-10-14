@@ -33,25 +33,25 @@ public class StockAlertRow : MonoBehaviour
 
     private static readonly Color32 LowColor =
         new Color32(
-            246,
-            215,
-            122,
+            139,
+            106,
+            31,
             255
         );
 
     private static readonly Color32 RestockColor =
         new Color32(
-            143,
-            197,
-            232,
+            79,
+            113,
+            135,
             255
         );
 
     private static readonly Color32 OutColor =
         new Color32(
-            196,
-            107,
-            107,
+            154,
+            79,
+            79,
             255
         );
 

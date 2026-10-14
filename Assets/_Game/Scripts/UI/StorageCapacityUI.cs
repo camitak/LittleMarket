@@ -16,25 +16,25 @@ public class StorageCapacityUI : MonoBehaviour
 
     private static readonly Color32 AvailableColor =
         new(
-            111,
-            207,
-            151,
+            79,
+            127,
+            98,
             255
         );
 
     private static readonly Color32 NearlyFullColor =
         new(
-            246,
-            215,
-            122,
+            139,
+            106,
+            31,
             255
         );
 
     private static readonly Color32 FullColor =
         new(
-            196,
-            107,
-            107,
+            154,
+            79,
+            79,
             255
         );
 
