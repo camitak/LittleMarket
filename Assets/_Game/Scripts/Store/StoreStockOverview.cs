@@ -121,31 +121,30 @@ public class StoreStockOverview : MonoBehaviour
         ProductData productData
     )
     {
-        if (productData == null ||
-            deliveryZone == null)
+        if (productData == null)
         {
             return 0;
         }
+
+        DeliveryBox[] boxes =
+            Object.FindObjectsByType<
+                DeliveryBox
+            >(
+                FindObjectsSortMode.None
+            );
 
         int count =
             0;
 
         for (int i = 0;
-             i < deliveryZone.DeliverySlotCount;
+             i < boxes.Length;
              i++)
         {
-            DeliveryBox deliveryBox =
-                deliveryZone.GetActiveDelivery(
-                    i
-                );
+            DeliveryBox box =
+                boxes[i];
 
-            if (deliveryBox == null)
-            {
-                continue;
-            }
-
-            if (deliveryBox.ProductData
-                != productData)
+            if (box == null ||
+                box.ProductData != productData)
             {
                 continue;
             }
@@ -153,7 +152,7 @@ public class StoreStockOverview : MonoBehaviour
             count +=
                 Mathf.Max(
                     0,
-                    deliveryBox.RemainingQuantity
+                    box.RemainingQuantity
                 );
         }
 

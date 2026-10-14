@@ -21,9 +21,15 @@ public class CheckoutRegister :
         PlayerInteraction player
     )
     {
-        if (player.GetHeldItem() != null)
+        if (player == null)
         {
-            return "Put down item to use checkout";
+            return "";
+        }
+
+        if (player.HasAnythingHeld)
+        {
+            return "Put down what you're carrying "
+                   + "to use checkout";
         }
 
         if (checkoutQueue == null)
@@ -67,7 +73,8 @@ public class CheckoutRegister :
         PlayerInteraction player
     )
     {
-        if (player.GetHeldItem() != null)
+        if (player == null ||
+            player.HasAnythingHeld)
         {
             return;
         }

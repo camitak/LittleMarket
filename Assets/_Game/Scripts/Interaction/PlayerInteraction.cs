@@ -51,6 +51,11 @@ public class PlayerInteraction : MonoBehaviour
         TransferRepeatMode.None;
 
     private float holdRepeatTimer;
+    
+    public bool HasAnythingHeld =>
+        heldItem != null
+        || heldRestockBasket != null
+        || heldDeliveryBox != null;
 
     private void Update()
     {
@@ -146,7 +151,9 @@ public class PlayerInteraction : MonoBehaviour
             if (focusedInteractable
                 is StorageBay storageBay)
             {
-                storageBay.ClearAssignment();
+                storageBay.HandleCarryAction(
+                    this
+                );
 
                 ResetTransferRepeat();
 
@@ -219,6 +226,15 @@ public class PlayerInteraction : MonoBehaviour
         if (target is StorageBay storageBay)
         {
             storageBay.ReturnOne(
+                this
+            );
+
+            return;
+        }
+        
+        if (target is RestockBasket restockBasket)
+        {
+            restockBasket.TakeOne(
                 this
             );
 
@@ -350,8 +366,14 @@ public class PlayerInteraction : MonoBehaviour
          */
         if (target is StorageBay)
         {
-            return heldRestockBasket != null
-                   || heldDeliveryBox != null;
+            /*
+             * Basket transfers happen one unit at a time,
+             * so holding E/R repeats.
+             *
+             * Cartons transfer as one whole physical
+             * packing action, so they do NOT repeat.
+             */
+            return heldRestockBasket != null;
         }
 
         return false;

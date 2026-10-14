@@ -81,6 +81,12 @@ public class OrderingUI : MonoBehaviour
         {
             return;
         }
+        
+        if (playerInteraction != null &&
+            playerInteraction.HasAnythingHeld)
+        {
+            return;
+        }
 
         isOpen = true;
 

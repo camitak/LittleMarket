@@ -1,5 +1,6 @@
 using TMPro;
 using UnityEngine;
+using UnityEngine.UI;
 
 public class StorageBay :
     MonoBehaviour,
@@ -14,12 +15,26 @@ public class StorageBay :
     [SerializeField]
     private int capacity = 12;
 
+    [Header("Portable Carton")]
+    [SerializeField]
+    private DeliveryBox cartonPrefab;
+
+    [Min(1)]
+    [SerializeField]
+    private int portableCartonCapacity = 4;
+
     [Header("Display")]
     [SerializeField]
     private GameObject assignedBoxVisual;
 
     [SerializeField]
     private TMP_Text statusText;
+
+    [SerializeField]
+    private Image productIcon;
+
+    [SerializeField]
+    private Image fillBar;
 
     private ProductData assignedProduct;
 
@@ -43,7 +58,7 @@ public class StorageBay :
             255
         );
 
-    private static readonly Color32 OutColor =
+    private static readonly Color32 LowColor =
         new Color32(
             196,
             107,
@@ -51,7 +66,15 @@ public class StorageBay :
             255
         );
 
-    private static readonly Color32 FullColor =
+    private static readonly Color32 MidColor =
+        new Color32(
+            246,
+            215,
+            122,
+            255
+        );
+
+    private static readonly Color32 HealthyColor =
         new Color32(
             111,
             207,
@@ -214,16 +237,24 @@ public class StorageBay :
                    + "\n[F] Clear assignment";
         }
 
-        return "[E] Take "
+        int cartonQuantity =
+            Mathf.Min(
+                portableCartonCapacity,
+                quantity
+            );
+
+        return "[E] Take one "
                + assignedProduct.ProductName
                + "  •  "
                + quantity
                + " / "
-               + Capacity;
+               + Capacity
+               + "\n[F] Take carton x"
+               + cartonQuantity;
     }
 
     /*
-     * E = natural PRIMARY action.
+     * E = natural primary action.
      */
     public void Interact(
         PlayerInteraction player
@@ -239,7 +270,7 @@ public class StorageBay :
 
         if (heldBox != null)
         {
-            TryStoreFromDeliveryBox(
+            TryStoreWholeCarton(
                 player,
                 heldBox
             );
@@ -259,12 +290,22 @@ public class StorageBay :
             return;
         }
 
+        PickupItem heldItem =
+            player.GetHeldItem();
+
         /*
-         * A directly held product goes back into
-         * storage with R, not E.
+         * A loose product in our hands is being
+         * USED on this storage target.
+         *
+         * E is therefore the intuitive action.
          */
-        if (player.GetHeldItem() != null)
+        if (heldItem != null)
         {
+            TryStoreHeldItem(
+                player,
+                heldItem
+            );
+
             return;
         }
 
@@ -274,7 +315,7 @@ public class StorageBay :
     }
 
     /*
-     * R = reverse the primary action.
+     * R = reverse container transfer.
      */
     public void ReturnOne(
         PlayerInteraction player
@@ -290,7 +331,7 @@ public class StorageBay :
 
         if (heldBox != null)
         {
-            TryReturnToDeliveryBox(
+            TryFillCartonFromBay(
                 heldBox
             );
 
@@ -305,20 +346,40 @@ public class StorageBay :
             TryReturnFromBasket(
                 basket
             );
+        }
+    }
+
+    /*
+     * F has two storage-specific meanings:
+     *
+     * stocked bay -> take one portable carton
+     * assigned empty bay -> clear assignment
+     */
+    public void HandleCarryAction(
+        PlayerInteraction player
+    )
+    {
+        if (player == null ||
+            player.HasAnythingHeld)
+        {
+            return;
+        }
+
+        if (!IsAssigned)
+        {
+            return;
+        }
+
+        if (quantity <= 0)
+        {
+            ClearAssignment();
 
             return;
         }
 
-        PickupItem heldItem =
-            player.GetHeldItem();
-
-        if (heldItem != null)
-        {
-            TryReturnHeldItem(
-                player,
-                heldItem
-            );
-        }
+        TryTakeCarton(
+            player
+        );
     }
 
     public void ClearAssignment()
@@ -373,7 +434,7 @@ public class StorageBay :
 
         if (boxProduct == null)
         {
-            return "Delivery box not configured";
+            return "Carton not configured";
         }
 
         if (!CanAcceptProduct(
@@ -384,78 +445,79 @@ public class StorageBay :
                    + assignedProduct.ProductName;
         }
 
-        bool canStore =
-            !deliveryBox.IsEmpty
-            && !IsFull;
+        int availableSpace =
+            Mathf.Max(
+                0,
+                Capacity - quantity
+            );
 
-        bool canReturn =
-            IsAssigned
-            && quantity > 0
-            && assignedProduct == boxProduct
-            && !deliveryBox.IsFull;
+        int unitsToStore =
+            Mathf.Min(
+                availableSpace,
+                deliveryBox.RemainingQuantity
+            );
 
-        string bayCount =
-            quantity
-            + " / "
-            + Capacity;
+        int boxFreeSpace =
+            Mathf.Max(
+                0,
+                deliveryBox.Capacity
+                - deliveryBox.RemainingQuantity
+            );
 
-        string boxCount =
-            deliveryBox.RemainingQuantity
-            + " / "
-            + deliveryBox.Capacity;
+        int unitsToReturn =
+            IsAssigned &&
+            assignedProduct == boxProduct
+                ? Mathf.Min(
+                    quantity,
+                    boxFreeSpace
+                )
+                : 0;
 
-        if (canStore && canReturn)
+        if (unitsToStore > 0 &&
+            unitsToReturn > 0)
+        {
+            return "[E] Place carton  •  +"
+                   + unitsToStore
+                   + " "
+                   + boxProduct.ProductName
+                   + "\n[R] Fill carton from bay  •  +"
+                   + unitsToReturn;
+        }
+
+        if (unitsToStore > 0)
         {
             string verb =
                 IsAssigned
-                    ? "Store "
-                    : "Assign ";
+                    ? "Merge carton"
+                    : "Place carton";
 
             return "[E] "
                    + verb
-                   + boxProduct.ProductName
-                   + "  •  Bay "
-                   + bayCount
-                   + "  •  Hold"
-                   + "\n[R] Return one to box"
-                   + "  •  Box "
-                   + boxCount
-                   + "  •  Hold";
+                   + "  •  +"
+                   + unitsToStore
+                   + " "
+                   + boxProduct.ProductName;
         }
 
-        if (canStore)
+        if (unitsToReturn > 0)
         {
-            string verb =
-                IsAssigned
-                    ? "Store "
-                    : "Assign ";
-
-            return "[E] "
-                   + verb
-                   + boxProduct.ProductName
-                   + "  •  Bay "
-                   + bayCount
-                   + "  •  Hold";
-        }
-
-        if (canReturn)
-        {
-            return "[R] Return "
-                   + assignedProduct.ProductName
-                   + " to box  •  Bay "
-                   + bayCount
-                   + "  •  Hold";
+            return "[R] Fill carton from bay  •  +"
+                   + unitsToReturn
+                   + " "
+                   + assignedProduct.ProductName;
         }
 
         if (IsFull)
         {
             return "Storage bay full  "
-                   + bayCount;
+                   + quantity
+                   + " / "
+                   + Capacity;
         }
 
         if (deliveryBox.IsEmpty)
         {
-            return "Delivery box empty";
+            return "Carton empty";
         }
 
         return "";
@@ -465,10 +527,27 @@ public class StorageBay :
         RestockBasket basket
     )
     {
+        /*
+         * An unassigned bay can now be assigned
+         * directly from the basket.
+         *
+         * R is Basket -> Storage, which remains
+         * stable after assignment and avoids the
+         * old direction-changing loop.
+         */
         if (!IsAssigned)
         {
-            return "Empty bay"
-                   + "\nAssign it with a delivery box";
+            ProductData firstProduct =
+                basket.GetFirstProductData();
+
+            if (firstProduct == null)
+            {
+                return "Empty storage bay";
+            }
+
+            return "[R] Store "
+                   + firstProduct.ProductName
+                   + "  •  Assign bay  •  Hold";
         }
 
         int matchingBasketCount =
@@ -567,7 +646,7 @@ public class StorageBay :
                    + Capacity;
         }
 
-        return "[R] Store "
+        return "[E] Store "
                + heldProduct.ProductName
                + "  •  "
                + quantity
@@ -575,7 +654,13 @@ public class StorageBay :
                + Capacity;
     }
 
-    private void TryStoreFromDeliveryBox(
+    /*
+     * Whole-carton placement.
+     *
+     * One E press transfers as much of the carton
+     * as physically fits in the bay.
+     */
+    private void TryStoreWholeCarton(
         PlayerInteraction player,
         DeliveryBox deliveryBox
     )
@@ -599,31 +684,49 @@ public class StorageBay :
             return;
         }
 
-        bool tookUnit =
-            deliveryBox.TryTakeOneUnit(
-                out ProductData takenProduct
-            );
-
-        if (!tookUnit ||
-            takenProduct == null)
-        {
-            return;
-        }
-
         AssignIfNeeded(
-            takenProduct
+            product
         );
 
-        quantity++;
+        int availableSpace =
+            Capacity
+            - quantity;
+
+        int requestedTransfer =
+            Mathf.Min(
+                availableSpace,
+                deliveryBox.RemainingQuantity
+            );
+
+        int transferred =
+            0;
+
+        for (int i = 0;
+             i < requestedTransfer;
+             i++)
+        {
+            bool tookUnit =
+                deliveryBox.TryTakeOneUnit(
+                    out ProductData takenProduct
+                );
+
+            if (!tookUnit ||
+                takenProduct != product)
+            {
+                break;
+            }
+
+            transferred++;
+        }
+
+        quantity +=
+            transferred;
 
         RefreshDisplay();
 
         /*
-         * When the delivery box has been completely
-         * transferred into storage, its cardboard
-         * becomes the storage representation.
-         *
-         * This also frees the delivery slot.
+         * A completely merged carton now belongs
+         * to the storage representation.
          */
         if (deliveryBox.IsEmpty)
         {
@@ -635,7 +738,11 @@ public class StorageBay :
         }
     }
 
-    private void TryReturnToDeliveryBox(
+    /*
+     * R with a carried carton fills that carton
+     * from this bay in one physical packing action.
+     */
+    private void TryFillCartonFromBay(
         DeliveryBox deliveryBox
     )
     {
@@ -649,17 +756,38 @@ public class StorageBay :
             return;
         }
 
-        bool accepted =
-            deliveryBox.TryAddOneUnit(
-                assignedProduct
+        int availableBoxSpace =
+            deliveryBox.Capacity
+            - deliveryBox.RemainingQuantity;
+
+        int requestedTransfer =
+            Mathf.Min(
+                quantity,
+                availableBoxSpace
             );
 
-        if (!accepted)
+        int transferred =
+            0;
+
+        for (int i = 0;
+             i < requestedTransfer;
+             i++)
         {
-            return;
+            bool accepted =
+                deliveryBox.TryAddOneUnit(
+                    assignedProduct
+                );
+
+            if (!accepted)
+            {
+                break;
+            }
+
+            transferred++;
         }
 
-        quantity--;
+        quantity -=
+            transferred;
 
         RefreshDisplay();
     }
@@ -708,15 +836,37 @@ public class StorageBay :
     )
     {
         if (basket == null ||
-            !IsAssigned ||
+            basket.IsEmpty ||
             IsFull)
+        {
+            return;
+        }
+
+        ProductData targetProduct =
+            assignedProduct;
+
+        /*
+         * Empty bay:
+         * use the first basket product to define
+         * this player's chosen storage assignment.
+         */
+        if (targetProduct == null)
+        {
+            targetProduct =
+                basket.GetFirstProductData();
+        }
+
+        if (targetProduct == null ||
+            !CanAcceptProduct(
+                targetProduct
+            ))
         {
             return;
         }
 
         bool foundItem =
             basket.TryTakeMatchingProduct(
-                assignedProduct,
+                targetProduct,
                 out PickupItem basketItem
             );
 
@@ -725,6 +875,10 @@ public class StorageBay :
         {
             return;
         }
+
+        AssignIfNeeded(
+            targetProduct
+        );
 
         quantity++;
 
@@ -740,7 +894,7 @@ public class StorageBay :
     )
     {
         if (player == null ||
-            player.GetHeldItem() != null ||
+            player.HasAnythingHeld ||
             !IsAssigned ||
             quantity <= 0 ||
             assignedProduct.WorldPrefab == null)
@@ -774,7 +928,7 @@ public class StorageBay :
         RefreshDisplay();
     }
 
-    private void TryReturnHeldItem(
+    private void TryStoreHeldItem(
         PlayerInteraction player,
         PickupItem heldItem
     )
@@ -812,6 +966,60 @@ public class StorageBay :
         RefreshDisplay();
     }
 
+    private void TryTakeCarton(
+        PlayerInteraction player
+    )
+    {
+        if (player == null ||
+            player.HasAnythingHeld ||
+            cartonPrefab == null ||
+            !IsAssigned ||
+            quantity <= 0)
+        {
+            return;
+        }
+
+        int cartonQuantity =
+            Mathf.Min(
+                Mathf.Max(
+                    1,
+                    portableCartonCapacity
+                ),
+                quantity
+            );
+
+        DeliveryBox createdCarton =
+            Instantiate(
+                cartonPrefab,
+                transform.position,
+                transform.rotation
+            );
+
+        createdCarton.Configure(
+            assignedProduct,
+            cartonQuantity
+        );
+
+        bool pickedUp =
+            player.TryPickUpDeliveryBox(
+                createdCarton
+            );
+
+        if (!pickedUp)
+        {
+            Destroy(
+                createdCarton.gameObject
+            );
+
+            return;
+        }
+
+        quantity -=
+            cartonQuantity;
+
+        RefreshDisplay();
+    }
+
     private void AssignIfNeeded(
         ProductData productData
     )
@@ -837,6 +1045,55 @@ public class StorageBay :
             );
         }
 
+        if (productIcon != null)
+        {
+            Sprite icon =
+                assigned
+                    ? assignedProduct.Icon
+                    : null;
+
+            productIcon.sprite =
+                icon;
+
+            productIcon.gameObject.SetActive(
+                icon != null
+            );
+        }
+
+        if (fillBar != null)
+        {
+            fillBar.gameObject.SetActive(
+                assigned
+            );
+
+            float ratio =
+                assigned
+                    ? Mathf.Clamp01(
+                        (float)quantity
+                        / Capacity
+                    )
+                    : 0f;
+
+            fillBar.fillAmount =
+                ratio;
+
+            if (ratio <= 0.25f)
+            {
+                fillBar.color =
+                    LowColor;
+            }
+            else if (ratio <= 0.6f)
+            {
+                fillBar.color =
+                    MidColor;
+            }
+            else
+            {
+                fillBar.color =
+                    HealthyColor;
+            }
+        }
+
         if (statusText == null)
         {
             return;
@@ -860,23 +1117,9 @@ public class StorageBay :
             + " / "
             + Capacity;
 
-        if (quantity <= 0)
-        {
-            statusText.color =
-                OutColor;
-
-            return;
-        }
-
-        if (IsFull)
-        {
-            statusText.color =
-                FullColor;
-
-            return;
-        }
-
         statusText.color =
-            NormalColor;
+            quantity <= 0
+                ? LowColor
+                : NormalColor;
     }
 }

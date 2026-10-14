@@ -111,7 +111,14 @@ public class RestockBasket :
             return "Restock basket not configured";
         }
 
-        if (player.GetHeldRestockBasket() != null)
+        if (player.GetHeldRestockBasket()
+            != null)
+        {
+            return "Hands full";
+        }
+
+        if (player.GetHeldDeliveryBox()
+            != null)
         {
             return "Hands full";
         }
@@ -123,18 +130,45 @@ public class RestockBasket :
         {
             if (IsFull)
             {
-                return "Restock basket full (" +
-                       ItemCount + " / " + Capacity + ")";
+                return "Restock basket full ("
+                       + ItemCount
+                       + " / "
+                       + Capacity
+                       + ")";
             }
 
-            return "[E] Add " +
-                   heldItem.GetItemName() +
-                   " to basket (" +
-                   ItemCount + " / " + Capacity + ")";
+            return "[E] Add "
+                   + heldItem.GetItemName()
+                   + " to basket ("
+                   + ItemCount
+                   + " / "
+                   + Capacity
+                   + ")";
         }
 
-        return "[E] Pick up restock basket (" +
-               ItemCount + " / " + Capacity + ")";
+        if (!IsEmpty)
+        {
+            ProductData firstProduct =
+                GetFirstProductData();
+
+            string productName =
+                firstProduct != null
+                    ? firstProduct.ProductName
+                    : "product";
+
+            return "[E] Pick up restock basket ("
+                   + ItemCount
+                   + " / "
+                   + Capacity
+                   + ")"
+                   + "\n[R] Take "
+                   + productName
+                   + " by hand";
+        }
+
+        return "[E] Pick up restock basket (0 / "
+               + Capacity
+               + ")";
     }
 
     public void Interact(
@@ -165,6 +199,48 @@ public class RestockBasket :
         }
 
         player.TryPickUpRestockBasket(this);
+    }
+    
+    public void TakeOne(
+        PlayerInteraction player
+    )
+    {
+        if (player == null ||
+            player.HasAnythingHeld ||
+            IsEmpty)
+        {
+            return;
+        }
+
+        bool removed =
+            TryTakeFirstItem(
+                out PickupItem item
+            );
+
+        if (!removed ||
+            item == null)
+        {
+            return;
+        }
+
+        bool pickedUp =
+            player.TryPickUp(
+                item
+            );
+
+        if (pickedUp)
+        {
+            return;
+        }
+
+        /*
+         * Extremely defensive fallback:
+         * if pickup failed, return the item
+         * to the basket instead of losing it.
+         */
+        TryAddItem(
+            item
+        );
     }
 
     public bool TryAddItem(PickupItem item)

@@ -4,7 +4,7 @@ using UnityEngine;
 
 public class SaveManager : MonoBehaviour
 {
-    private const int CurrentSaveVersion = 12;
+    private const int CurrentSaveVersion = 13;
 
     [Header("Store References")]
     [SerializeField]
@@ -478,14 +478,19 @@ public class SaveManager : MonoBehaviour
         List<DeliveryBoxSaveData> savedDeliveries =
             new List<DeliveryBoxSaveData>();
 
+        DeliveryBox[] allBoxes =
+            Object.FindObjectsByType<
+                DeliveryBox
+            >(
+                FindObjectsSortMode.None
+            );
+
         for (int i = 0;
-             i < deliveryZone.DeliverySlotCount;
+             i < allBoxes.Length;
              i++)
         {
             DeliveryBox delivery =
-                deliveryZone.GetActiveDelivery(
-                    i
-                );
+                allBoxes[i];
 
             if (delivery == null)
             {
@@ -495,12 +500,8 @@ public class SaveManager : MonoBehaviour
             ProductData product =
                 delivery.ProductData;
 
-            if (product == null)
-            {
-                continue;
-            }
-
-            if (string.IsNullOrWhiteSpace(
+            if (product == null ||
+                string.IsNullOrWhiteSpace(
                     product.ProductID
                 ))
             {
@@ -510,8 +511,14 @@ public class SaveManager : MonoBehaviour
             DeliveryBoxSaveData deliverySaveData =
                 new DeliveryBoxSaveData();
 
+            /*
+             * >= 0 = original DeliveryZone order
+             * -1   = portable loose carton
+             */
             deliverySaveData.slotIndex =
-                i;
+                deliveryZone.GetSlotIndex(
+                    delivery
+                );
 
             deliverySaveData.productID =
                 product.ProductID;
@@ -519,11 +526,11 @@ public class SaveManager : MonoBehaviour
             deliverySaveData.quantity =
                 delivery.RemainingQuantity;
 
-            deliverySaveData.isOpen =
-                delivery.IsOpen;
-            
             deliverySaveData.capacity =
                 delivery.Capacity;
+
+            deliverySaveData.isOpen =
+                delivery.IsOpen;
 
             deliverySaveData.hasWorldTransform =
                 true;
@@ -689,6 +696,45 @@ public class SaveManager : MonoBehaviour
         List<DeliveryBoxSaveData> savedDeliveries
     )
     {
+        /*
+         * Destroy loose cartons created from storage
+         * before rebuilding the save state.
+         */
+        DeliveryBox[] existingBoxes =
+            Object.FindObjectsByType<
+                DeliveryBox
+            >(
+                FindObjectsSortMode.None
+            );
+
+        for (int i = 0;
+             i < existingBoxes.Length;
+             i++)
+        {
+            DeliveryBox existingBox =
+                existingBoxes[i];
+
+            if (existingBox == null)
+            {
+                continue;
+            }
+
+            if (deliveryZone.GetSlotIndex(
+                    existingBox
+                ) >= 0)
+            {
+                continue;
+            }
+
+            Destroy(
+                existingBox.gameObject
+            );
+        }
+
+        /*
+         * This clears the boxes owned by actual
+         * delivery slots and resets their references.
+         */
         deliveryZone
             .ClearAllDeliveriesForLoad();
 
@@ -718,7 +764,7 @@ public class SaveManager : MonoBehaviour
             if (product == null)
             {
                 Debug.LogWarning(
-                    "Saved delivery product ID '"
+                    "Saved carton product ID '"
                     + deliverySaveData.productID
                     + "' does not exist "
                     + "in the current catalog."
@@ -727,38 +773,76 @@ public class SaveManager : MonoBehaviour
                 continue;
             }
 
-            bool restored =
-                deliveryZone.TryRestoreDelivery(
-                    deliveryBoxPrefab,
-                    deliverySaveData.slotIndex,
-                    product,
-                    deliverySaveData.quantity,
-                    deliverySaveData.capacity,
-                    deliverySaveData.isOpen,
-                    out DeliveryBox restoredDelivery
-                );
-            
-            if (restored &&
-                restoredDelivery != null &&
-                deliverySaveData.hasWorldTransform)
+            /*
+             * Normal ordered delivery.
+             */
+            if (deliverySaveData.slotIndex >= 0)
             {
-                restoredDelivery.RestoreWorldTransform(
+                bool restored =
+                    deliveryZone.TryRestoreDelivery(
+                        deliveryBoxPrefab,
+                        deliverySaveData.slotIndex,
+                        product,
+                        deliverySaveData.quantity,
+                        deliverySaveData.capacity,
+                        deliverySaveData.isOpen,
+                        out DeliveryBox restoredDelivery
+                    );
+
+                if (restored &&
+                    restoredDelivery != null &&
+                    deliverySaveData.hasWorldTransform)
+                {
+                    restoredDelivery.RestoreWorldTransform(
+                        deliverySaveData.position,
+                        deliverySaveData.rotation
+                    );
+                }
+
+                if (!restored)
+                {
+                    Debug.LogWarning(
+                        "Could not restore delivery "
+                        + "in slot "
+                        + deliverySaveData.slotIndex
+                        + " for product '"
+                        + deliverySaveData.productID
+                        + "'."
+                    );
+                }
+
+                continue;
+            }
+
+            /*
+             * Version 13 portable carton.
+             *
+             * It is intentionally NOT registered to a
+             * delivery slot.
+             */
+            if (!deliverySaveData.hasWorldTransform)
+            {
+                continue;
+            }
+
+            DeliveryBox looseCarton =
+                Instantiate(
+                    deliveryBoxPrefab,
                     deliverySaveData.position,
                     deliverySaveData.rotation
                 );
-            }
 
-            if (!restored)
-            {
-                Debug.LogWarning(
-                    "Could not restore delivery "
-                    + "in slot "
-                    + deliverySaveData.slotIndex
-                    + " for product '"
-                    + deliverySaveData.productID
-                    + "'."
-                );
-            }
+            looseCarton.RestoreState(
+                product,
+                deliverySaveData.quantity,
+                deliverySaveData.capacity,
+                deliverySaveData.isOpen
+            );
+
+            looseCarton.RestoreWorldTransform(
+                deliverySaveData.position,
+                deliverySaveData.rotation
+            );
         }
     }
 

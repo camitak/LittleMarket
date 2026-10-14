@@ -244,6 +244,30 @@ public class DeliveryZone : MonoBehaviour
             );
         }
     }
+    
+    public int GetSlotIndex(
+        DeliveryBox deliveryBox
+    )
+    {
+        if (deliveryBox == null ||
+            activeDeliveries == null)
+        {
+            return -1;
+        }
+
+        for (int i = 0;
+             i < activeDeliveries.Length;
+             i++)
+        {
+            if (activeDeliveries[i]
+                == deliveryBox)
+            {
+                return i;
+            }
+        }
+
+        return -1;
+    }
 
     private int FindAvailableSlotIndex()
     {
