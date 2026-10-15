@@ -280,7 +280,7 @@ GameObject:
   m_Component:
   - component: {fileID: 7472276891312199210}
   m_Layer: 0
-  m_Name: ShelfAnchor
+  m_Name: PlacementAnchor
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -527,7 +527,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PickupItem
   productData: {fileID: 11400000, guid: f032e810ae9f3c343abd0ecbb972b50b, type: 2}
-  shelfPlacementAnchor: {fileID: 7472276891312199210}
+  placementAnchor: {fileID: 7472276891312199210}
 --- !u!1 &6172520786047623368
 GameObject:
   m_ObjectHideFlags: 0

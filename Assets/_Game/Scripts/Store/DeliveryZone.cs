@@ -132,6 +132,10 @@ public class DeliveryZone : MonoBehaviour
                 deliverySlot.position,
                 deliverySlot.rotation
             );
+        
+        createdDelivery.PlaceAt(
+            deliverySlot
+        );
 
         createdDelivery.Configure(
             productData,
@@ -203,6 +207,10 @@ public class DeliveryZone : MonoBehaviour
                 deliverySlot.position,
                 deliverySlot.rotation
             );
+        
+        createdDelivery.PlaceAt(
+            deliverySlot
+        );
 
         createdDelivery.RestoreState(
             productData,
@@ -299,5 +307,31 @@ public class DeliveryZone : MonoBehaviour
         }
 
         return -1;
+    }
+    
+    private void OnDrawGizmosSelected()
+    {
+        if (deliverySlots == null)
+        {
+            return;
+        }
+
+        for (int i = 0;
+             i < deliverySlots.Length;
+             i++)
+        {
+            Transform deliveryPoint =
+                deliverySlots[i];
+
+            if (deliveryPoint == null)
+            {
+                continue;
+            }
+
+            PlacementUtility.DrawFrameGizmo(
+                deliveryPoint,
+                0.16f
+            );
+        }
     }
 }

@@ -14,6 +14,10 @@ public class ShelfSlot :
     [Header("Shelf Rules")]
     [SerializeField]
     private ProductData acceptedProduct;
+    
+    [Header("Placement")]
+    [SerializeField]
+    private Transform displayOrigin;
 
     [Header("Customer")]
     [SerializeField]
@@ -168,10 +172,13 @@ public class ShelfSlot :
         int displayIndex
     )
     {
+        Transform placementFrame =
+            GetDisplayPlacementFrame();
+
         if (!customerAccessible ||
             acceptedProduct == null)
         {
-            return transform.position;
+            return placementFrame.position;
         }
 
         Vector3 localPosition =
@@ -180,14 +187,29 @@ public class ShelfSlot :
                     displayIndex
                 );
 
-        return transform.TransformPoint(
+        return placementFrame.TransformPoint(
             localPosition
         );
     }
 
     public Quaternion GetDisplayWorldRotation()
     {
-        return transform.rotation;
+        return GetDisplayPlacementFrame()
+            .rotation;
+    }
+    
+    private Transform GetDisplayPlacementFrame()
+    {
+        if (displayOrigin != null)
+        {
+            return displayOrigin;
+        }
+
+        /*
+         * Backward-compatible fallback while older
+         * shelf prefabs are being migrated.
+         */
+        return transform;
     }
 
     public void ClearStoredItemForLoad()
@@ -1364,5 +1386,13 @@ public class ShelfSlot :
 
         registeredShelfRegistry =
             null;
+    }
+    
+    private void OnDrawGizmosSelected()
+    {
+        PlacementUtility.DrawFrameGizmo(
+            GetDisplayPlacementFrame(),
+            0.14f
+        );
     }
 }

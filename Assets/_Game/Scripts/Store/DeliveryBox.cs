@@ -22,6 +22,9 @@ public class DeliveryBox :
     [Header("References")]
     [SerializeField]
     private Transform spawnPoint;
+    
+    [SerializeField]
+    private Transform placementAnchor;
 
     [Header("Held View")]
     [SerializeField]
@@ -983,5 +986,29 @@ public class DeliveryBox :
 
         isOpen =
             newIsOpen;
+    }
+    
+    public void PlaceAt(
+        Transform placementPoint
+    )
+    {
+        if (placementPoint == null)
+        {
+            return;
+        }
+
+        PlacementUtility.AlignAnchorToTarget(
+            transform,
+            placementAnchor,
+            placementPoint
+        );
+    }
+    
+    private void OnDrawGizmosSelected()
+    {
+        PlacementUtility.DrawFrameGizmo(
+            placementAnchor,
+            0.16f
+        );
     }
 }

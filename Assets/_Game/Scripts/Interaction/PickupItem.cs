@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.Serialization;
 
 [RequireComponent(typeof(Rigidbody))]
 public class PickupItem :
@@ -10,8 +11,11 @@ public class PickupItem :
     private ProductData productData;
 
     [Header("Placement")]
+    [FormerlySerializedAs(
+        "shelfPlacementAnchor"
+    )]
     [SerializeField]
-    private Transform shelfPlacementAnchor;
+    private Transform placementAnchor;
 
     private Rigidbody itemRigidbody;
 
@@ -309,7 +313,9 @@ public class PickupItem :
             true
         );
 
-        AlignShelfAnchorTo(
+        PlacementUtility.AlignAnchorToPose(
+            transform,
+            placementAnchor,
             shelfSlot.GetDisplayWorldPosition(
                 displayIndex
             ),
@@ -355,7 +361,9 @@ public class PickupItem :
             true
         );
 
-        AlignShelfAnchorTo(
+        PlacementUtility.AlignAnchorToTarget(
+            transform,
+            placementAnchor,
             containerPoint
         );
 
@@ -407,56 +415,6 @@ public class PickupItem :
         return productData;
     }
 
-    private void AlignShelfAnchorTo(
-        Transform shelfTarget
-    )
-    {
-        if (shelfTarget == null)
-        {
-            return;
-        }
-
-        AlignShelfAnchorTo(
-            shelfTarget.position,
-            shelfTarget.rotation
-        );
-    }
-
-    private void AlignShelfAnchorTo(
-        Vector3 targetPosition,
-        Quaternion targetRotation
-    )
-    {
-        if (shelfPlacementAnchor == null)
-        {
-            transform.SetPositionAndRotation(
-                targetPosition,
-                targetRotation
-            );
-
-            return;
-        }
-
-        Quaternion anchorRotationRelativeToRoot =
-            Quaternion.Inverse(
-                transform.rotation
-            )
-            * shelfPlacementAnchor.rotation;
-
-        transform.rotation =
-            targetRotation
-            * Quaternion.Inverse(
-                anchorRotationRelativeToRoot
-            );
-
-        Vector3 positionCorrection =
-            targetPosition
-            - shelfPlacementAnchor.position;
-
-        transform.position +=
-            positionCorrection;
-    }
-
     private void LeaveShelfIfNeeded()
     {
         if (currentShelfSlot == null)
@@ -503,21 +461,9 @@ public class PickupItem :
 
     private void OnDrawGizmosSelected()
     {
-        if (shelfPlacementAnchor == null)
-        {
-            return;
-        }
-
-        Gizmos.DrawWireSphere(
-            shelfPlacementAnchor.position,
-            0.025f
-        );
-
-        Gizmos.DrawLine(
-            shelfPlacementAnchor.position,
-            shelfPlacementAnchor.position
-            + shelfPlacementAnchor.forward
-            * 0.12f
+        PlacementUtility.DrawFrameGizmo(
+            placementAnchor,
+            0.12f
         );
     }
 }
