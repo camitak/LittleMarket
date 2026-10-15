@@ -153,10 +153,10 @@ public class DeliveryBox :
          */
         if (quantity <= 0)
         {
-            return "[E] Remove empty box"
-                   + "\n[F] Carry empty box";
+            return "[F] Carry empty carton"
+                   + "\nRecycle it in the back room";
         }
-
+        
         /*
          * NORMAL GROUNDED BOX
          *
@@ -215,17 +215,14 @@ public class DeliveryBox :
             return;
         }
 
-        /*
-         * Empty box:
-         *
-         * E removes the cardboard.
-         */
         if (quantity <= 0)
         {
-            Destroy(
-                gameObject
-            );
-
+            /*
+             * Empty cartons are physical waste now.
+             *
+             * They are disposed of at the recycling bin,
+             * not magically destroyed with E.
+             */
             return;
         }
 
