@@ -437,6 +437,27 @@ public class CustomerController : MonoBehaviour
     {
         return carriedItems.Count;
     }
+    
+    public ProductData GetCarriedProductData(
+        int index
+    )
+    {
+        if (index < 0 ||
+            index >= carriedItems.Count)
+        {
+            return null;
+        }
+    
+        PickupItem item =
+            carriedItems[index];
+    
+        if (item == null)
+        {
+            return null;
+        }
+    
+        return item.GetProductData();
+    }
 
     public float GetCheckoutTotal()
     {

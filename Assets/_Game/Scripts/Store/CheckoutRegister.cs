@@ -17,6 +17,12 @@ public class CheckoutRegister :
     [SerializeField]
     private CheckoutFeedback checkoutFeedback;
 
+    private CustomerController activeCustomer;
+
+    private int scannedItemCount;
+
+    private float scannedTotal;
+
     public string GetInteractionPrompt(
         PlayerInteraction player
     )
@@ -34,6 +40,8 @@ public class CheckoutRegister :
 
         if (checkoutQueue == null)
         {
+            ResetCheckoutSession();
+
             return "Checkout not configured";
         }
 
@@ -42,11 +50,15 @@ public class CheckoutRegister :
 
         if (customer == null)
         {
+            ResetCheckoutSession();
+
             return "No customers waiting";
         }
 
         if (!customer.IsReadyForCheckout())
         {
+            ResetCheckoutSession();
+
             return "Customer approaching checkout";
         }
 
@@ -55,18 +67,51 @@ public class CheckoutRegister :
 
         if (itemCount <= 0)
         {
+            ResetCheckoutSession();
+
             return "Customer has no products";
         }
 
-        float total =
-            customer.GetCheckoutTotal();
+        EnsureCheckoutSession(
+            customer
+        );
 
-        return "[E] Checkout "
-               + itemCount
-               + " item"
-               + (itemCount == 1 ? "" : "s")
-               + " - £"
-               + total.ToString("0.00");
+        /*
+         * Still scanning products.
+         */
+        if (scannedItemCount < itemCount)
+        {
+            ProductData nextProduct =
+                customer.GetCarriedProductData(
+                    scannedItemCount
+                );
+
+            if (nextProduct == null)
+            {
+                return "Checkout item not configured";
+            }
+
+            return "[E] Scan "
+                   + nextProduct.ProductName
+                   + "\n"
+                   + scannedItemCount
+                   + " / "
+                   + itemCount
+                   + " scanned"
+                   + "  •  £"
+                   + scannedTotal.ToString(
+                       "0.00"
+                   );
+        }
+
+        /*
+         * Everything scanned.
+         */
+        return "[E] Take payment"
+               + "\nTOTAL £"
+               + scannedTotal.ToString(
+                   "0.00"
+               );
     }
 
     public void Interact(
@@ -79,12 +124,8 @@ public class CheckoutRegister :
             return;
         }
 
-        if (checkoutQueue == null)
-        {
-            return;
-        }
-
-        if (storeEconomy == null)
+        if (checkoutQueue == null ||
+            storeEconomy == null)
         {
             return;
         }
@@ -94,11 +135,15 @@ public class CheckoutRegister :
 
         if (customer == null)
         {
+            ResetCheckoutSession();
+
             return;
         }
 
         if (!customer.IsReadyForCheckout())
         {
+            ResetCheckoutSession();
+
             return;
         }
 
@@ -107,13 +152,96 @@ public class CheckoutRegister :
 
         if (itemCount <= 0)
         {
+            ResetCheckoutSession();
+
             return;
         }
 
-        float saleAmount =
-            customer.GetCheckoutTotal();
+        EnsureCheckoutSession(
+            customer
+        );
 
-        if (saleAmount <= 0f)
+        /*
+         * Stage 1:
+         * scan one item per E press.
+         */
+        if (scannedItemCount < itemCount)
+        {
+            ScanNextItem(
+                customer
+            );
+
+            return;
+        }
+
+        /*
+         * Stage 2:
+         * everything has been scanned.
+         * The next E accepts payment.
+         */
+        CompletePayment(
+            customer,
+            itemCount
+        );
+    }
+
+    private void ScanNextItem(
+        CustomerController customer
+    )
+    {
+        if (customer == null)
+        {
+            return;
+        }
+
+        int itemCount =
+            customer.GetCarriedItemCount();
+
+        if (scannedItemCount < 0 ||
+            scannedItemCount >= itemCount)
+        {
+            return;
+        }
+
+        ProductData product =
+            customer.GetCarriedProductData(
+                scannedItemCount
+            );
+
+        if (product == null)
+        {
+            return;
+        }
+
+        scannedTotal +=
+            product.SellPrice;
+
+        scannedItemCount++;
+
+        if (checkoutFeedback != null)
+        {
+            checkoutFeedback
+                .PlayScanFeedback();
+        }
+    }
+
+    private void CompletePayment(
+        CustomerController customer,
+        int itemCount
+    )
+    {
+        if (customer == null)
+        {
+            return;
+        }
+
+        if (scannedItemCount
+            < itemCount)
+        {
+            return;
+        }
+
+        if (scannedTotal <= 0f)
         {
             return;
         }
@@ -127,22 +255,64 @@ public class CheckoutRegister :
         }
 
         storeEconomy.AddMoney(
-            saleAmount
+            scannedTotal
         );
 
         if (dailyStats != null)
         {
             dailyStats.RecordSale(
-                saleAmount,
+                scannedTotal,
                 itemCount
             );
         }
 
         if (checkoutFeedback != null)
         {
-            checkoutFeedback.PlaySaleFeedback(
-                saleAmount
-            );
+            checkoutFeedback
+                .PlayPaymentFeedback(
+                    scannedTotal
+                );
         }
+
+        ResetCheckoutSession();
+    }
+
+    private void EnsureCheckoutSession(
+        CustomerController customer
+    )
+    {
+        if (customer == null)
+        {
+            ResetCheckoutSession();
+
+            return;
+        }
+
+        if (activeCustomer
+            == customer)
+        {
+            return;
+        }
+
+        activeCustomer =
+            customer;
+
+        scannedItemCount =
+            0;
+
+        scannedTotal =
+            0f;
+    }
+
+    private void ResetCheckoutSession()
+    {
+        activeCustomer =
+            null;
+
+        scannedItemCount =
+            0;
+
+        scannedTotal =
+            0f;
     }
 }
