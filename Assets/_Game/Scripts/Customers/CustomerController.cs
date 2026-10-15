@@ -438,6 +438,19 @@ public class CustomerController : MonoBehaviour
         return carriedItems.Count;
     }
     
+    public PickupItem GetCarriedItem(
+        int index
+    )
+    {
+        if (index < 0 ||
+            index >= carriedItems.Count)
+        {
+            return null;
+        }
+
+        return carriedItems[index];
+    }
+    
     public ProductData GetCarriedProductData(
         int index
     )

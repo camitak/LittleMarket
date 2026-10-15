@@ -1,10 +1,11 @@
+using System.Collections;
 using UnityEngine;
 
 public class CheckoutRegister :
     MonoBehaviour,
     IInteractable
 {
-    [Header("References")]
+    [Header("Store References")]
     [SerializeField]
     private CheckoutQueue checkoutQueue;
 
@@ -17,11 +18,24 @@ public class CheckoutRegister :
     [SerializeField]
     private CheckoutFeedback checkoutFeedback;
 
+    [Header("Physical Checkout")]
+    [SerializeField]
+    private Transform scanPoint;
+
+    [SerializeField]
+    private Transform[] scannedItemPoints;
+
+    [Min(0.05f)]
+    [SerializeField]
+    private float scanDisplaySeconds = 0.12f;
+
     private CustomerController activeCustomer;
 
     private int scannedItemCount;
 
     private float scannedTotal;
+
+    private bool scanInProgress;
 
     public string GetInteractionPrompt(
         PlayerInteraction player
@@ -76,8 +90,25 @@ public class CheckoutRegister :
             customer
         );
 
+        if (!HasValidPhysicalCheckout(
+                itemCount
+            ))
+        {
+            return "Checkout item points "
+                   + "not configured";
+        }
+
         /*
-         * Still scanning products.
+         * Briefly block another scan while the
+         * current item is sitting over the scanner.
+         */
+        if (scanInProgress)
+        {
+            return "Scanning...";
+        }
+
+        /*
+         * Products still waiting to be scanned.
          */
         if (scannedItemCount < itemCount)
         {
@@ -105,7 +136,8 @@ public class CheckoutRegister :
         }
 
         /*
-         * Everything scanned.
+         * Everything scanned and physically
+         * sitting in the bagging area.
          */
         return "[E] Take payment"
                + "\nTOTAL £"
@@ -119,7 +151,8 @@ public class CheckoutRegister :
     )
     {
         if (player == null ||
-            player.HasAnythingHeld)
+            player.HasAnythingHeld ||
+            scanInProgress)
         {
             return;
         }
@@ -161,14 +194,23 @@ public class CheckoutRegister :
             customer
         );
 
+        if (!HasValidPhysicalCheckout(
+                itemCount
+            ))
+        {
+            return;
+        }
+
         /*
          * Stage 1:
-         * scan one item per E press.
+         * physically scan one product.
          */
         if (scannedItemCount < itemCount)
         {
-            ScanNextItem(
-                customer
+            StartCoroutine(
+                ScanNextItemRoutine(
+                    customer
+                )
             );
 
             return;
@@ -176,8 +218,7 @@ public class CheckoutRegister :
 
         /*
          * Stage 2:
-         * everything has been scanned.
-         * The next E accepts payment.
+         * take payment.
          */
         CompletePayment(
             customer,
@@ -185,13 +226,13 @@ public class CheckoutRegister :
         );
     }
 
-    private void ScanNextItem(
+    private IEnumerator ScanNextItemRoutine(
         CustomerController customer
     )
     {
         if (customer == null)
         {
-            return;
+            yield break;
         }
 
         int itemCount =
@@ -200,17 +241,85 @@ public class CheckoutRegister :
         if (scannedItemCount < 0 ||
             scannedItemCount >= itemCount)
         {
-            return;
+            yield break;
         }
 
-        ProductData product =
-            customer.GetCarriedProductData(
+        if (scannedItemCount
+            >= scannedItemPoints.Length)
+        {
+            yield break;
+        }
+
+        PickupItem item =
+            customer.GetCarriedItem(
                 scannedItemCount
             );
 
+        if (item == null)
+        {
+            yield break;
+        }
+
+        ProductData product =
+            item.GetProductData();
+
         if (product == null)
         {
-            return;
+            yield break;
+        }
+
+        Transform outputPoint =
+            scannedItemPoints[
+                scannedItemCount
+            ];
+
+        if (scanPoint == null ||
+            outputPoint == null)
+        {
+            yield break;
+        }
+
+        scanInProgress =
+            true;
+
+        /*
+         * Move the customer's REAL product onto
+         * the scanner.
+         *
+         * PickupItem already knows how to align
+         * different product shapes using its
+         * placement anchor.
+         */
+        item.PlaceInContainer(
+            scanPoint
+        );
+
+        if (checkoutFeedback != null)
+        {
+            checkoutFeedback
+                .PlayScanFeedback();
+        }
+
+        /*
+         * Let the player actually see the item
+         * sitting on the scanner for a moment.
+         */
+        yield return new WaitForSeconds(
+            Mathf.Max(
+                0.05f,
+                scanDisplaySeconds
+            )
+        );
+
+        /*
+         * Then move it to this transaction's
+         * bagging/output slot.
+         */
+        if (item != null)
+        {
+            item.PlaceInContainer(
+                outputPoint
+            );
         }
 
         scannedTotal +=
@@ -218,11 +327,8 @@ public class CheckoutRegister :
 
         scannedItemCount++;
 
-        if (checkoutFeedback != null)
-        {
-            checkoutFeedback
-                .PlayScanFeedback();
-        }
+        scanInProgress =
+            false;
     }
 
     private void CompletePayment(
@@ -230,7 +336,8 @@ public class CheckoutRegister :
         int itemCount
     )
     {
-        if (customer == null)
+        if (customer == null ||
+            scanInProgress)
         {
             return;
         }
@@ -254,6 +361,15 @@ public class CheckoutRegister :
             return;
         }
 
+        /*
+         * CompleteCheckout destroys all products
+         * belonging to that customer.
+         *
+         * Because the bagging-area products are
+         * the SAME PickupItems still held in the
+         * customer's carriedItems list, they are
+         * safely destroyed here too.
+         */
         storeEconomy.AddMoney(
             scannedTotal
         );
@@ -302,6 +418,9 @@ public class CheckoutRegister :
 
         scannedTotal =
             0f;
+
+        scanInProgress =
+            false;
     }
 
     private void ResetCheckoutSession()
@@ -314,5 +433,76 @@ public class CheckoutRegister :
 
         scannedTotal =
             0f;
+
+        scanInProgress =
+            false;
+    }
+
+    private bool HasValidPhysicalCheckout(
+        int itemCount
+    )
+    {
+        if (scanPoint == null)
+        {
+            return false;
+        }
+
+        if (scannedItemPoints == null)
+        {
+            return false;
+        }
+
+        if (scannedItemPoints.Length
+            < itemCount)
+        {
+            return false;
+        }
+
+        for (int i = 0;
+             i < itemCount;
+             i++)
+        {
+            if (scannedItemPoints[i]
+                == null)
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private void OnDrawGizmosSelected()
+    {
+        if (scanPoint != null)
+        {
+            Gizmos.DrawWireSphere(
+                scanPoint.position,
+                0.05f
+            );
+        }
+
+        if (scannedItemPoints == null)
+        {
+            return;
+        }
+
+        for (int i = 0;
+             i < scannedItemPoints.Length;
+             i++)
+        {
+            Transform point =
+                scannedItemPoints[i];
+
+            if (point == null)
+            {
+                continue;
+            }
+
+            Gizmos.DrawWireSphere(
+                point.position,
+                0.04f
+            );
+        }
     }
 }
