@@ -1,7 +1,8 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
 
-public class PlayerInteraction : MonoBehaviour
+public class PlayerInteraction :
+    MonoBehaviour
 {
     private enum TransferRepeatMode
     {
@@ -37,11 +38,7 @@ public class PlayerInteraction : MonoBehaviour
     [SerializeField]
     private InteractionUI interactionUI;
 
-    private PickupItem heldItem;
-
-    private RestockBasket heldRestockBasket;
-
-    private DeliveryBox heldDeliveryBox;
+    private PlayerCarryState carryState;
 
     private IInteractable focusedInteractable;
 
@@ -57,19 +54,52 @@ public class PlayerInteraction : MonoBehaviour
 
     private float managementHoldTimer;
 
-    public bool HasAnythingHeld =>
-        heldItem != null
-        || heldRestockBasket != null
-        || heldDeliveryBox != null;
+    public bool HasAnythingHeld
+    {
+        get
+        {
+            EnsureCarryState();
+
+            return carryState.HasAnythingHeld;
+        }
+    }
+
+    private void Awake()
+    {
+        EnsureCarryState();
+    }
 
     private void Update()
     {
         focusedInteractable =
-            FindFocusedInteractable();
+            InteractionTargetFinder.Find(
+                playerCamera,
+                interactionDistance,
+                interactionAssistRadius
+            );
 
         UpdateInteractionPrompt();
 
         HandleInteractionInput();
+    }
+
+    private void EnsureCarryState()
+    {
+        if (carryState != null)
+        {
+            return;
+        }
+
+        Transform viewTransform =
+            playerCamera != null
+                ? playerCamera.transform
+                : null;
+
+        carryState =
+            new PlayerCarryState(
+                holdPoint,
+                viewTransform
+            );
     }
 
     private void HandleInteractionInput()
@@ -143,7 +173,7 @@ public class PlayerInteraction : MonoBehaviour
         }
 
         /*
-         * F = optional carry / bulk action.
+         * F = carry / bulk contextual action.
          */
         if (carryPressed)
         {
@@ -159,8 +189,7 @@ public class PlayerInteraction : MonoBehaviour
         }
 
         /*
-         * X = optional hold-to-confirm
-         * management action.
+         * X = hold-to-confirm management action.
          */
         if (managementHeld)
         {
@@ -174,8 +203,8 @@ public class PlayerInteraction : MonoBehaviour
         ResetManagementHold();
 
         /*
-         * Held E / R only repeat if the focused
-         * interactable explicitly allows it.
+         * E/R repeat only when the target
+         * explicitly supports repetition.
          */
         if (primaryHeld)
         {
@@ -198,31 +227,14 @@ public class PlayerInteraction : MonoBehaviour
         ResetTransferRepeat();
 
         /*
-         * Q = drop whatever we're carrying.
+         * Q belongs to the carry state now.
          */
-        if (!Keyboard.current.qKey
+        if (Keyboard.current.qKey
             .wasPressedThisFrame)
         {
-            return;
-        }
+            EnsureCarryState();
 
-        if (heldRestockBasket != null)
-        {
-            DropHeldRestockBasket();
-
-            return;
-        }
-
-        if (heldDeliveryBox != null)
-        {
-            DropHeldDeliveryBox();
-
-            return;
-        }
-
-        if (heldItem != null)
-        {
-            DropHeldItem();
+            carryState.DropCurrent();
         }
     }
 
@@ -469,23 +481,31 @@ public class PlayerInteraction : MonoBehaviour
             }
         }
 
-        if (heldRestockBasket != null)
+        EnsureCarryState();
+
+        RestockBasket basket =
+            carryState.HeldRestockBasket;
+
+        if (basket != null)
         {
             interactionUI.ShowPrompt(
                 "[Q] Drop restock basket"
                 + "  •  "
-                + heldRestockBasket.ItemCount
+                + basket.ItemCount
                 + " / "
-                + heldRestockBasket.Capacity
+                + basket.Capacity
             );
 
             return;
         }
 
-        if (heldDeliveryBox != null)
+        DeliveryBox deliveryBox =
+            carryState.HeldDeliveryBox;
+
+        if (deliveryBox != null)
         {
             ProductData boxProduct =
-                heldDeliveryBox.ProductData;
+                deliveryBox.ProductData;
 
             string boxName =
                 boxProduct != null
@@ -497,20 +517,22 @@ public class PlayerInteraction : MonoBehaviour
                 + boxName
                 + " box"
                 + "  •  "
-                + heldDeliveryBox
-                    .RemainingQuantity
+                + deliveryBox.RemainingQuantity
                 + " / "
-                + heldDeliveryBox.Capacity
+                + deliveryBox.Capacity
             );
 
             return;
         }
 
-        if (heldItem != null)
+        PickupItem item =
+            carryState.HeldItem;
+
+        if (item != null)
         {
             interactionUI.ShowPrompt(
                 "[Q] Drop "
-                + heldItem.GetItemName()
+                + item.GetItemName()
             );
 
             return;
@@ -519,329 +541,90 @@ public class PlayerInteraction : MonoBehaviour
         interactionUI.HidePrompt();
     }
 
-    private IInteractable FindFocusedInteractable()
-    {
-        if (playerCamera == null)
-        {
-            return null;
-        }
-
-        Ray ray =
-            new Ray(
-                playerCamera.transform.position,
-                playerCamera.transform.forward
-            );
-
-        bool hasCenterHit =
-            Physics.Raycast(
-                ray,
-                out RaycastHit centerHit,
-                interactionDistance
-            );
-
-        if (hasCenterHit)
-        {
-            IInteractable directInteractable =
-                FindInteractableOnCollider(
-                    centerHit.collider
-                );
-
-            if (directInteractable != null)
-            {
-                return directInteractable;
-            }
-        }
-
-        RaycastHit[] assistedHits =
-            Physics.SphereCastAll(
-                ray,
-                interactionAssistRadius,
-                interactionDistance
-            );
-
-        IInteractable bestInteractable =
-            null;
-
-        float bestScore =
-            float.MaxValue;
-
-        float maximumAllowedDistance =
-            interactionDistance;
-
-        if (hasCenterHit)
-        {
-            maximumAllowedDistance =
-                centerHit.distance
-                + interactionAssistRadius
-                * 2f;
-        }
-
-        for (int i = 0;
-             i < assistedHits.Length;
-             i++)
-        {
-            RaycastHit assistedHit =
-                assistedHits[i];
-
-            if (assistedHit.collider == null)
-            {
-                continue;
-            }
-
-            if (assistedHit.distance
-                > maximumAllowedDistance)
-            {
-                continue;
-            }
-
-            IInteractable interactable =
-                FindInteractableOnCollider(
-                    assistedHit.collider
-                );
-
-            if (interactable == null)
-            {
-                continue;
-            }
-
-            Vector3 toCenter =
-                assistedHit.collider
-                    .bounds.center
-                - ray.origin;
-
-            float forwardDistance =
-                Vector3.Dot(
-                    toCenter,
-                    ray.direction
-                );
-
-            if (forwardDistance < 0f)
-            {
-                continue;
-            }
-
-            Vector3 closestPointOnRay =
-                ray.origin
-                + ray.direction
-                * forwardDistance;
-
-            float distanceFromCrosshair =
-                Vector3.SqrMagnitude(
-                    assistedHit.collider
-                        .bounds.center
-                    - closestPointOnRay
-                );
-
-            float score =
-                distanceFromCrosshair
-                + assistedHit.distance
-                * 0.0001f;
-
-            if (score >= bestScore)
-            {
-                continue;
-            }
-
-            bestScore =
-                score;
-
-            bestInteractable =
-                interactable;
-        }
-
-        return bestInteractable;
-    }
-
-    private IInteractable FindInteractableOnCollider(
-        Collider targetCollider
-    )
-    {
-        if (targetCollider == null)
-        {
-            return null;
-        }
-
-        Transform currentTransform =
-            targetCollider.transform;
-
-        while (currentTransform != null)
-        {
-            MonoBehaviour[] behaviours =
-                currentTransform
-                    .GetComponents<
-                        MonoBehaviour
-                    >();
-
-            for (int i = 0;
-                 i < behaviours.Length;
-                 i++)
-            {
-                MonoBehaviour behaviour =
-                    behaviours[i];
-
-                if (behaviour
-                    is IInteractable interactable)
-                {
-                    return interactable;
-                }
-            }
-
-            currentTransform =
-                currentTransform.parent;
-        }
-
-        return null;
-    }
+    /*
+     * Public compatibility API.
+     *
+     * Other gameplay scripts can keep talking
+     * to PlayerInteraction exactly as before.
+     *
+     * Internally the work is now delegated to
+     * PlayerCarryState.
+     */
 
     public bool TryPickUp(
         PickupItem item
     )
     {
-        if (item == null)
-        {
-            return false;
-        }
+        EnsureCarryState();
 
-        if (heldItem != null ||
-            heldRestockBasket != null ||
-            heldDeliveryBox != null)
-        {
-            return false;
-        }
-
-        heldItem =
-            item;
-
-        heldItem.PickUp(
-            holdPoint
+        return carryState.TryPickUp(
+            item
         );
-
-        return true;
     }
 
     public bool TryPickUpRestockBasket(
         RestockBasket basket
     )
     {
-        if (basket == null)
-        {
-            return false;
-        }
+        EnsureCarryState();
 
-        if (heldItem != null ||
-            heldRestockBasket != null ||
-            heldDeliveryBox != null)
-        {
-            return false;
-        }
-
-        heldRestockBasket =
-            basket;
-
-        heldRestockBasket.PickUp(
-            holdPoint,
-            playerCamera.transform
-        );
-
-        return true;
+        return carryState
+            .TryPickUpRestockBasket(
+                basket
+            );
     }
 
     public bool TryPickUpDeliveryBox(
         DeliveryBox deliveryBox
     )
     {
-        if (deliveryBox == null)
-        {
-            return false;
-        }
+        EnsureCarryState();
 
-        if (heldItem != null ||
-            heldRestockBasket != null ||
-            heldDeliveryBox != null)
-        {
-            return false;
-        }
-
-        heldDeliveryBox =
-            deliveryBox;
-
-        heldDeliveryBox.PickUp(
-            holdPoint,
-            playerCamera.transform
-        );
-
-        return true;
-    }
-
-    private void DropHeldItem()
-    {
-        if (heldItem == null)
-        {
-            return;
-        }
-
-        heldItem.Drop();
-
-        heldItem =
-            null;
-    }
-
-    private void DropHeldRestockBasket()
-    {
-        if (heldRestockBasket == null)
-        {
-            return;
-        }
-
-        heldRestockBasket.Drop();
-
-        heldRestockBasket =
-            null;
-    }
-
-    private void DropHeldDeliveryBox()
-    {
-        if (heldDeliveryBox == null)
-        {
-            return;
-        }
-
-        heldDeliveryBox.Drop();
-
-        heldDeliveryBox =
-            null;
+        return carryState
+            .TryPickUpDeliveryBox(
+                deliveryBox
+            );
     }
 
     public PickupItem GetHeldItem()
     {
-        return heldItem;
+        EnsureCarryState();
+
+        return carryState.HeldItem;
     }
 
     public RestockBasket GetHeldRestockBasket()
     {
-        return heldRestockBasket;
+        EnsureCarryState();
+
+        return carryState.HeldRestockBasket;
     }
 
     public DeliveryBox GetHeldDeliveryBox()
     {
-        return heldDeliveryBox;
+        EnsureCarryState();
+
+        return carryState.HeldDeliveryBox;
     }
 
     public void RemoveHeldItem()
     {
-        heldItem =
-            null;
+        EnsureCarryState();
+
+        carryState.RemoveHeldItem();
     }
 
     public void RemoveHeldRestockBasket()
     {
-        heldRestockBasket =
-            null;
+        EnsureCarryState();
+
+        carryState.RemoveHeldRestockBasket();
     }
 
     public void RemoveHeldDeliveryBox()
     {
-        heldDeliveryBox =
-            null;
+        EnsureCarryState();
+
+        carryState.RemoveHeldDeliveryBox();
     }
 }
