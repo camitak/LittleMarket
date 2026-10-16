@@ -12,6 +12,10 @@ public class BasketStation :
     [SerializeField]
     private Transform dockPoint;
 
+    [Header("Locator")]
+    [SerializeField]
+    private BasketLocatorUI basketLocatorUI;
+
     [Header("Startup")]
     [SerializeField]
     private bool dockBasketOnStart = true;
@@ -21,6 +25,11 @@ public class BasketStation :
 
     private void Start()
     {
+        if (basketLocatorUI != null)
+        {
+            basketLocatorUI.Hide();
+        }
+
         if (!dockBasketOnStart ||
             basket == null ||
             dockPoint == null)
@@ -52,7 +61,7 @@ public class BasketStation :
             player.GetHeldRestockBasket();
 
         /*
-         * Player arrived carrying our basket.
+         * Player returned carrying our basket.
          */
         if (heldBasket != null)
         {
@@ -70,7 +79,7 @@ public class BasketStation :
         }
 
         /*
-         * Other carried objects must be put down.
+         * Other carried objects block the station.
          */
         if (player.GetHeldDeliveryBox()
                 != null ||
@@ -94,7 +103,7 @@ public class BasketStation :
         }
 
         /*
-         * Defensive case.
+         * Defensive state.
          */
         if (basket.IsHeld)
         {
@@ -102,24 +111,30 @@ public class BasketStation :
         }
 
         /*
-         * A loaded basket cannot be recalled.
+         * Loaded basket:
          *
-         * Otherwise this would allow stock to be
-         * teleported from anywhere in the shop
-         * directly back to the stockroom.
+         * locating is allowed,
+         * teleporting is not.
          */
         if (!basket.IsEmpty)
         {
-            return "Basket away from stand"
+            return "Basket away"
                    + "  •  "
                    + basket.ItemCount
                    + " / "
                    + basket.Capacity
-                   + "\nEmpty it before recalling";
+                   + "\n[E] Locate basket";
         }
 
-        return "Basket away from stand"
-               + "\n[Hold X] Recall empty basket";
+        /*
+         * Empty basket:
+         *
+         * locate OR recall.
+         */
+        return "Basket away"
+               + "\n[E] Locate basket"
+               + "  •  "
+               + "[Hold X] Recall";
     }
 
     public void Interact(
@@ -137,9 +152,7 @@ public class BasketStation :
             player.GetHeldRestockBasket();
 
         /*
-         * E while carrying the basket:
-         *
-         * return it physically to its home.
+         * Return carried basket.
          */
         if (heldBasket != null)
         {
@@ -154,25 +167,56 @@ public class BasketStation :
 
             player.RemoveHeldRestockBasket();
 
+            if (basketLocatorUI != null)
+            {
+                basketLocatorUI.Hide();
+            }
+
             return;
         }
 
         /*
-         * Free hands are required to take it.
+         * Other carried things block station use.
          */
         if (player.HasAnythingHeld)
         {
             return;
         }
 
-        if (!basket.IsDocked)
+        /*
+         * Take basket from dock.
+         */
+        if (basket.IsDocked)
+        {
+            if (basketLocatorUI != null)
+            {
+                basketLocatorUI.Hide();
+            }
+
+            player.TryPickUpRestockBasket(
+                basket
+            );
+
+            return;
+        }
+
+        if (basket.IsHeld)
         {
             return;
         }
 
-        player.TryPickUpRestockBasket(
-            basket
-        );
+        /*
+         * Basket is somewhere in the world.
+         *
+         * E gives information rather than moving
+         * the object.
+         */
+        if (basketLocatorUI != null)
+        {
+            basketLocatorUI.Show(
+                basket
+            );
+        }
     }
 
     public bool CanUseManagementAction(
@@ -198,8 +242,7 @@ public class BasketStation :
         }
 
         /*
-         * Empty-only recovery prevents stock
-         * teleportation.
+         * Only an empty basket may teleport home.
          */
         return basket.IsEmpty;
     }
@@ -218,6 +261,11 @@ public class BasketStation :
         basket.DockTo(
             dockPoint
         );
+
+        if (basketLocatorUI != null)
+        {
+            basketLocatorUI.Hide();
+        }
     }
 
     private void OnDrawGizmosSelected()

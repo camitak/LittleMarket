@@ -36,6 +36,10 @@ public class CheckoutRegister :
     private float scannedTotal;
 
     private bool scanInProgress;
+    
+    private PickupItem reservedScanItem;
+
+    private int reservedScanIndex = -1;
 
     public string GetInteractionPrompt(
         PlayerInteraction player
@@ -207,10 +211,8 @@ public class CheckoutRegister :
          */
         if (scannedItemCount < itemCount)
         {
-            StartCoroutine(
-                ScanNextItemRoutine(
-                    customer
-                )
+            BeginNextScan(
+                customer
             );
 
             return;
@@ -225,39 +227,44 @@ public class CheckoutRegister :
             itemCount
         );
     }
-
-    private IEnumerator ScanNextItemRoutine(
+    
+    private void BeginNextScan(
         CustomerController customer
     )
     {
-        if (customer == null)
+        if (customer == null ||
+            scanInProgress)
         {
-            yield break;
+            return;
         }
 
         int itemCount =
             customer.GetCarriedItemCount();
 
-        if (scannedItemCount < 0 ||
-            scannedItemCount >= itemCount)
+        int scanIndex =
+            scannedItemCount;
+
+        if (scanIndex < 0 ||
+            scanIndex >= itemCount)
         {
-            yield break;
+            return;
         }
 
-        if (scannedItemCount
+        if (scannedItemPoints == null ||
+            scanIndex
             >= scannedItemPoints.Length)
         {
-            yield break;
+            return;
         }
 
         PickupItem item =
             customer.GetCarriedItem(
-                scannedItemCount
+                scanIndex
             );
 
         if (item == null)
         {
-            yield break;
+            return;
         }
 
         ProductData product =
@@ -265,31 +272,71 @@ public class CheckoutRegister :
 
         if (product == null)
         {
-            yield break;
+            return;
         }
 
         Transform outputPoint =
             scannedItemPoints[
-                scannedItemCount
+                scanIndex
             ];
 
         if (scanPoint == null ||
             outputPoint == null)
         {
-            yield break;
+            return;
         }
 
+        /*
+         * Claim this exact item BEFORE starting
+         * the coroutine.
+         *
+         * From this point until completion no other
+         * checkout interaction may claim it again.
+         */
         scanInProgress =
             true;
 
+        reservedScanItem =
+            item;
+
+        reservedScanIndex =
+            scanIndex;
+
+        StartCoroutine(
+            ScanReservedItemRoutine(
+                customer,
+                item,
+                product,
+                outputPoint,
+                scanIndex
+            )
+        );
+    }
+
+    private IEnumerator
+        ScanReservedItemRoutine(
+            CustomerController customer,
+            PickupItem item,
+            ProductData product,
+            Transform outputPoint,
+            int scanIndex
+        )
+    {
         /*
-         * Move the customer's REAL product onto
-         * the scanner.
+         * Defensive validation:
          *
-         * PickupItem already knows how to align
-         * different product shapes using its
-         * placement anchor.
+         * this coroutine is allowed to finish only
+         * if it still owns the active reservation.
          */
+        if (!IsCurrentScanReservation(
+                customer,
+                item,
+                scanIndex
+            ))
+        {
+            yield break;
+        }
+
         item.PlaceInContainer(
             scanPoint
         );
@@ -300,10 +347,6 @@ public class CheckoutRegister :
                 .PlayScanFeedback();
         }
 
-        /*
-         * Let the player actually see the item
-         * sitting on the scanner for a moment.
-         */
         yield return new WaitForSeconds(
             Mathf.Max(
                 0.05f,
@@ -312,23 +355,68 @@ public class CheckoutRegister :
         );
 
         /*
-         * Then move it to this transaction's
-         * bagging/output slot.
+         * The session may theoretically have been
+         * reset while the animation was running.
+         *
+         * A stale scan is not allowed to modify the
+         * transaction.
          */
-        if (item != null)
+        if (!IsCurrentScanReservation(
+                customer,
+                item,
+                scanIndex
+            ))
         {
-            item.PlaceInContainer(
-                outputPoint
-            );
+            yield break;
         }
+
+        if (item == null)
+        {
+            ClearScanReservation();
+
+            yield break;
+        }
+
+        item.PlaceInContainer(
+            outputPoint
+        );
 
         scannedTotal +=
             product.SellPrice;
 
-        scannedItemCount++;
+        /*
+         * Set the explicit next index instead of
+         * blindly incrementing a possibly changed
+         * value.
+         */
+        scannedItemCount =
+            scanIndex + 1;
 
+        ClearScanReservation();
+    }
+
+    private bool IsCurrentScanReservation(
+        CustomerController customer,
+        PickupItem item,
+        int scanIndex
+    )
+    {
+        return scanInProgress
+               && activeCustomer == customer
+               && reservedScanItem == item
+               && reservedScanIndex == scanIndex;
+    }
+
+    private void ClearScanReservation()
+    {
         scanInProgress =
             false;
+
+        reservedScanItem =
+            null;
+
+        reservedScanIndex =
+            -1;
     }
 
     private void CompletePayment(
@@ -384,10 +472,7 @@ public class CheckoutRegister :
 
         if (checkoutFeedback != null)
         {
-            checkoutFeedback
-                .PlayPaymentFeedback(
-                    scannedTotal
-                );
+            checkoutFeedback.PlayPaymentFeedback(scannedTotal);
         }
 
         ResetCheckoutSession();
@@ -404,27 +489,38 @@ public class CheckoutRegister :
             return;
         }
 
-        if (activeCustomer
-            == customer)
+        if (activeCustomer == customer)
         {
             return;
         }
 
-        activeCustomer =
-            customer;
+        /*
+         * If the front customer changed, invalidate
+         * anything still belonging to the previous
+         * transaction.
+         */
+        StopAllCoroutines();
 
-        scannedItemCount =
-            0;
+        ClearScanReservation();
 
-        scannedTotal =
-            0f;
+        activeCustomer = customer;
 
-        scanInProgress =
-            false;
+        scannedItemCount = 0;
+
+        scannedTotal = 0f;
     }
 
     private void ResetCheckoutSession()
     {
+        /*
+         * A previous transaction must never leave
+         * a delayed coroutine alive that can later
+         * modify the next customer's checkout.
+         */
+        StopAllCoroutines();
+
+        ClearScanReservation();
+
         activeCustomer =
             null;
 
@@ -433,9 +529,6 @@ public class CheckoutRegister :
 
         scannedTotal =
             0f;
-
-        scanInProgress =
-            false;
     }
 
     private bool HasValidPhysicalCheckout(
