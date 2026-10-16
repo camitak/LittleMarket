@@ -375,25 +375,30 @@ public class CustomerController : MonoBehaviour
         // SetQueueDestination().
     }
 
-    public void SetQueueDestination(
-        Transform queuePoint
-    )
+    public void SetQueueDestination(Transform queuePoint)
     {
         if (queuePoint == null)
         {
             return;
         }
 
-        assignedQueuePoint =
-            queuePoint;
+        // If this customer is already assigned to this exact queue
+        // position, do not restart their checkout-walking state.
+        //
+        // This is especially important for the front customer:
+        // another customer joining the back of the queue should not
+        // interrupt an active checkout transaction.
+        if (assignedQueuePoint == queuePoint &&
+            (currentState == CustomerState.WalkingToCheckout ||
+             currentState == CustomerState.WaitingInCheckoutQueue))
+        {
+            return;
+        }
 
-        currentState =
-            CustomerState.WalkingToCheckout;
+        assignedQueuePoint = queuePoint;
+        currentState = CustomerState.WalkingToCheckout;
 
-        bool destinationAccepted =
-            agent.SetDestination(
-                queuePoint.position
-            );
+        bool destinationAccepted = agent.SetDestination(queuePoint.position);
 
         if (!destinationAccepted)
         {

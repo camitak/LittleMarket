@@ -6009,12 +6009,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::BasketLocatorUI
   playerCamera: {fileID: 330585545}
   locatorRoot: {fileID: 1144565815}
-  locatorRect: {fileID: 1144565816}
   arrowRect: {fileID: 1139383318}
   locatorText: {fileID: 313496935}
-  edgePadding: 120
   defaultDuration: 5
-  targetWorldOffset: {x: 0, y: 0.45, z: 0}
+  arrowSmoothTime: 0.18
 --- !u!1 &766731596
 GameObject:
   m_ObjectHideFlags: 0
@@ -9341,11 +9339,11 @@ RectTransform:
   - {fileID: 313496934}
   m_Father: {fileID: 766562197}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
-  m_AnchorMin: {x: 0.5, y: 0.5}
-  m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 0, y: 0}
+  m_AnchorMin: {x: 0.5, y: 1}
+  m_AnchorMax: {x: 0.5, y: 1}
+  m_AnchoredPosition: {x: 0, y: -70}
   m_SizeDelta: {x: 190, y: 58}
-  m_Pivot: {x: 0.5, y: 0.5}
+  m_Pivot: {x: 0.5, y: 1}
 --- !u!114 &1144565817
 MonoBehaviour:
   m_ObjectHideFlags: 0

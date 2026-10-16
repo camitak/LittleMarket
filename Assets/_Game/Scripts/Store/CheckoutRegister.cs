@@ -5,29 +5,21 @@ public class CheckoutRegister :
     MonoBehaviour,
     IInteractable
 {
-    [Header("Store References")]
-    [SerializeField]
+    [Header("Store References")] [SerializeField]
     private CheckoutQueue checkoutQueue;
 
-    [SerializeField]
-    private StoreEconomy storeEconomy;
+    [SerializeField] private StoreEconomy storeEconomy;
 
-    [SerializeField]
-    private DailyStats dailyStats;
+    [SerializeField] private DailyStats dailyStats;
 
-    [SerializeField]
-    private CheckoutFeedback checkoutFeedback;
+    [SerializeField] private CheckoutFeedback checkoutFeedback;
 
-    [Header("Physical Checkout")]
-    [SerializeField]
+    [Header("Physical Checkout")] [SerializeField]
     private Transform scanPoint;
 
-    [SerializeField]
-    private Transform[] scannedItemPoints;
+    [SerializeField] private Transform[] scannedItemPoints;
 
-    [Min(0.05f)]
-    [SerializeField]
-    private float scanDisplaySeconds = 0.12f;
+    [Min(0.05f)] [SerializeField] private float scanDisplaySeconds = 0.12f;
 
     private CustomerController activeCustomer;
 
@@ -36,7 +28,7 @@ public class CheckoutRegister :
     private float scannedTotal;
 
     private bool scanInProgress;
-    
+
     private PickupItem reservedScanItem;
 
     private int reservedScanIndex = -1;
@@ -58,8 +50,6 @@ public class CheckoutRegister :
 
         if (checkoutQueue == null)
         {
-            ResetCheckoutSession();
-
             return "Checkout not configured";
         }
 
@@ -68,15 +58,11 @@ public class CheckoutRegister :
 
         if (customer == null)
         {
-            ResetCheckoutSession();
-
             return "No customers waiting";
         }
 
         if (!customer.IsReadyForCheckout())
         {
-            ResetCheckoutSession();
-
             return "Customer approaching checkout";
         }
 
@@ -85,8 +71,6 @@ public class CheckoutRegister :
 
         if (itemCount <= 0)
         {
-            ResetCheckoutSession();
-
             return "Customer has no products";
         }
 
@@ -227,7 +211,7 @@ public class CheckoutRegister :
             itemCount
         );
     }
-    
+
     private void BeginNextScan(
         CustomerController customer
     )
