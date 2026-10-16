@@ -47,7 +47,10 @@ public class RestockBasket :
     private Collider basketCollider;
 
     private Transform heldView;
+
     private bool isHeld;
+
+    private bool isDocked;
 
     public int Capacity
     {
@@ -74,6 +77,12 @@ public class RestockBasket :
 
     public bool IsEmpty =>
         ItemCount <= 0;
+    
+    public bool IsHeld =>
+        isHeld;
+
+    public bool IsDocked =>
+        isDocked;
 
     private void Awake()
     {
@@ -367,6 +376,62 @@ public class RestockBasket :
         return count;
     }
 
+    public void DockTo(
+        Transform dockPoint
+    )
+    {
+        if (dockPoint == null)
+        {
+            return;
+        }
+
+        /*
+         * Docking ends any held state.
+         */
+        isHeld =
+            false;
+
+        heldView =
+            null;
+
+        isDocked =
+            true;
+
+        /*
+         * A docked basket is controlled completely
+         * by the station rather than physics.
+         */
+        basketRigidbody.useGravity =
+            false;
+
+        basketRigidbody.isKinematic =
+            true;
+
+        /*
+         * Basket interaction is handled by the
+         * BasketStation while docked.
+         *
+         * Disabling this avoids the basket collider
+         * competing with the station collider.
+         */
+        if (basketCollider != null)
+        {
+            basketCollider.enabled =
+                false;
+        }
+
+        transform.SetParent(
+            dockPoint,
+            false
+        );
+
+        transform.localPosition =
+            Vector3.zero;
+
+        transform.localRotation =
+            Quaternion.identity;
+    }
+    
     public void PickUp(
         Transform holdPoint,
         Transform viewTransform
@@ -378,6 +443,7 @@ public class RestockBasket :
             return;
         }
 
+        isDocked = false;
         heldView = viewTransform;
         isHeld = true;
 
@@ -431,6 +497,8 @@ public class RestockBasket :
         {
             return;
         }
+        
+        isDocked = false;
 
         Vector3 horizontalForward =
             GetHorizontalForward(
