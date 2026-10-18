@@ -14,8 +14,7 @@ public class StoreSaveData
 
     public float reputation = 50f;
 
-    public List<string> unlockedProductIDs =
-        new List<string>();
+    public List<string> unlockedProductIDs = new();
 
     public List<ShelfSlotSaveData> shelfSlots;
 

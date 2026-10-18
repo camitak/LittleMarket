@@ -3,23 +3,18 @@ using UnityEngine;
 
 public class ShelfRegistry : MonoBehaviour
 {
-    private List<ShelfSlot> registeredSlots = new List<ShelfSlot>();
+    private List<ShelfSlot> registeredSlots = new();
 
     public int RegisteredSlotCount => registeredSlots.Count;
 
     public void RegisterSlot(ShelfSlot shelfSlot)
     {
-        if (shelfSlot == null)
-        {
-            return;
-        }
+        if (shelfSlot == null) return;
 
         if (registeredSlots.Contains(
                 shelfSlot
             ))
-        {
             return;
-        }
 
         if (string.IsNullOrWhiteSpace(shelfSlot.SlotID))
         {
@@ -33,7 +28,7 @@ public class ShelfRegistry : MonoBehaviour
             return;
         }
 
-        ShelfSlot existingSlot =
+        var existingSlot =
             FindSlotByID(
                 shelfSlot.SlotID
             );
@@ -59,10 +54,7 @@ public class ShelfRegistry : MonoBehaviour
 
     public void UnregisterSlot(ShelfSlot shelfSlot)
     {
-        if (shelfSlot == null)
-        {
-            return;
-        }
+        if (shelfSlot == null) return;
 
         registeredSlots.Remove(
             shelfSlot
@@ -73,9 +65,7 @@ public class ShelfRegistry : MonoBehaviour
     {
         if (index < 0 ||
             index >= registeredSlots.Count)
-        {
             return null;
-        }
 
         return registeredSlots[index];
     }
@@ -85,26 +75,18 @@ public class ShelfRegistry : MonoBehaviour
         if (string.IsNullOrWhiteSpace(
                 slotID
             ))
-        {
             return null;
-        }
 
-        for (int i = 0;
+        for (var i = 0;
              i < registeredSlots.Count;
              i++)
         {
-            ShelfSlot slot =
+            var slot =
                 registeredSlots[i];
 
-            if (slot == null)
-            {
-                continue;
-            }
+            if (slot == null) continue;
 
-            if (slot.SlotID != slotID)
-            {
-                continue;
-            }
+            if (slot.SlotID != slotID) continue;
 
             return slot;
         }
@@ -119,39 +101,25 @@ public class ShelfRegistry : MonoBehaviour
     {
         foundSlot = null;
 
-        if (productData == null)
-        {
-            return false;
-        }
+        if (productData == null) return false;
 
-        for (int i = 0;
+        for (var i = 0;
              i < registeredSlots.Count;
              i++)
         {
-            ShelfSlot slot =
+            var slot =
                 registeredSlots[i];
 
-            if (slot == null)
-            {
-                continue;
-            }
+            if (slot == null) continue;
 
-            if (!slot.isActiveAndEnabled)
-            {
-                continue;
-            }
+            if (!slot.isActiveAndEnabled) continue;
 
-            if (slot.CustomerStandPoint == null)
-            {
-                continue;
-            }
+            if (slot.CustomerStandPoint == null) continue;
 
             if (!slot.ContainsProduct(
                     productData
                 ))
-            {
                 continue;
-            }
 
             foundSlot =
                 slot;

@@ -4,8 +4,7 @@ using UnityEngine;
 public class StorageRegistry : MonoBehaviour
 {
     private readonly List<StorageBay>
-        registeredSlots =
-            new List<StorageBay>();
+        registeredSlots = new();
 
     public int RegisteredSlotCount =>
         registeredSlots.Count;
@@ -14,21 +13,19 @@ public class StorageRegistry : MonoBehaviour
     {
         get
         {
-            int count =
+            var count =
                 0;
 
-            for (int i = 0;
+            for (var i = 0;
                  i < registeredSlots.Count;
                  i++)
             {
-                StorageBay bay =
+                var bay =
                     registeredSlots[i];
 
                 if (bay == null ||
                     !bay.IsAssigned)
-                {
                     continue;
-                }
 
                 count++;
             }
@@ -65,10 +62,7 @@ public class StorageRegistry : MonoBehaviour
     {
         get
         {
-            if (RegisteredSlotCount <= 0)
-            {
-                return 0f;
-            }
+            if (RegisteredSlotCount <= 0) return 0f;
 
             return (float)AssignedBayCount
                    / RegisteredSlotCount;
@@ -79,10 +73,7 @@ public class StorageRegistry : MonoBehaviour
         StorageBay slot
     )
     {
-        if (slot == null)
-        {
-            return;
-        }
+        if (slot == null) return;
 
         if (string.IsNullOrWhiteSpace(
                 slot.SlotID
@@ -98,28 +89,20 @@ public class StorageRegistry : MonoBehaviour
             return;
         }
 
-        for (int i = 0;
+        for (var i = 0;
              i < registeredSlots.Count;
              i++)
         {
-            StorageBay existingSlot =
+            var existingSlot =
                 registeredSlots[i];
 
-            if (existingSlot == null)
-            {
-                continue;
-            }
+            if (existingSlot == null) continue;
 
-            if (existingSlot == slot)
-            {
-                return;
-            }
+            if (existingSlot == slot) return;
 
             if (existingSlot.SlotID
                 != slot.SlotID)
-            {
                 continue;
-            }
 
             Debug.LogError(
                 "Duplicate storage Slot ID '"
@@ -140,10 +123,7 @@ public class StorageRegistry : MonoBehaviour
         StorageBay slot
     )
     {
-        if (slot == null)
-        {
-            return;
-        }
+        if (slot == null) return;
 
         registeredSlots.Remove(
             slot
@@ -156,9 +136,7 @@ public class StorageRegistry : MonoBehaviour
     {
         if (index < 0 ||
             index >= registeredSlots.Count)
-        {
             return null;
-        }
 
         return registeredSlots[index];
     }
@@ -170,26 +148,18 @@ public class StorageRegistry : MonoBehaviour
         if (string.IsNullOrWhiteSpace(
                 slotID
             ))
-        {
             return null;
-        }
 
-        for (int i = 0;
+        for (var i = 0;
              i < registeredSlots.Count;
              i++)
         {
-            StorageBay bay =
+            var bay =
                 registeredSlots[i];
 
-            if (bay == null)
-            {
-                continue;
-            }
+            if (bay == null) continue;
 
-            if (bay.SlotID == slotID)
-            {
-                return bay;
-            }
+            if (bay.SlotID == slotID) return bay;
         }
 
         return null;

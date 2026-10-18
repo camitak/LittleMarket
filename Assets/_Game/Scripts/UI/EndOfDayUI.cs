@@ -4,97 +4,64 @@ using UnityEngine.UI;
 
 public class EndOfDayUI : MonoBehaviour
 {
-    [Header("Panel")]
-    [SerializeField]
-    private GameObject endOfDayPanel;
+    [Header("Panel")] [SerializeField] private GameObject endOfDayPanel;
 
-    [Header("Financial Summary")]
-    [SerializeField]
+    [Header("Financial Summary")] [SerializeField]
     private TMP_Text dayCompleteText;
 
-    [SerializeField]
-    private TMP_Text revenueText;
+    [SerializeField] private TMP_Text revenueText;
 
-    [SerializeField]
-    private TMP_Text stockSpendingText;
+    [SerializeField] private TMP_Text stockSpendingText;
 
-    [SerializeField]
-    private TMP_Text netCashFlowText;
+    [SerializeField] private TMP_Text netCashFlowText;
 
-    [Header("Customer Summary")]
-    [SerializeField]
+    [Header("Customer Summary")] [SerializeField]
     private TMP_Text averageSatisfactionText;
 
-    [SerializeField]
-    private TMP_Text reputationResultText;
+    [SerializeField] private TMP_Text reputationResultText;
 
-    [SerializeField]
-    private TMP_Text unlockText;
+    [SerializeField] private TMP_Text unlockText;
 
-    [SerializeField]
-    private TMP_Text goalResultsText;
+    [SerializeField] private TMP_Text goalResultsText;
 
-    [SerializeField]
-    private TMP_Text storeLevelResultText;
+    [SerializeField] private TMP_Text storeLevelResultText;
 
-    [SerializeField]
-    private TMP_Text missedProductsText;
+    [SerializeField] private TMP_Text missedProductsText;
 
-    [SerializeField]
-    private TMP_Text emptyHandedText;
+    [SerializeField] private TMP_Text emptyHandedText;
 
-    [SerializeField]
-    private TMP_Text itemsSoldText;
+    [SerializeField] private TMP_Text itemsSoldText;
 
-    [SerializeField]
-    private TMP_Text customersServedText;
+    [SerializeField] private TMP_Text customersServedText;
 
-    [SerializeField]
-    private TMP_Text endingCashText;
+    [SerializeField] private TMP_Text endingCashText;
 
-    [Header("Buttons")]
-    [SerializeField]
-    private Button startNextDayButton;
+    [Header("Buttons")] [SerializeField] private Button startNextDayButton;
 
-    [Header("Store")]
-    [SerializeField]
-    private StoreClock storeClock;
+    [Header("Store")] [SerializeField] private StoreClock storeClock;
 
-    [SerializeField]
-    private DailyStats dailyStats;
+    [SerializeField] private DailyStats dailyStats;
 
-    [SerializeField]
-    private StoreEconomy storeEconomy;
+    [SerializeField] private StoreEconomy storeEconomy;
 
-    [SerializeField]
-    private StoreReputation storeReputation;
+    [SerializeField] private StoreReputation storeReputation;
 
-    [SerializeField]
-    private StoreProgression storeProgression;
+    [SerializeField] private StoreProgression storeProgression;
 
-    [SerializeField]
-    private StoreGoals storeGoals;
+    [SerializeField] private StoreGoals storeGoals;
 
-    [SerializeField]
-    private StoreLevelProgression
+    [SerializeField] private StoreLevelProgression
         storeLevelProgression;
 
-    [SerializeField]
-    private CustomerFlow customerFlow;
+    [SerializeField] private CustomerFlow customerFlow;
 
-    [Header("Other UI")]
-    [SerializeField]
-    private OrderingUI orderingUI;
+    [Header("Other UI")] [SerializeField] private OrderingUI orderingUI;
 
-    [SerializeField]
-    private InteractionUI interactionUI;
+    [SerializeField] private InteractionUI interactionUI;
 
-    [Header("Player")]
-    [SerializeField]
-    private PlayerController playerController;
+    [Header("Player")] [SerializeField] private PlayerController playerController;
 
-    [SerializeField]
-    private PlayerInteraction playerInteraction;
+    [SerializeField] private PlayerInteraction playerInteraction;
 
     private bool summaryShown;
 
@@ -102,7 +69,7 @@ public class EndOfDayUI : MonoBehaviour
         summaryShown;
 
     private static readonly Color32 PositiveColor =
-        new Color32(
+        new(
             111,
             207,
             151,
@@ -110,7 +77,7 @@ public class EndOfDayUI : MonoBehaviour
         );
 
     private static readonly Color32 MediumColor =
-        new Color32(
+        new(
             246,
             215,
             122,
@@ -118,7 +85,7 @@ public class EndOfDayUI : MonoBehaviour
         );
 
     private static readonly Color32 NegativeColor =
-        new Color32(
+        new(
             196,
             107,
             107,
@@ -126,7 +93,7 @@ public class EndOfDayUI : MonoBehaviour
         );
 
     private static readonly Color32 NeutralColor =
-        new Color32(
+        new(
             122,
             104,
             96,
@@ -134,7 +101,7 @@ public class EndOfDayUI : MonoBehaviour
         );
 
     private static readonly Color32 UnlockColor =
-        new Color32(
+        new(
             143,
             197,
             232,
@@ -154,26 +121,15 @@ public class EndOfDayUI : MonoBehaviour
 
     private void Update()
     {
-        if (summaryShown)
-        {
-            return;
-        }
+        if (summaryShown) return;
 
-        if (storeClock == null)
-        {
-            return;
-        }
+        if (storeClock == null) return;
 
-        if (!storeClock.HasDayEnded)
-        {
-            return;
-        }
+        if (!storeClock.HasDayEnded) return;
 
         if (customerFlow != null &&
             customerFlow.ActiveCustomerCount > 0)
-        {
             return;
-        }
 
         ShowSummary();
     }
@@ -185,23 +141,19 @@ public class EndOfDayUI : MonoBehaviour
 
         if (orderingUI != null &&
             orderingUI.IsOpen)
-        {
             orderingUI.Close();
-        }
 
         if (storeReputation != null &&
             dailyStats != null)
-        {
             storeReputation.ApplyDailySatisfaction(
                 dailyStats.AverageSatisfaction,
                 dailyStats.CustomersVisited
             );
-        }
 
-        int completedGoals =
+        var completedGoals =
             0;
 
-        bool allGoalsCompleted =
+        var allGoalsCompleted =
             false;
 
         if (storeGoals != null)
@@ -217,19 +169,14 @@ public class EndOfDayUI : MonoBehaviour
         }
 
         if (storeLevelProgression != null)
-        {
             storeLevelProgression
                 .ApplyEndOfDayProgression(
                     storeClock.CurrentDay,
                     completedGoals,
                     allGoalsCompleted
                 );
-        }
 
-        if (storeProgression != null)
-        {
-            storeProgression.RefreshUnlocks();
-        }
+        if (storeProgression != null) storeProgression.RefreshUnlocks();
 
         UpdateSummaryText();
 
@@ -257,7 +204,7 @@ public class EndOfDayUI : MonoBehaviour
 
     private void UpdateSummaryText()
     {
-        int day =
+        var day =
             storeClock.CurrentDay;
 
         dayCompleteText.text =
@@ -282,29 +229,27 @@ public class EndOfDayUI : MonoBehaviour
             + storeEconomy.CurrentMoney
                 .ToString("0.00");
 
-        TMP_Text buttonText =
+        var buttonText =
             startNextDayButton
                 .GetComponentInChildren<
                     TMP_Text
                 >();
 
         if (buttonText != null)
-        {
             buttonText.text =
                 "START DAY "
                 + (day + 1);
-        }
     }
 
     private void UpdateFinancialText()
     {
-        float revenue =
+        var revenue =
             dailyStats.Revenue;
 
-        float stockSpending =
+        var stockSpending =
             dailyStats.StockSpending;
 
-        float netCashFlow =
+        var netCashFlow =
             dailyStats.NetCashFlow;
 
         revenueText.text =
@@ -362,7 +307,7 @@ public class EndOfDayUI : MonoBehaviour
         }
         else
         {
-            float satisfaction =
+            var satisfaction =
                 dailyStats.AverageSatisfaction;
 
             averageSatisfactionText.text =
@@ -371,20 +316,14 @@ public class EndOfDayUI : MonoBehaviour
                 + "%";
 
             if (satisfaction >= 80f)
-            {
                 averageSatisfactionText.color =
                     PositiveColor;
-            }
             else if (satisfaction >= 50f)
-            {
                 averageSatisfactionText.color =
                     MediumColor;
-            }
             else
-            {
                 averageSatisfactionText.color =
                     NegativeColor;
-            }
         }
 
         missedProductsText.text =
@@ -418,10 +357,10 @@ public class EndOfDayUI : MonoBehaviour
             return;
         }
 
-        float reputation =
+        var reputation =
             storeReputation.CurrentReputation;
 
-        float change =
+        var change =
             storeReputation.LastDailyChange;
 
         string changeText;
@@ -484,48 +423,39 @@ public class EndOfDayUI : MonoBehaviour
             return;
         }
 
-        string unlockedNames =
+        var unlockedNames =
             "";
 
-        for (int i = 0;
+        for (var i = 0;
              i < storeProgression.LastNewUnlockCount;
              i++)
         {
-            ProductData product =
+            var product =
                 storeProgression
                     .GetLastNewUnlock(
                         i
                     );
 
-            if (product == null)
-            {
-                continue;
-            }
+            if (product == null) continue;
 
             if (!string.IsNullOrEmpty(
                     unlockedNames
                 ))
-            {
                 unlockedNames +=
                     ", ";
-            }
 
             unlockedNames +=
                 product.ProductName;
         }
 
         if (storeProgression.LastNewUnlockCount == 1)
-        {
             unlockText.text =
                 "NEW PRODUCT UNLOCKED     "
                 + unlockedNames;
-        }
         else
-        {
             unlockText.text =
                 "NEW PRODUCTS UNLOCKED     "
                 + unlockedNames;
-        }
 
         unlockText.color =
             PositiveColor;
@@ -544,20 +474,18 @@ public class EndOfDayUI : MonoBehaviour
             return;
         }
 
-        int completed =
+        var completed =
             storeGoals.CompletedGoalCount;
 
-        int total =
+        var total =
             storeGoals.GoalCount;
 
-        string bonusSuffix =
+        var bonusSuffix =
             "";
 
         if (storeGoals.AllGoalsBonusClaimed)
-        {
             bonusSuffix =
                 "  •  ALL GOALS BONUS!";
-        }
 
         goalResultsText.text =
             "Daily Goals     "
@@ -572,8 +500,8 @@ public class EndOfDayUI : MonoBehaviour
 
         goalResultsText.color =
             storeGoals.AllGoalsCompleted
-            ? PositiveColor
-            : NeutralColor;
+                ? PositiveColor
+                : NeutralColor;
     }
 
     private void UpdateStoreLevelText()
@@ -589,15 +517,13 @@ public class EndOfDayUI : MonoBehaviour
             return;
         }
 
-        string levelUpSuffix =
+        var levelUpSuffix =
             "";
 
         if (storeLevelProgression
             .LeveledUpLastProcessing)
-        {
             levelUpSuffix =
                 "  •  LEVEL UP!";
-        }
 
         storeLevelResultText.text =
             "Store Level     "
@@ -612,8 +538,8 @@ public class EndOfDayUI : MonoBehaviour
         storeLevelResultText.color =
             storeLevelProgression
                 .LeveledUpLastProcessing
-            ? PositiveColor
-            : UnlockColor;
+                ? PositiveColor
+                : UnlockColor;
     }
 
     private void StartNextDay()
@@ -623,17 +549,11 @@ public class EndOfDayUI : MonoBehaviour
 
         dailyStats.ResetForNewDay();
 
-        if (storeGoals != null)
-        {
-            storeGoals.ResetForNewDay();
-        }
+        if (storeGoals != null) storeGoals.ResetForNewDay();
 
         storeClock.StartNextDay();
 
-        if (customerFlow != null)
-        {
-            customerFlow.ResetForNewDay();
-        }
+        if (customerFlow != null) customerFlow.ResetForNewDay();
 
         endOfDayPanel.SetActive(
             false

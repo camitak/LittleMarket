@@ -11,32 +11,22 @@ public class PlayerInteraction :
         Secondary
     }
 
-    [Header("Interaction")]
-    [SerializeField]
+    [Header("Interaction")] [SerializeField]
     private float interactionDistance = 3f;
 
-    [Range(0.02f, 0.3f)]
-    [SerializeField]
-    private float interactionAssistRadius = 0.14f;
+    [Range(0.02f, 0.3f)] [SerializeField] private float interactionAssistRadius = 0.14f;
 
-    [Header("Held Interaction")]
-    [Min(0.05f)]
-    [SerializeField]
+    [Header("Held Interaction")] [Min(0.05f)] [SerializeField]
     private float holdRepeatInitialDelay = 0.30f;
 
-    [Min(0.05f)]
-    [SerializeField]
-    private float holdRepeatInterval = 0.18f;
+    [Min(0.05f)] [SerializeField] private float holdRepeatInterval = 0.18f;
 
-    [Header("References")]
-    [SerializeField]
+    [Header("References")] [SerializeField]
     private Camera playerCamera;
 
-    [SerializeField]
-    private Transform holdPoint;
+    [SerializeField] private Transform holdPoint;
 
-    [SerializeField]
-    private InteractionUI interactionUI;
+    [SerializeField] private InteractionUI interactionUI;
 
     private PlayerCarryState carryState;
 
@@ -85,12 +75,9 @@ public class PlayerInteraction :
 
     private void EnsureCarryState()
     {
-        if (carryState != null)
-        {
-            return;
-        }
+        if (carryState != null) return;
 
-        Transform viewTransform =
+        var viewTransform =
             playerCamera != null
                 ? playerCamera.transform
                 : null;
@@ -104,32 +91,29 @@ public class PlayerInteraction :
 
     private void HandleInteractionInput()
     {
-        if (Keyboard.current == null)
-        {
-            return;
-        }
+        if (Keyboard.current == null) return;
 
-        bool primaryPressed =
+        var primaryPressed =
             Keyboard.current.eKey
                 .wasPressedThisFrame;
 
-        bool primaryHeld =
+        var primaryHeld =
             Keyboard.current.eKey
                 .isPressed;
 
-        bool secondaryPressed =
+        var secondaryPressed =
             Keyboard.current.rKey
                 .wasPressedThisFrame;
 
-        bool secondaryHeld =
+        var secondaryHeld =
             Keyboard.current.rKey
                 .isPressed;
 
-        bool carryPressed =
+        var carryPressed =
             Keyboard.current.fKey
                 .wasPressedThisFrame;
 
-        bool managementHeld =
+        var managementHeld =
             Keyboard.current.xKey
                 .isPressed;
 
@@ -141,11 +125,9 @@ public class PlayerInteraction :
             ResetManagementHold();
 
             if (focusedInteractable != null)
-            {
                 focusedInteractable.Interact(
                     this
                 );
-            }
 
             BeginTransferRepeat(
                 TransferRepeatMode.Primary
@@ -243,10 +225,8 @@ public class PlayerInteraction :
     )
     {
         if (!(target
-              is ISecondaryInteractable secondary))
-        {
+                is ISecondaryInteractable secondary))
             return;
-        }
 
         secondary.SecondaryInteract(
             this
@@ -258,10 +238,8 @@ public class PlayerInteraction :
     )
     {
         if (!(target
-              is ICarryInteractable carry))
-        {
+                is ICarryInteractable carry))
             return;
-        }
 
         carry.CarryInteract(
             this
@@ -307,7 +285,7 @@ public class PlayerInteraction :
         }
 
         if (focusedInteractable
-                != repeatingTransferTarget ||
+            != repeatingTransferTarget ||
             mode != repeatingTransferMode)
         {
             repeatingTransferTarget =
@@ -325,25 +303,18 @@ public class PlayerInteraction :
         holdRepeatTimer -=
             Time.unscaledDeltaTime;
 
-        if (holdRepeatTimer > 0f)
-        {
-            return;
-        }
+        if (holdRepeatTimer > 0f) return;
 
         if (mode
             == TransferRepeatMode.Primary)
-        {
             repeatingTransferTarget.Interact(
                 this
             );
-        }
         else if (mode
                  == TransferRepeatMode.Secondary)
-        {
             PerformSecondaryAction(
                 repeatingTransferTarget
             );
-        }
 
         holdRepeatTimer =
             holdRepeatInterval;
@@ -355,26 +326,20 @@ public class PlayerInteraction :
     )
     {
         if (!(target
-              is IRepeatableInteractable repeatable))
-        {
+                is IRepeatableInteractable repeatable))
             return false;
-        }
 
         if (mode
             == TransferRepeatMode.Primary)
-        {
             return repeatable.CanRepeatPrimary(
                 this
             );
-        }
 
         if (mode
             == TransferRepeatMode.Secondary)
-        {
             return repeatable.CanRepeatSecondary(
                 this
             );
-        }
 
         return false;
     }
@@ -394,8 +359,8 @@ public class PlayerInteraction :
     private void UpdateManagementHold()
     {
         if (!(focusedInteractable
-              is IManagementInteractable
-                  managementTarget))
+                is IManagementInteractable
+                managementTarget))
         {
             ResetManagementHold();
 
@@ -403,9 +368,9 @@ public class PlayerInteraction :
         }
 
         if (!managementTarget
-            .CanUseManagementAction(
-                this
-            ))
+                .CanUseManagementAction(
+                    this
+                ))
         {
             ResetManagementHold();
 
@@ -425,7 +390,7 @@ public class PlayerInteraction :
         managementHoldTimer +=
             Time.unscaledDeltaTime;
 
-        float requiredDuration =
+        var requiredDuration =
             Mathf.Max(
                 0.05f,
                 managementTarget
@@ -434,9 +399,7 @@ public class PlayerInteraction :
 
         if (managementHoldTimer
             < requiredDuration)
-        {
             return;
-        }
 
         managementTarget.ManagementInteract(
             this
@@ -456,14 +419,11 @@ public class PlayerInteraction :
 
     private void UpdateInteractionPrompt()
     {
-        if (interactionUI == null)
-        {
-            return;
-        }
+        if (interactionUI == null) return;
 
         if (focusedInteractable != null)
         {
-            string prompt =
+            var prompt =
                 focusedInteractable
                     .GetInteractionPrompt(
                         this
@@ -483,7 +443,7 @@ public class PlayerInteraction :
 
         EnsureCarryState();
 
-        RestockBasket basket =
+        var basket =
             carryState.HeldRestockBasket;
 
         if (basket != null)
@@ -499,15 +459,15 @@ public class PlayerInteraction :
             return;
         }
 
-        DeliveryBox deliveryBox =
+        var deliveryBox =
             carryState.HeldDeliveryBox;
 
         if (deliveryBox != null)
         {
-            ProductData boxProduct =
+            var boxProduct =
                 deliveryBox.ProductData;
 
-            string boxName =
+            var boxName =
                 boxProduct != null
                     ? boxProduct.ProductName
                     : "Delivery";
@@ -525,7 +485,7 @@ public class PlayerInteraction :
             return;
         }
 
-        PickupItem item =
+        var item =
             carryState.HeldItem;
 
         if (item != null)

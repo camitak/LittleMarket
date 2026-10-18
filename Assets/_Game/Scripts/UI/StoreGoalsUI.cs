@@ -4,22 +4,15 @@ using UnityEngine;
 
 public class StoreGoalsUI : MonoBehaviour
 {
-    [Header("UI")]
-    [SerializeField]
-    private TMP_Text goalsTitleText;
+    [Header("UI")] [SerializeField] private TMP_Text goalsTitleText;
 
-    [SerializeField]
-    private Transform goalsListContent;
+    [SerializeField] private Transform goalsListContent;
 
-    [SerializeField]
-    private StoreGoalRow goalRowPrefab;
+    [SerializeField] private StoreGoalRow goalRowPrefab;
 
-    [Header("Store")]
-    [SerializeField]
-    private StoreGoals storeGoals;
+    [Header("Store")] [SerializeField] private StoreGoals storeGoals;
 
-    private List<StoreGoalRow> spawnedRows =
-        new List<StoreGoalRow>();
+    private List<StoreGoalRow> spawnedRows = new();
 
     private int displayedDay =
         -1;
@@ -33,15 +26,12 @@ public class StoreGoalsUI : MonoBehaviour
 
     private void Update()
     {
-        if (storeGoals == null)
-        {
-            return;
-        }
+        if (storeGoals == null) return;
 
-        int currentDay =
+        var currentDay =
             storeGoals.CurrentDay;
 
-        DailyGoalSet currentGoalSet =
+        var currentGoalSet =
             storeGoals.CurrentGoalSet;
 
         if (displayedDay != currentDay ||
@@ -57,10 +47,7 @@ public class StoreGoalsUI : MonoBehaviour
 
     private void RebuildForCurrentDay()
     {
-        if (storeGoals == null)
-        {
-            return;
-        }
+        if (storeGoals == null) return;
 
         displayedDay =
             storeGoals.CurrentDay;
@@ -79,36 +66,24 @@ public class StoreGoalsUI : MonoBehaviour
     {
         ClearGoalRows();
 
-        if (storeGoals == null)
-        {
-            return;
-        }
+        if (storeGoals == null) return;
 
-        if (goalsListContent == null)
-        {
-            return;
-        }
+        if (goalsListContent == null) return;
 
-        if (goalRowPrefab == null)
-        {
-            return;
-        }
+        if (goalRowPrefab == null) return;
 
-        for (int i = 0;
+        for (var i = 0;
              i < storeGoals.GoalCount;
              i++)
         {
-            StoreGoalDefinition goal =
+            var goal =
                 storeGoals.GetGoal(
                     i
                 );
 
-            if (goal == null)
-            {
-                continue;
-            }
+            if (goal == null) continue;
 
-            StoreGoalRow newRow =
+            var newRow =
                 Instantiate(
                     goalRowPrefab,
                     goalsListContent
@@ -126,22 +101,16 @@ public class StoreGoalsUI : MonoBehaviour
 
     private void RefreshRows()
     {
-        if (storeGoals == null)
-        {
-            return;
-        }
+        if (storeGoals == null) return;
 
-        for (int i = 0;
+        for (var i = 0;
              i < spawnedRows.Count;
              i++)
         {
-            StoreGoalRow row =
+            var row =
                 spawnedRows[i];
 
-            if (row == null)
-            {
-                continue;
-            }
+            if (row == null) continue;
 
             row.Refresh(
                 storeGoals
@@ -151,10 +120,7 @@ public class StoreGoalsUI : MonoBehaviour
 
     private void RefreshTitle()
     {
-        if (goalsTitleText == null)
-        {
-            return;
-        }
+        if (goalsTitleText == null) return;
 
         goalsTitleText.text =
             "DAY "
@@ -164,17 +130,14 @@ public class StoreGoalsUI : MonoBehaviour
 
     private void ClearGoalRows()
     {
-        for (int i = 0;
+        for (var i = 0;
              i < spawnedRows.Count;
              i++)
         {
-            StoreGoalRow row =
+            var row =
                 spawnedRows[i];
 
-            if (row == null)
-            {
-                continue;
-            }
+            if (row == null) continue;
 
             row.gameObject.SetActive(
                 false

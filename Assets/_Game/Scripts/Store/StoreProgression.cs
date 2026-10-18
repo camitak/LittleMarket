@@ -3,23 +3,17 @@ using UnityEngine;
 
 public class StoreProgression : MonoBehaviour
 {
-    [Header("Catalog")]
-    [SerializeField]
-    private StoreProductCatalog productCatalog;
+    [Header("Catalog")] [SerializeField] private StoreProductCatalog productCatalog;
 
-    [Header("Progression")]
-    [SerializeField]
+    [Header("Progression")] [SerializeField]
     private StoreReputation storeReputation;
 
-    [SerializeField]
-    private StoreLevelProgression
+    [SerializeField] private StoreLevelProgression
         storeLevelProgression;
 
-    private List<ProductData> unlockedProducts =
-        new List<ProductData>();
+    private List<ProductData> unlockedProducts = new();
 
-    private List<ProductData> lastNewUnlocks =
-        new List<ProductData>();
+    private List<ProductData> lastNewUnlocks = new();
 
     private bool initialized;
 
@@ -27,10 +21,7 @@ public class StoreProgression : MonoBehaviour
     {
         get
         {
-            if (productCatalog == null)
-            {
-                return 0;
-            }
+            if (productCatalog == null) return 0;
 
             return productCatalog.ProductCount;
         }
@@ -46,10 +37,7 @@ public class StoreProgression : MonoBehaviour
     {
         get
         {
-            if (storeReputation == null)
-            {
-                return 0f;
-            }
+            if (storeReputation == null) return 0f;
 
             return storeReputation
                 .CurrentReputation;
@@ -60,10 +48,7 @@ public class StoreProgression : MonoBehaviour
     {
         get
         {
-            if (storeLevelProgression == null)
-            {
-                return 1;
-            }
+            if (storeLevelProgression == null) return 1;
 
             return storeLevelProgression
                 .CurrentLevel;
@@ -79,10 +64,7 @@ public class StoreProgression : MonoBehaviour
         int index
     )
     {
-        if (productCatalog == null)
-        {
-            return null;
-        }
+        if (productCatalog == null) return null;
 
         return productCatalog.GetProduct(
             index
@@ -95,9 +77,7 @@ public class StoreProgression : MonoBehaviour
     {
         if (index < 0 ||
             index >= unlockedProducts.Count)
-        {
             return null;
-        }
 
         return unlockedProducts[index];
     }
@@ -108,9 +88,7 @@ public class StoreProgression : MonoBehaviour
     {
         if (index < 0 ||
             index >= lastNewUnlocks.Count)
-        {
             return null;
-        }
 
         return lastNewUnlocks[index];
     }
@@ -119,10 +97,7 @@ public class StoreProgression : MonoBehaviour
         string productID
     )
     {
-        if (productCatalog == null)
-        {
-            return null;
-        }
+        if (productCatalog == null) return null;
 
         return productCatalog.FindProductByID(
             productID
@@ -133,10 +108,7 @@ public class StoreProgression : MonoBehaviour
         ProductData productData
     )
     {
-        if (productData == null)
-        {
-            return false;
-        }
+        if (productData == null) return false;
 
         return unlockedProducts.Contains(
             productData
@@ -147,10 +119,7 @@ public class StoreProgression : MonoBehaviour
         ProductData productData
     )
     {
-        if (productData == null)
-        {
-            return false;
-        }
+        if (productData == null) return false;
 
         return lastNewUnlocks.Contains(
             productData
@@ -161,15 +130,9 @@ public class StoreProgression : MonoBehaviour
         ProductData productData
     )
     {
-        if (productData == null)
-        {
-            return false;
-        }
+        if (productData == null) return false;
 
-        if (storeReputation == null)
-        {
-            return false;
-        }
+        if (storeReputation == null) return false;
 
         return storeReputation.CurrentReputation
                >= productData.RequiredReputation;
@@ -179,15 +142,9 @@ public class StoreProgression : MonoBehaviour
         ProductData productData
     )
     {
-        if (productData == null)
-        {
-            return false;
-        }
+        if (productData == null) return false;
 
-        if (storeLevelProgression == null)
-        {
-            return false;
-        }
+        if (storeLevelProgression == null) return false;
 
         return storeLevelProgression.CurrentLevel
                >= productData.RequiredStoreLevel;
@@ -200,16 +157,12 @@ public class StoreProgression : MonoBehaviour
         if (!MeetsReputationRequirement(
                 productData
             ))
-        {
             return false;
-        }
 
         if (!MeetsStoreLevelRequirement(
                 productData
             ))
-        {
             return false;
-        }
 
         return true;
     }
@@ -220,38 +173,28 @@ public class StoreProgression : MonoBehaviour
 
         lastNewUnlocks.Clear();
 
-        if (productCatalog == null)
-        {
-            return;
-        }
+        if (productCatalog == null) return;
 
-        for (int i = 0;
+        for (var i = 0;
              i < productCatalog.ProductCount;
              i++)
         {
-            ProductData product =
+            var product =
                 productCatalog.GetProduct(
                     i
                 );
 
-            if (product == null)
-            {
-                continue;
-            }
+            if (product == null) continue;
 
             if (unlockedProducts.Contains(
                     product
                 ))
-            {
                 continue;
-            }
 
             if (!MeetsUnlockRequirements(
                     product
                 ))
-            {
                 continue;
-            }
 
             unlockedProducts.Add(
                 product
@@ -265,27 +208,22 @@ public class StoreProgression : MonoBehaviour
 
     public List<string> GetUnlockedProductIDs()
     {
-        List<string> productIDs =
+        var productIDs =
             new List<string>();
 
-        for (int i = 0;
+        for (var i = 0;
              i < unlockedProducts.Count;
              i++)
         {
-            ProductData product =
+            var product =
                 unlockedProducts[i];
 
-            if (product == null)
-            {
-                continue;
-            }
+            if (product == null) continue;
 
             if (string.IsNullOrWhiteSpace(
                     product.ProductID
                 ))
-            {
                 continue;
-            }
 
             productIDs.Add(
                 product.ProductID
@@ -306,43 +244,33 @@ public class StoreProgression : MonoBehaviour
         lastNewUnlocks.Clear();
 
         if (productIDs != null)
-        {
-            for (int i = 0;
+            for (var i = 0;
                  i < productIDs.Count;
                  i++)
             {
-                ProductData product =
+                var product =
                     FindCatalogProductByID(
                         productIDs[i]
                     );
 
-                if (product == null)
-                {
-                    continue;
-                }
+                if (product == null) continue;
 
                 if (unlockedProducts.Contains(
                         product
                     ))
-                {
                     continue;
-                }
 
                 unlockedProducts.Add(
                     product
                 );
             }
-        }
 
         EnsureStarterProductsUnlocked();
     }
 
     private void EnsureInitialized()
     {
-        if (initialized)
-        {
-            return;
-        }
+        if (initialized) return;
 
         EnsureInitializedWithoutRefresh();
 
@@ -360,10 +288,7 @@ public class StoreProgression : MonoBehaviour
 
     private void EnsureInitializedWithoutRefresh()
     {
-        if (initialized)
-        {
-            return;
-        }
+        if (initialized) return;
 
         initialized =
             true;
@@ -375,41 +300,30 @@ public class StoreProgression : MonoBehaviour
 
     private void EnsureStarterProductsUnlocked()
     {
-        if (productCatalog == null)
-        {
-            return;
-        }
+        if (productCatalog == null) return;
 
-        for (int i = 0;
+        for (var i = 0;
              i < productCatalog.ProductCount;
              i++)
         {
-            ProductData product =
+            var product =
                 productCatalog.GetProduct(
                     i
                 );
 
-            if (product == null)
-            {
-                continue;
-            }
+            if (product == null) continue;
 
-            bool isStarterProduct =
+            var isStarterProduct =
                 product.RequiredReputation <= 0f
                 &&
                 product.RequiredStoreLevel <= 1;
 
-            if (!isStarterProduct)
-            {
-                continue;
-            }
+            if (!isStarterProduct) continue;
 
             if (unlockedProducts.Contains(
                     product
                 ))
-            {
                 continue;
-            }
 
             unlockedProducts.Add(
                 product

@@ -6,53 +6,36 @@ using UnityEngine.UI;
 
 public class ProductCatalogueUI : MonoBehaviour
 {
-    [Header("UI")]
-    [SerializeField]
-    private GameObject catalogueOverlay;
+    [Header("UI")] [SerializeField] private GameObject catalogueOverlay;
 
-    [SerializeField]
-    private TMP_Text progressionSummaryText;
+    [SerializeField] private TMP_Text progressionSummaryText;
 
-    [SerializeField]
-    private Transform catalogueListContent;
+    [SerializeField] private Transform catalogueListContent;
 
-    [SerializeField]
-    private ProductCatalogueRow catalogueRowPrefab;
+    [SerializeField] private ProductCatalogueRow catalogueRowPrefab;
 
-    [SerializeField]
-    private Button closeButton;
+    [SerializeField] private Button closeButton;
 
-    [Header("Progression")]
-    [SerializeField]
+    [Header("Progression")] [SerializeField]
     private StoreProgression storeProgression;
 
-    [SerializeField]
-    private StoreLevelProgression
+    [SerializeField] private StoreLevelProgression
         storeLevelProgression;
 
-    [Header("Other UI")]
-    [SerializeField]
-    private OrderingUI orderingUI;
+    [Header("Other UI")] [SerializeField] private OrderingUI orderingUI;
 
-    [SerializeField]
-    private PauseMenuUI pauseMenuUI;
+    [SerializeField] private PauseMenuUI pauseMenuUI;
 
-    [SerializeField]
-    private EndOfDayUI endOfDayUI;
+    [SerializeField] private EndOfDayUI endOfDayUI;
 
-    [SerializeField]
-    private InteractionUI interactionUI;
+    [SerializeField] private InteractionUI interactionUI;
 
-    [Header("Player")]
-    [SerializeField]
-    private PlayerController playerController;
+    [Header("Player")] [SerializeField] private PlayerController playerController;
 
-    [SerializeField]
-    private PlayerInteraction playerInteraction;
+    [SerializeField] private PlayerInteraction playerInteraction;
 
     private readonly List<ProductCatalogueRow>
-        spawnedRows =
-            new List<ProductCatalogueRow>();
+        spawnedRows = new();
 
     private bool isOpen;
 
@@ -72,16 +55,11 @@ public class ProductCatalogueUI : MonoBehaviour
 
     private void Update()
     {
-        if (Keyboard.current == null)
-        {
-            return;
-        }
+        if (Keyboard.current == null) return;
 
         if (!Keyboard.current.cKey
-            .wasPressedThisFrame)
-        {
+                .wasPressedThisFrame)
             return;
-        }
 
         if (isOpen)
         {
@@ -95,28 +73,19 @@ public class ProductCatalogueUI : MonoBehaviour
 
     public void Open()
     {
-        if (isOpen)
-        {
-            return;
-        }
+        if (isOpen) return;
 
         if (orderingUI != null &&
             orderingUI.IsOpen)
-        {
             return;
-        }
 
         if (pauseMenuUI != null &&
             pauseMenuUI.IsOpen)
-        {
             return;
-        }
 
         if (endOfDayUI != null &&
             endOfDayUI.IsOpen)
-        {
             return;
-        }
 
         isOpen =
             true;
@@ -132,22 +101,15 @@ public class ProductCatalogueUI : MonoBehaviour
         catalogueOverlay.transform
             .SetAsLastSibling();
 
-        if (interactionUI != null)
-        {
-            interactionUI.HidePrompt();
-        }
+        if (interactionUI != null) interactionUI.HidePrompt();
 
         if (playerController != null)
-        {
             playerController.enabled =
                 false;
-        }
 
         if (playerInteraction != null)
-        {
             playerInteraction.enabled =
                 false;
-        }
 
         Cursor.lockState =
             CursorLockMode.None;
@@ -161,10 +123,7 @@ public class ProductCatalogueUI : MonoBehaviour
 
     public void Close()
     {
-        if (!isOpen)
-        {
-            return;
-        }
+        if (!isOpen) return;
 
         isOpen =
             false;
@@ -177,16 +136,12 @@ public class ProductCatalogueUI : MonoBehaviour
             1f;
 
         if (playerController != null)
-        {
             playerController.enabled =
                 true;
-        }
 
         if (playerInteraction != null)
-        {
             playerInteraction.enabled =
                 true;
-        }
 
         Cursor.lockState =
             CursorLockMode.Locked;
@@ -199,38 +154,26 @@ public class ProductCatalogueUI : MonoBehaviour
     {
         ClearRows();
 
-        if (storeProgression == null)
-        {
-            return;
-        }
+        if (storeProgression == null) return;
 
-        if (catalogueListContent == null)
-        {
-            return;
-        }
+        if (catalogueListContent == null) return;
 
-        if (catalogueRowPrefab == null)
-        {
-            return;
-        }
+        if (catalogueRowPrefab == null) return;
 
-        for (int i = 0;
+        for (var i = 0;
              i < storeProgression
                  .CatalogProductCount;
              i++)
         {
-            ProductData product =
+            var product =
                 storeProgression
                     .GetCatalogProduct(
                         i
                     );
 
-            if (product == null)
-            {
-                continue;
-            }
+            if (product == null) continue;
 
-            ProductCatalogueRow newRow =
+            var newRow =
                 Instantiate(
                     catalogueRowPrefab,
                     catalogueListContent
@@ -249,10 +192,7 @@ public class ProductCatalogueUI : MonoBehaviour
 
     private void RefreshProgressionSummary()
     {
-        if (progressionSummaryText == null)
-        {
-            return;
-        }
+        if (progressionSummaryText == null) return;
 
         if (storeProgression == null ||
             storeLevelProgression == null)
@@ -276,17 +216,14 @@ public class ProductCatalogueUI : MonoBehaviour
 
     private void ClearRows()
     {
-        for (int i = 0;
+        for (var i = 0;
              i < spawnedRows.Count;
              i++)
         {
-            ProductCatalogueRow row =
+            var row =
                 spawnedRows[i];
 
-            if (row == null)
-            {
-                continue;
-            }
+            if (row == null) continue;
 
             row.gameObject.SetActive(
                 false

@@ -52,18 +52,12 @@ public class BasketLocatorUI : MonoBehaviour
 
     public void Show(RestockBasket basket, float duration = -1f)
     {
-        if (basket == null)
-        {
-            return;
-        }
+        if (basket == null) return;
 
         targetBasket = basket;
         remainingSeconds = duration > 0f ? duration : defaultDuration;
 
-        if (locatorRoot != null)
-        {
-            locatorRoot.SetActive(true);
-        }
+        if (locatorRoot != null) locatorRoot.SetActive(true);
 
         UpdateLocator();
     }
@@ -74,37 +68,29 @@ public class BasketLocatorUI : MonoBehaviour
         remainingSeconds = 0f;
         arrowAngularVelocity = 0f;
 
-        if (locatorRoot != null && locatorRoot.activeSelf)
-        {
-            locatorRoot.SetActive(false);
-        }
+        if (locatorRoot != null && locatorRoot.activeSelf) locatorRoot.SetActive(false);
     }
 
     private void UpdateLocator()
     {
-        if (targetBasket == null || playerCamera == null)
-        {
-            return;
-        }
+        if (targetBasket == null || playerCamera == null) return;
 
-        Vector3 cameraForward = playerCamera.transform.forward;
+        var cameraForward = playerCamera.transform.forward;
         cameraForward.y = 0f;
 
-        Vector3 directionToBasket =
+        var directionToBasket =
             targetBasket.transform.position - playerCamera.transform.position;
 
         directionToBasket.y = 0f;
 
         if (cameraForward.sqrMagnitude < 0.001f ||
             directionToBasket.sqrMagnitude < 0.001f)
-        {
             return;
-        }
 
         cameraForward.Normalize();
         directionToBasket.Normalize();
 
-        float worldAngle = Vector3.SignedAngle(
+        var worldAngle = Vector3.SignedAngle(
             cameraForward,
             directionToBasket,
             Vector3.up
@@ -113,7 +99,7 @@ public class BasketLocatorUI : MonoBehaviour
         // The UI arrow starts pointing upward.
         // Negative converts Unity's world yaw direction
         // into the equivalent 2D UI rotation.
-        float targetArrowAngle = -worldAngle;
+        var targetArrowAngle = -worldAngle;
 
         currentArrowAngle = Mathf.SmoothDampAngle(
             currentArrowAngle,
@@ -125,14 +111,12 @@ public class BasketLocatorUI : MonoBehaviour
         );
 
         if (arrowRect != null)
-        {
             arrowRect.localRotation =
                 Quaternion.Euler(0f, 0f, currentArrowAngle);
-        }
 
         if (locatorText != null)
         {
-            float distance = Vector3.Distance(
+            var distance = Vector3.Distance(
                 playerCamera.transform.position,
                 targetBasket.transform.position
             );

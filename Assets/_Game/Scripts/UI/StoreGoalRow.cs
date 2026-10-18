@@ -3,17 +3,14 @@ using UnityEngine;
 
 public class StoreGoalRow : MonoBehaviour
 {
-    [Header("UI")]
-    [SerializeField]
-    private TMP_Text goalNameText;
+    [Header("UI")] [SerializeField] private TMP_Text goalNameText;
 
-    [SerializeField]
-    private TMP_Text progressText;
+    [SerializeField] private TMP_Text progressText;
 
     private StoreGoalDefinition goal;
 
     private static readonly Color32 NormalNameColor =
-        new Color32(
+        new(
             122,
             104,
             96,
@@ -21,7 +18,7 @@ public class StoreGoalRow : MonoBehaviour
         );
 
     private static readonly Color32 NormalProgressColor =
-        new Color32(
+        new(
             89,
             70,
             64,
@@ -29,7 +26,7 @@ public class StoreGoalRow : MonoBehaviour
         );
 
     private static readonly Color32 CompletedColor =
-        new Color32(
+        new(
             111,
             207,
             151,
@@ -62,22 +59,16 @@ public class StoreGoalRow : MonoBehaviour
         StoreGoals storeGoals
     )
     {
-        if (goal == null)
-        {
-            return;
-        }
+        if (goal == null) return;
 
-        if (storeGoals == null)
-        {
-            return;
-        }
+        if (storeGoals == null) return;
 
         progressText.text =
             storeGoals.GetProgressText(
                 goal
             );
 
-        bool completed =
+        var completed =
             storeGoals.IsGoalComplete(
                 goal
             );

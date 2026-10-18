@@ -2,40 +2,28 @@ using UnityEngine;
 
 public class DeliveryZone : MonoBehaviour
 {
-    [Header("Delivery Slots")]
-    [SerializeField]
+    [Header("Delivery Slots")] [SerializeField]
     private Transform[] deliverySlots;
 
     private DeliveryBox[] activeDeliveries;
 
-    public bool HasSpace
-    {
-        get
-        {
-            return FindAvailableSlotIndex()
-                   >= 0;
-        }
-    }
+    public bool HasSpace =>
+        FindAvailableSlotIndex()
+        >= 0;
 
     public int ActiveDeliveryCount
     {
         get
         {
-            if (activeDeliveries == null)
-            {
-                return 0;
-            }
+            if (activeDeliveries == null) return 0;
 
-            int count = 0;
+            var count = 0;
 
-            for (int i = 0;
+            for (var i = 0;
                  i < activeDeliveries.Length;
                  i++)
             {
-                if (activeDeliveries[i] == null)
-                {
-                    continue;
-                }
+                if (activeDeliveries[i] == null) continue;
 
                 count++;
             }
@@ -48,10 +36,7 @@ public class DeliveryZone : MonoBehaviour
     {
         get
         {
-            if (deliverySlots == null)
-            {
-                return 0;
-            }
+            if (deliverySlots == null) return 0;
 
             return deliverySlots.Length;
         }
@@ -59,13 +44,11 @@ public class DeliveryZone : MonoBehaviour
 
     private void Awake()
     {
-        int slotCount = 0;
+        var slotCount = 0;
 
         if (deliverySlots != null)
-        {
             slotCount =
                 deliverySlots.Length;
-        }
 
         activeDeliveries =
             new DeliveryBox[slotCount];
@@ -75,16 +58,11 @@ public class DeliveryZone : MonoBehaviour
         int slotIndex
     )
     {
-        if (activeDeliveries == null)
-        {
-            return null;
-        }
+        if (activeDeliveries == null) return null;
 
         if (slotIndex < 0 ||
             slotIndex >= activeDeliveries.Length)
-        {
             return null;
-        }
 
         return activeDeliveries[
             slotIndex
@@ -100,30 +78,18 @@ public class DeliveryZone : MonoBehaviour
     {
         createdDelivery = null;
 
-        if (deliveryBoxPrefab == null)
-        {
-            return false;
-        }
+        if (deliveryBoxPrefab == null) return false;
 
-        if (productData == null)
-        {
-            return false;
-        }
+        if (productData == null) return false;
 
-        if (quantity <= 0)
-        {
-            return false;
-        }
+        if (quantity <= 0) return false;
 
-        int slotIndex =
+        var slotIndex =
             FindAvailableSlotIndex();
 
-        if (slotIndex < 0)
-        {
-            return false;
-        }
+        if (slotIndex < 0) return false;
 
-        Transform deliverySlot =
+        var deliverySlot =
             deliverySlots[slotIndex];
 
         createdDelivery =
@@ -132,7 +98,7 @@ public class DeliveryZone : MonoBehaviour
                 deliverySlot.position,
                 deliverySlot.rotation
             );
-        
+
         createdDelivery.PlaceAt(
             deliverySlot
         );
@@ -160,46 +126,28 @@ public class DeliveryZone : MonoBehaviour
     {
         createdDelivery = null;
 
-        if (deliveryBoxPrefab == null)
-        {
-            return false;
-        }
+        if (deliveryBoxPrefab == null) return false;
 
-        if (productData == null)
-        {
-            return false;
-        }
+        if (productData == null) return false;
 
-        if (quantity < 0)
-        {
-            return false;
-        }
+        if (quantity < 0) return false;
 
         if (deliverySlots == null ||
             activeDeliveries == null)
-        {
             return false;
-        }
 
         if (slotIndex < 0 ||
             slotIndex >= deliverySlots.Length)
-        {
             return false;
-        }
 
-        Transform deliverySlot =
+        var deliverySlot =
             deliverySlots[slotIndex];
 
-        if (deliverySlot == null)
-        {
-            return false;
-        }
+        if (deliverySlot == null) return false;
 
         if (activeDeliveries[slotIndex]
             != null)
-        {
             return false;
-        }
 
         createdDelivery =
             Instantiate(
@@ -207,7 +155,7 @@ public class DeliveryZone : MonoBehaviour
                 deliverySlot.position,
                 deliverySlot.rotation
             );
-        
+
         createdDelivery.PlaceAt(
             deliverySlot
         );
@@ -227,106 +175,76 @@ public class DeliveryZone : MonoBehaviour
 
     public void ClearAllDeliveriesForLoad()
     {
-        if (activeDeliveries == null)
-        {
-            return;
-        }
+        if (activeDeliveries == null) return;
 
-        for (int i = 0;
+        for (var i = 0;
              i < activeDeliveries.Length;
              i++)
         {
-            DeliveryBox delivery =
+            var delivery =
                 activeDeliveries[i];
 
             activeDeliveries[i] =
                 null;
 
-            if (delivery == null)
-            {
-                continue;
-            }
+            if (delivery == null) continue;
 
             Destroy(
                 delivery.gameObject
             );
         }
     }
-    
+
     public int GetSlotIndex(
         DeliveryBox deliveryBox
     )
     {
         if (deliveryBox == null ||
             activeDeliveries == null)
-        {
             return -1;
-        }
 
-        for (int i = 0;
+        for (var i = 0;
              i < activeDeliveries.Length;
              i++)
-        {
             if (activeDeliveries[i]
                 == deliveryBox)
-            {
                 return i;
-            }
-        }
 
         return -1;
     }
 
     private int FindAvailableSlotIndex()
     {
-        if (deliverySlots == null)
-        {
-            return -1;
-        }
+        if (deliverySlots == null) return -1;
 
-        if (activeDeliveries == null)
-        {
-            return -1;
-        }
+        if (activeDeliveries == null) return -1;
 
-        for (int i = 0;
+        for (var i = 0;
              i < deliverySlots.Length;
              i++)
         {
-            if (deliverySlots[i] == null)
-            {
-                continue;
-            }
+            if (deliverySlots[i] == null) continue;
 
-            if (activeDeliveries[i] != null)
-            {
-                continue;
-            }
+            if (activeDeliveries[i] != null) continue;
 
             return i;
         }
 
         return -1;
     }
-    
+
     private void OnDrawGizmosSelected()
     {
-        if (deliverySlots == null)
-        {
-            return;
-        }
+        if (deliverySlots == null) return;
 
-        for (int i = 0;
+        for (var i = 0;
              i < deliverySlots.Length;
              i++)
         {
-            Transform deliveryPoint =
+            var deliveryPoint =
                 deliverySlots[i];
 
-            if (deliveryPoint == null)
-            {
-                continue;
-            }
+            if (deliveryPoint == null) continue;
 
             PlacementUtility.DrawFrameGizmo(
                 deliveryPoint,

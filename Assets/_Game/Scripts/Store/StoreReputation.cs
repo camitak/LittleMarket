@@ -3,14 +3,10 @@ using UnityEngine;
 
 public class StoreReputation : MonoBehaviour
 {
-    [Header("Starting Reputation")]
-    [Range(0f, 100f)]
-    [SerializeField]
+    [Header("Starting Reputation")] [Range(0f, 100f)] [SerializeField]
     private float startingReputation = 50f;
 
-    [Header("HUD")]
-    [SerializeField]
-    private TMP_Text reputationText;
+    [Header("HUD")] [SerializeField] private TMP_Text reputationText;
 
     private float currentReputation;
 
@@ -28,7 +24,7 @@ public class StoreReputation : MonoBehaviour
         {
             if (currentReputation <= 50f)
             {
-                float t =
+                var t =
                     currentReputation / 50f;
 
                 return Mathf.Lerp(
@@ -38,7 +34,7 @@ public class StoreReputation : MonoBehaviour
                 );
             }
 
-            float highReputationT =
+            var highReputationT =
                 (currentReputation - 50f)
                 / 50f;
 
@@ -78,14 +74,14 @@ public class StoreReputation : MonoBehaviour
             return;
         }
 
-        float clampedSatisfaction =
+        var clampedSatisfaction =
             Mathf.Clamp(
                 averageSatisfaction,
                 0f,
                 100f
             );
 
-        float requestedChange =
+        var requestedChange =
             (clampedSatisfaction - 70f)
             * 0.2f;
 
@@ -96,7 +92,7 @@ public class StoreReputation : MonoBehaviour
                 6f
             );
 
-        float previousReputation =
+        var previousReputation =
             currentReputation;
 
         currentReputation =
@@ -129,7 +125,7 @@ public class StoreReputation : MonoBehaviour
             value * 10f
         ) / 10f;
     }
-    
+
     public void SetReputation(
         float newReputation
     )
@@ -153,10 +149,7 @@ public class StoreReputation : MonoBehaviour
 
     private void UpdateReputationUI()
     {
-        if (reputationText == null)
-        {
-            return;
-        }
+        if (reputationText == null) return;
 
         reputationText.text =
             "REP "

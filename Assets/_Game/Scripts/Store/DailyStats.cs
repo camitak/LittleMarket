@@ -12,11 +12,7 @@ public class DailyStats : MonoBehaviour
 
     public int CustomersVisited { get; private set; }
 
-    public int CustomersLeftWithoutBuying
-    {
-        get;
-        private set;
-    }
+    public int CustomersLeftWithoutBuying { get; private set; }
 
     public int MissedProducts { get; private set; }
 

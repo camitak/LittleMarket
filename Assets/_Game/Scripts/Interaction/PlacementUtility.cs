@@ -8,10 +8,7 @@ public static class PlacementUtility
         Transform target
     )
     {
-        if (target == null)
-        {
-            return;
-        }
+        if (target == null) return;
 
         AlignAnchorToPose(
             objectRoot,
@@ -28,10 +25,7 @@ public static class PlacementUtility
         Quaternion targetRotation
     )
     {
-        if (objectRoot == null)
-        {
-            return;
-        }
+        if (objectRoot == null) return;
 
         /*
          * Objects without an explicit anchor
@@ -51,7 +45,7 @@ public static class PlacementUtility
          * First make the anchor's orientation
          * match the target orientation.
          */
-        Quaternion anchorRotationRelativeToRoot =
+        var anchorRotationRelativeToRoot =
             Quaternion.Inverse(
                 objectRoot.rotation
             )
@@ -70,7 +64,7 @@ public static class PlacementUtility
          * so calculate position correction after
          * the rotation has been applied.
          */
-        Vector3 positionCorrection =
+        var positionCorrection =
             targetPosition
             -
             objectAnchor.position;
@@ -84,12 +78,9 @@ public static class PlacementUtility
         float size = 0.12f
     )
     {
-        if (frame == null)
-        {
-            return;
-        }
+        if (frame == null) return;
 
-        Vector3 origin =
+        var origin =
             frame.position;
 
         /*

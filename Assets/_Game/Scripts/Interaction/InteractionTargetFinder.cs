@@ -8,38 +8,32 @@ public static class InteractionTargetFinder
         float interactionAssistRadius
     )
     {
-        if (playerCamera == null)
-        {
-            return null;
-        }
+        if (playerCamera == null) return null;
 
-        Ray ray =
+        var ray =
             new Ray(
                 playerCamera.transform.position,
                 playerCamera.transform.forward
             );
 
-        bool hasCenterHit =
+        var hasCenterHit =
             Physics.Raycast(
                 ray,
-                out RaycastHit centerHit,
+                out var centerHit,
                 interactionDistance
             );
 
         if (hasCenterHit)
         {
-            IInteractable directInteractable =
+            var directInteractable =
                 FindInteractableOnCollider(
                     centerHit.collider
                 );
 
-            if (directInteractable != null)
-            {
-                return directInteractable;
-            }
+            if (directInteractable != null) return directInteractable;
         }
 
-        RaycastHit[] assistedHits =
+        var assistedHits =
             Physics.SphereCastAll(
                 ray,
                 interactionAssistRadius,
@@ -49,85 +43,69 @@ public static class InteractionTargetFinder
         IInteractable bestInteractable =
             null;
 
-        float bestScore =
+        var bestScore =
             float.MaxValue;
 
-        float maximumAllowedDistance =
+        var maximumAllowedDistance =
             interactionDistance;
 
         if (hasCenterHit)
-        {
             maximumAllowedDistance =
                 centerHit.distance
                 + interactionAssistRadius
                 * 2f;
-        }
 
-        for (int i = 0;
+        for (var i = 0;
              i < assistedHits.Length;
              i++)
         {
-            RaycastHit assistedHit =
+            var assistedHit =
                 assistedHits[i];
 
-            if (assistedHit.collider == null)
-            {
-                continue;
-            }
+            if (assistedHit.collider == null) continue;
 
             if (assistedHit.distance
                 > maximumAllowedDistance)
-            {
                 continue;
-            }
 
-            IInteractable interactable =
+            var interactable =
                 FindInteractableOnCollider(
                     assistedHit.collider
                 );
 
-            if (interactable == null)
-            {
-                continue;
-            }
+            if (interactable == null) continue;
 
-            Vector3 toCenter =
+            var toCenter =
                 assistedHit.collider
                     .bounds.center
                 - ray.origin;
 
-            float forwardDistance =
+            var forwardDistance =
                 Vector3.Dot(
                     toCenter,
                     ray.direction
                 );
 
-            if (forwardDistance < 0f)
-            {
-                continue;
-            }
+            if (forwardDistance < 0f) continue;
 
-            Vector3 closestPointOnRay =
+            var closestPointOnRay =
                 ray.origin
                 + ray.direction
                 * forwardDistance;
 
-            float distanceFromCrosshair =
+            var distanceFromCrosshair =
                 Vector3.SqrMagnitude(
                     assistedHit.collider
                         .bounds.center
                     - closestPointOnRay
                 );
 
-            float score =
+            var score =
                 distanceFromCrosshair
                 + assistedHit.distance
                 * 0.0001f;
 
-            if (score >= bestScore)
-            {
-                continue;
-            }
+            if (score >= bestScore) continue;
 
             bestScore =
                 score;
@@ -144,34 +122,29 @@ public static class InteractionTargetFinder
             Collider targetCollider
         )
     {
-        if (targetCollider == null)
-        {
-            return null;
-        }
+        if (targetCollider == null) return null;
 
-        Transform currentTransform =
+        var currentTransform =
             targetCollider.transform;
 
         while (currentTransform != null)
         {
-            MonoBehaviour[] behaviours =
+            var behaviours =
                 currentTransform
                     .GetComponents<
                         MonoBehaviour
                     >();
 
-            for (int i = 0;
+            for (var i = 0;
                  i < behaviours.Length;
                  i++)
             {
-                MonoBehaviour behaviour =
+                var behaviour =
                     behaviours[i];
 
                 if (behaviour
                     is IInteractable interactable)
-                {
                     return interactable;
-                }
             }
 
             currentTransform =

@@ -6,18 +6,13 @@ using UnityEngine;
 )]
 public class DayGoalSchedule : ScriptableObject
 {
-    [Header("Schedule")]
-    [SerializeField]
-    private DayGoalScheduleEntry[] entries;
+    [Header("Schedule")] [SerializeField] private DayGoalScheduleEntry[] entries;
 
     public int EntryCount
     {
         get
         {
-            if (entries == null)
-            {
-                return 0;
-            }
+            if (entries == null) return 0;
 
             return entries.Length;
         }
@@ -27,16 +22,11 @@ public class DayGoalSchedule : ScriptableObject
         int index
     )
     {
-        if (entries == null)
-        {
-            return null;
-        }
+        if (entries == null) return null;
 
         if (index < 0 ||
             index >= entries.Length)
-        {
             return null;
-        }
 
         return entries[index];
     }
@@ -54,36 +44,25 @@ public class DayGoalSchedule : ScriptableObject
         DailyGoalSet bestGoalSet =
             null;
 
-        int bestStartDay =
+        var bestStartDay =
             int.MinValue;
 
-        for (int i = 0;
+        for (var i = 0;
              i < EntryCount;
              i++)
         {
-            DayGoalScheduleEntry entry =
+            var entry =
                 entries[i];
 
-            if (entry == null)
-            {
-                continue;
-            }
+            if (entry == null) continue;
 
-            if (entry.GoalSet == null)
-            {
-                continue;
-            }
+            if (entry.GoalSet == null) continue;
 
-            if (entry.StartDay > day)
-            {
-                continue;
-            }
+            if (entry.StartDay > day) continue;
 
             if (entry.StartDay
                 <= bestStartDay)
-            {
                 continue;
-            }
 
             bestStartDay =
                 entry.StartDay;

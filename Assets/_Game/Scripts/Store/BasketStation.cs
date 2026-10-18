@@ -5,37 +5,25 @@ public class BasketStation :
     IInteractable,
     IManagementInteractable
 {
-    [Header("Basket")]
-    [SerializeField]
-    private RestockBasket basket;
+    [Header("Basket")] [SerializeField] private RestockBasket basket;
 
-    [SerializeField]
-    private Transform dockPoint;
+    [SerializeField] private Transform dockPoint;
 
-    [Header("Locator")]
-    [SerializeField]
-    private BasketLocatorUI basketLocatorUI;
+    [Header("Locator")] [SerializeField] private BasketLocatorUI basketLocatorUI;
 
-    [Header("Startup")]
-    [SerializeField]
-    private bool dockBasketOnStart = true;
+    [Header("Startup")] [SerializeField] private bool dockBasketOnStart = true;
 
     public float ManagementHoldDuration =>
         0.8f;
 
     private void Start()
     {
-        if (basketLocatorUI != null)
-        {
-            basketLocatorUI.Hide();
-        }
+        if (basketLocatorUI != null) basketLocatorUI.Hide();
 
         if (!dockBasketOnStart ||
             basket == null ||
             dockPoint == null)
-        {
             return;
-        }
 
         basket.DockTo(
             dockPoint
@@ -46,18 +34,13 @@ public class BasketStation :
         PlayerInteraction player
     )
     {
-        if (player == null)
-        {
-            return "";
-        }
+        if (player == null) return "";
 
         if (basket == null ||
             dockPoint == null)
-        {
             return "Basket station not configured";
-        }
 
-        RestockBasket heldBasket =
+        var heldBasket =
             player.GetHeldRestockBasket();
 
         /*
@@ -66,10 +49,8 @@ public class BasketStation :
         if (heldBasket != null)
         {
             if (heldBasket != basket)
-            {
                 return "This basket does not belong "
                        + "to this station";
-            }
 
             return "[E] Return restock basket"
                    + "\n"
@@ -82,33 +63,26 @@ public class BasketStation :
          * Other carried objects block the station.
          */
         if (player.GetHeldDeliveryBox()
-                != null ||
+            != null ||
             player.GetHeldItem()
-                != null)
-        {
+            != null)
             return "Put down what you're carrying "
                    + "to use the basket station";
-        }
 
         /*
          * Normal docked state.
          */
         if (basket.IsDocked)
-        {
             return "[E] Take restock basket"
                    + "\n"
                    + basket.ItemCount
                    + " / "
                    + basket.Capacity;
-        }
 
         /*
          * Defensive state.
          */
-        if (basket.IsHeld)
-        {
-            return "Restock basket is currently in use";
-        }
+        if (basket.IsHeld) return "Restock basket is currently in use";
 
         /*
          * Loaded basket:
@@ -117,14 +91,12 @@ public class BasketStation :
          * teleporting is not.
          */
         if (!basket.IsEmpty)
-        {
             return "Basket away"
                    + "  •  "
                    + basket.ItemCount
                    + " / "
                    + basket.Capacity
                    + "\n[E] Locate basket";
-        }
 
         /*
          * Empty basket:
@@ -144,11 +116,9 @@ public class BasketStation :
         if (player == null ||
             basket == null ||
             dockPoint == null)
-        {
             return;
-        }
 
-        RestockBasket heldBasket =
+        var heldBasket =
             player.GetHeldRestockBasket();
 
         /*
@@ -156,10 +126,7 @@ public class BasketStation :
          */
         if (heldBasket != null)
         {
-            if (heldBasket != basket)
-            {
-                return;
-            }
+            if (heldBasket != basket) return;
 
             basket.DockTo(
                 dockPoint
@@ -167,10 +134,7 @@ public class BasketStation :
 
             player.RemoveHeldRestockBasket();
 
-            if (basketLocatorUI != null)
-            {
-                basketLocatorUI.Hide();
-            }
+            if (basketLocatorUI != null) basketLocatorUI.Hide();
 
             return;
         }
@@ -178,20 +142,14 @@ public class BasketStation :
         /*
          * Other carried things block station use.
          */
-        if (player.HasAnythingHeld)
-        {
-            return;
-        }
+        if (player.HasAnythingHeld) return;
 
         /*
          * Take basket from dock.
          */
         if (basket.IsDocked)
         {
-            if (basketLocatorUI != null)
-            {
-                basketLocatorUI.Hide();
-            }
+            if (basketLocatorUI != null) basketLocatorUI.Hide();
 
             player.TryPickUpRestockBasket(
                 basket
@@ -200,10 +158,7 @@ public class BasketStation :
             return;
         }
 
-        if (basket.IsHeld)
-        {
-            return;
-        }
+        if (basket.IsHeld) return;
 
         /*
          * Basket is somewhere in the world.
@@ -212,11 +167,9 @@ public class BasketStation :
          * the object.
          */
         if (basketLocatorUI != null)
-        {
             basketLocatorUI.Show(
                 basket
             );
-        }
     }
 
     public bool CanUseManagementAction(
@@ -226,20 +179,13 @@ public class BasketStation :
         if (player == null ||
             basket == null ||
             dockPoint == null)
-        {
             return false;
-        }
 
-        if (player.HasAnythingHeld)
-        {
-            return false;
-        }
+        if (player.HasAnythingHeld) return false;
 
         if (basket.IsDocked ||
             basket.IsHeld)
-        {
             return false;
-        }
 
         /*
          * Only an empty basket may teleport home.
@@ -254,18 +200,13 @@ public class BasketStation :
         if (!CanUseManagementAction(
                 player
             ))
-        {
             return;
-        }
 
         basket.DockTo(
             dockPoint
         );
 
-        if (basketLocatorUI != null)
-        {
-            basketLocatorUI.Hide();
-        }
+        if (basketLocatorUI != null) basketLocatorUI.Hide();
     }
 
     private void OnDrawGizmosSelected()

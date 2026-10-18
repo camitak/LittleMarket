@@ -6,17 +6,13 @@ using UnityEngine;
 )]
 public class StoreProductCatalog : ScriptableObject
 {
-    [SerializeField]
-    private ProductData[] products;
+    [SerializeField] private ProductData[] products;
 
     public int ProductCount
     {
         get
         {
-            if (products == null)
-            {
-                return 0;
-            }
+            if (products == null) return 0;
 
             return products.Length;
         }
@@ -26,16 +22,11 @@ public class StoreProductCatalog : ScriptableObject
         int index
     )
     {
-        if (products == null)
-        {
-            return null;
-        }
+        if (products == null) return null;
 
         if (index < 0 ||
             index >= products.Length)
-        {
             return null;
-        }
 
         return products[index];
     }
@@ -44,35 +35,25 @@ public class StoreProductCatalog : ScriptableObject
         string productID
     )
     {
-        if (products == null)
-        {
-            return null;
-        }
+        if (products == null) return null;
 
         if (string.IsNullOrEmpty(
                 productID
             ))
-        {
             return null;
-        }
 
-        for (int i = 0;
+        for (var i = 0;
              i < products.Length;
              i++)
         {
-            ProductData product =
+            var product =
                 products[i];
 
-            if (product == null)
-            {
-                continue;
-            }
+            if (product == null) continue;
 
             if (product.ProductID
                 != productID)
-            {
                 continue;
-            }
 
             return product;
         }

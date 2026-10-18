@@ -45,9 +45,7 @@ public sealed class PlayerCarryState
         if (item == null ||
             holdPoint == null ||
             HasAnythingHeld)
-        {
             return false;
-        }
 
         heldItem =
             item;
@@ -67,9 +65,7 @@ public sealed class PlayerCarryState
             holdPoint == null ||
             viewTransform == null ||
             HasAnythingHeld)
-        {
             return false;
-        }
 
         heldRestockBasket =
             basket;
@@ -90,9 +86,7 @@ public sealed class PlayerCarryState
             holdPoint == null ||
             viewTransform == null ||
             HasAnythingHeld)
-        {
             return false;
-        }
 
         heldDeliveryBox =
             deliveryBox;

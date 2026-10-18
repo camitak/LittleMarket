@@ -37,42 +37,25 @@ public class CheckoutRegister :
         PlayerInteraction player
     )
     {
-        if (player == null)
-        {
-            return "";
-        }
+        if (player == null) return "";
 
         if (player.HasAnythingHeld)
-        {
             return "Put down what you're carrying "
                    + "to use checkout";
-        }
 
-        if (checkoutQueue == null)
-        {
-            return "Checkout not configured";
-        }
+        if (checkoutQueue == null) return "Checkout not configured";
 
-        CustomerController customer =
+        var customer =
             checkoutQueue.GetFrontCustomer();
 
-        if (customer == null)
-        {
-            return "No customers waiting";
-        }
+        if (customer == null) return "No customers waiting";
 
-        if (!customer.IsReadyForCheckout())
-        {
-            return "Customer approaching checkout";
-        }
+        if (!customer.IsReadyForCheckout()) return "Customer approaching checkout";
 
-        int itemCount =
+        var itemCount =
             customer.GetCarriedItemCount();
 
-        if (itemCount <= 0)
-        {
-            return "Customer has no products";
-        }
+        if (itemCount <= 0) return "Customer has no products";
 
         EnsureCheckoutSession(
             customer
@@ -81,34 +64,26 @@ public class CheckoutRegister :
         if (!HasValidPhysicalCheckout(
                 itemCount
             ))
-        {
             return "Checkout item points "
                    + "not configured";
-        }
 
         /*
          * Briefly block another scan while the
          * current item is sitting over the scanner.
          */
-        if (scanInProgress)
-        {
-            return "Scanning...";
-        }
+        if (scanInProgress) return "Scanning...";
 
         /*
          * Products still waiting to be scanned.
          */
         if (scannedItemCount < itemCount)
         {
-            ProductData nextProduct =
+            var nextProduct =
                 customer.GetCarriedProductData(
                     scannedItemCount
                 );
 
-            if (nextProduct == null)
-            {
-                return "Checkout item not configured";
-            }
+            if (nextProduct == null) return "Checkout item not configured";
 
             return "[E] Scan "
                    + nextProduct.ProductName
@@ -141,17 +116,13 @@ public class CheckoutRegister :
         if (player == null ||
             player.HasAnythingHeld ||
             scanInProgress)
-        {
             return;
-        }
 
         if (checkoutQueue == null ||
             storeEconomy == null)
-        {
             return;
-        }
 
-        CustomerController customer =
+        var customer =
             checkoutQueue.GetFrontCustomer();
 
         if (customer == null)
@@ -168,7 +139,7 @@ public class CheckoutRegister :
             return;
         }
 
-        int itemCount =
+        var itemCount =
             customer.GetCarriedItemCount();
 
         if (itemCount <= 0)
@@ -185,9 +156,7 @@ public class CheckoutRegister :
         if (!HasValidPhysicalCheckout(
                 itemCount
             ))
-        {
             return;
-        }
 
         /*
          * Stage 1:
@@ -218,57 +187,43 @@ public class CheckoutRegister :
     {
         if (customer == null ||
             scanInProgress)
-        {
             return;
-        }
 
-        int itemCount =
+        var itemCount =
             customer.GetCarriedItemCount();
 
-        int scanIndex =
+        var scanIndex =
             scannedItemCount;
 
         if (scanIndex < 0 ||
             scanIndex >= itemCount)
-        {
             return;
-        }
 
         if (scannedItemPoints == null ||
             scanIndex
             >= scannedItemPoints.Length)
-        {
             return;
-        }
 
-        PickupItem item =
+        var item =
             customer.GetCarriedItem(
                 scanIndex
             );
 
-        if (item == null)
-        {
-            return;
-        }
+        if (item == null) return;
 
-        ProductData product =
+        var product =
             item.GetProductData();
 
-        if (product == null)
-        {
-            return;
-        }
+        if (product == null) return;
 
-        Transform outputPoint =
+        var outputPoint =
             scannedItemPoints[
                 scanIndex
             ];
 
         if (scanPoint == null ||
             outputPoint == null)
-        {
             return;
-        }
 
         /*
          * Claim this exact item BEFORE starting
@@ -317,19 +272,15 @@ public class CheckoutRegister :
                 item,
                 scanIndex
             ))
-        {
             yield break;
-        }
 
         item.PlaceInContainer(
             scanPoint
         );
 
         if (checkoutFeedback != null)
-        {
             checkoutFeedback
                 .PlayScanFeedback();
-        }
 
         yield return new WaitForSeconds(
             Mathf.Max(
@@ -350,9 +301,7 @@ public class CheckoutRegister :
                 item,
                 scanIndex
             ))
-        {
             yield break;
-        }
 
         if (item == null)
         {
@@ -410,28 +359,18 @@ public class CheckoutRegister :
     {
         if (customer == null ||
             scanInProgress)
-        {
             return;
-        }
 
         if (scannedItemCount
             < itemCount)
-        {
             return;
-        }
 
-        if (scannedTotal <= 0f)
-        {
-            return;
-        }
+        if (scannedTotal <= 0f) return;
 
-        bool checkoutCompleted =
+        var checkoutCompleted =
             customer.CompleteCheckout();
 
-        if (!checkoutCompleted)
-        {
-            return;
-        }
+        if (!checkoutCompleted) return;
 
         /*
          * CompleteCheckout destroys all products
@@ -447,17 +386,12 @@ public class CheckoutRegister :
         );
 
         if (dailyStats != null)
-        {
             dailyStats.RecordSale(
                 scannedTotal,
                 itemCount
             );
-        }
 
-        if (checkoutFeedback != null)
-        {
-            checkoutFeedback.PlayPaymentFeedback(scannedTotal);
-        }
+        if (checkoutFeedback != null) checkoutFeedback.PlayPaymentFeedback(scannedTotal);
 
         ResetCheckoutSession();
     }
@@ -473,10 +407,7 @@ public class CheckoutRegister :
             return;
         }
 
-        if (activeCustomer == customer)
-        {
-            return;
-        }
+        if (activeCustomer == customer) return;
 
         /*
          * If the front customer changed, invalidate
@@ -519,32 +450,20 @@ public class CheckoutRegister :
         int itemCount
     )
     {
-        if (scanPoint == null)
-        {
-            return false;
-        }
+        if (scanPoint == null) return false;
 
-        if (scannedItemPoints == null)
-        {
-            return false;
-        }
+        if (scannedItemPoints == null) return false;
 
         if (scannedItemPoints.Length
             < itemCount)
-        {
             return false;
-        }
 
-        for (int i = 0;
+        for (var i = 0;
              i < itemCount;
              i++)
-        {
             if (scannedItemPoints[i]
                 == null)
-            {
                 return false;
-            }
-        }
 
         return true;
     }
@@ -552,29 +471,21 @@ public class CheckoutRegister :
     private void OnDrawGizmosSelected()
     {
         if (scanPoint != null)
-        {
             Gizmos.DrawWireSphere(
                 scanPoint.position,
                 0.05f
             );
-        }
 
-        if (scannedItemPoints == null)
-        {
-            return;
-        }
+        if (scannedItemPoints == null) return;
 
-        for (int i = 0;
+        for (var i = 0;
              i < scannedItemPoints.Length;
              i++)
         {
-            Transform point =
+            var point =
                 scannedItemPoints[i];
 
-            if (point == null)
-            {
-                continue;
-            }
+            if (point == null) continue;
 
             Gizmos.DrawWireSphere(
                 point.position,

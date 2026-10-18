@@ -3,14 +3,10 @@ using UnityEngine;
 
 public class StoreEconomy : MonoBehaviour
 {
-    [Header("Money")]
-    [Min(0f)]
-    [SerializeField]
+    [Header("Money")] [Min(0f)] [SerializeField]
     private float startingMoney = 100f;
 
-    [Header("UI")]
-    [SerializeField]
-    private TMP_Text moneyText;
+    [Header("UI")] [SerializeField] private TMP_Text moneyText;
 
     private float currentMoney;
 
@@ -32,15 +28,9 @@ public class StoreEconomy : MonoBehaviour
         float amount
     )
     {
-        if (amount <= 0f)
-        {
-            return false;
-        }
+        if (amount <= 0f) return false;
 
-        if (currentMoney < amount)
-        {
-            return false;
-        }
+        if (currentMoney < amount) return false;
 
         currentMoney -= amount;
 
@@ -53,10 +43,7 @@ public class StoreEconomy : MonoBehaviour
         float amount
     )
     {
-        if (amount <= 0f)
-        {
-            return;
-        }
+        if (amount <= 0f) return;
 
         currentMoney += amount;
 
@@ -78,10 +65,7 @@ public class StoreEconomy : MonoBehaviour
 
     private void UpdateMoneyUI()
     {
-        if (moneyText == null)
-        {
-            return;
-        }
+        if (moneyText == null) return;
 
         moneyText.text =
             "£"

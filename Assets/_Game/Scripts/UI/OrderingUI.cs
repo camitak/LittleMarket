@@ -7,59 +7,39 @@ using UnityEngine.EventSystems;
 
 public class OrderingUI : MonoBehaviour
 {
-    [Header("UI")]
-    [SerializeField]
-    private GameObject orderingPanel;
+    [Header("UI")] [SerializeField] private GameObject orderingPanel;
 
-    [SerializeField]
-    private TMP_Text statusText;
+    [SerializeField] private TMP_Text statusText;
 
-    [SerializeField]
-    private Button closeButton;
+    [SerializeField] private Button closeButton;
 
-    [SerializeField]
-    private Transform productListContent;
+    [SerializeField] private Transform productListContent;
 
-    [SerializeField]
-    private OrderingProductRow productRowPrefab;
+    [SerializeField] private OrderingProductRow productRowPrefab;
 
-    [Header("Progression")]
-    [SerializeField]
+    [Header("Progression")] [SerializeField]
     private StoreProgression storeProgression;
 
-    [SerializeField]
-    private StoreStockOverview storeStockOverview;
-    
-    [Header("Order")]
-    [Min(1)]
-    [SerializeField]
+    [SerializeField] private StoreStockOverview storeStockOverview;
+
+    [Header("Order")] [Min(1)] [SerializeField]
     private int quantityPerBox = 4;
 
-    [SerializeField]
-    private DeliveryBox deliveryBoxPrefab;
+    [SerializeField] private DeliveryBox deliveryBoxPrefab;
 
-    [SerializeField]
-    private DeliveryZone deliveryZone;
+    [SerializeField] private DeliveryZone deliveryZone;
 
-    [Header("Store")]
-    [SerializeField]
-    private StoreEconomy storeEconomy;
+    [Header("Store")] [SerializeField] private StoreEconomy storeEconomy;
 
-    [SerializeField]
-    private DailyStats dailyStats;
+    [SerializeField] private DailyStats dailyStats;
 
-    [Header("Player")]
-    [SerializeField]
-    private PlayerController playerController;
+    [Header("Player")] [SerializeField] private PlayerController playerController;
 
-    [SerializeField]
-    private PlayerInteraction playerInteraction;
+    [SerializeField] private PlayerInteraction playerInteraction;
 
-    [SerializeField]
-    private InteractionUI interactionUI;
+    [SerializeField] private InteractionUI interactionUI;
 
-    private List<OrderingProductRow> spawnedRows =
-        new List<OrderingProductRow>();
+    private List<OrderingProductRow> spawnedRows = new();
 
     private bool isOpen;
 
@@ -79,16 +59,11 @@ public class OrderingUI : MonoBehaviour
 
     public void Open()
     {
-        if (isOpen)
-        {
-            return;
-        }
-        
+        if (isOpen) return;
+
         if (playerInteraction != null &&
             playerInteraction.HasAnythingHeld)
-        {
             return;
-        }
 
         isOpen = true;
 
@@ -113,10 +88,7 @@ public class OrderingUI : MonoBehaviour
 
     public void Close()
     {
-        if (!isOpen)
-        {
-            return;
-        }
+        if (!isOpen) return;
 
         isOpen = false;
 
@@ -134,7 +106,7 @@ public class OrderingUI : MonoBehaviour
             RecaptureCursorAfterClose()
         );
     }
-    
+
     private IEnumerator
         RecaptureCursorAfterClose()
     {
@@ -149,53 +121,36 @@ public class OrderingUI : MonoBehaviour
         yield return null;
 
         if (EventSystem.current != null)
-        {
             EventSystem.current
                 .SetSelectedGameObject(
                     null
                 );
-        }
 
-        if (playerController != null)
-        {
-            playerController.CaptureCursor();
-        }
+        if (playerController != null) playerController.CaptureCursor();
     }
 
     private void RebuildCatalogRows()
     {
         ClearSpawnedRows();
 
-        if (productListContent == null)
-        {
-            return;
-        }
+        if (productListContent == null) return;
 
-        if (productRowPrefab == null)
-        {
-            return;
-        }
+        if (productRowPrefab == null) return;
 
-        if (storeProgression == null)
-        {
-            return;
-        }
+        if (storeProgression == null) return;
 
-        for (int i = 0;
+        for (var i = 0;
              i < storeProgression.CatalogProductCount;
              i++)
         {
-            ProductData product =
+            var product =
                 storeProgression.GetCatalogProduct(
                     i
                 );
 
-            if (product == null)
-            {
-                continue;
-            }
+            if (product == null) continue;
 
-            OrderingProductRow newRow =
+            var newRow =
                 Instantiate(
                     productRowPrefab,
                     productListContent
@@ -205,14 +160,13 @@ public class OrderingUI : MonoBehaviour
                 newRow
             );
 
-            bool isUnlocked =
+            var isUnlocked =
                 storeProgression
                     .IsProductUnlocked(
                         product
                     );
 
             if (isUnlocked)
-            {
                 newRow.Configure(
                     product,
                     quantityPerBox,
@@ -220,31 +174,25 @@ public class OrderingUI : MonoBehaviour
                     storeProgression,
                     storeStockOverview
                 );
-            }
             else
-            {
                 newRow.ConfigureLocked(
                     product,
                     storeProgression,
                     storeStockOverview
                 );
-            }
         }
     }
 
     private void ClearSpawnedRows()
     {
-        for (int i = 0;
+        for (var i = 0;
              i < spawnedRows.Count;
              i++)
         {
-            OrderingProductRow row =
+            var row =
                 spawnedRows[i];
 
-            if (row == null)
-            {
-                continue;
-            }
+            if (row == null) continue;
 
             row.gameObject.SetActive(
                 false
@@ -321,11 +269,11 @@ public class OrderingUI : MonoBehaviour
             return;
         }
 
-        float orderCost =
+        var orderCost =
             productData.BuyPrice
             * quantityPerBox;
 
-        bool purchaseSucceeded =
+        var purchaseSucceeded =
             storeEconomy.TrySpend(
                 orderCost
             );
@@ -338,12 +286,12 @@ public class OrderingUI : MonoBehaviour
             return;
         }
 
-        bool deliveryCreated =
+        var deliveryCreated =
             deliveryZone.TryCreateDelivery(
                 deliveryBoxPrefab,
                 productData,
                 quantityPerBox,
-                out DeliveryBox newDelivery
+                out var newDelivery
             );
 
         if (!deliveryCreated)
@@ -360,11 +308,9 @@ public class OrderingUI : MonoBehaviour
         }
 
         if (dailyStats != null)
-        {
             dailyStats.RecordStockSpending(
                 orderCost
             );
-        }
 
         statusText.text =
             "Ordered "

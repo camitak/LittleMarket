@@ -3,20 +3,16 @@ using UnityEngine;
 
 public class StockAlertRow : MonoBehaviour
 {
-    [Header("UI")]
-    [SerializeField]
-    private TMP_Text productNameText;
+    [Header("UI")] [SerializeField] private TMP_Text productNameText;
 
-    [SerializeField]
-    private TMP_Text countsText;
+    [SerializeField] private TMP_Text countsText;
 
-    [SerializeField]
-    private TMP_Text statusText;
+    [SerializeField] private TMP_Text statusText;
 
     private ProductData productData;
 
     private static readonly Color32 NameColor =
-        new Color32(
+        new(
             89,
             70,
             64,
@@ -24,7 +20,7 @@ public class StockAlertRow : MonoBehaviour
         );
 
     private static readonly Color32 DetailColor =
-        new Color32(
+        new(
             122,
             104,
             96,
@@ -32,7 +28,7 @@ public class StockAlertRow : MonoBehaviour
         );
 
     private static readonly Color32 LowColor =
-        new Color32(
+        new(
             139,
             106,
             31,
@@ -40,7 +36,7 @@ public class StockAlertRow : MonoBehaviour
         );
 
     private static readonly Color32 RestockColor =
-        new Color32(
+        new(
             79,
             113,
             135,
@@ -48,7 +44,7 @@ public class StockAlertRow : MonoBehaviour
         );
 
     private static readonly Color32 OutColor =
-        new Color32(
+        new(
             154,
             79,
             79,
@@ -62,10 +58,7 @@ public class StockAlertRow : MonoBehaviour
         productData =
             newProductData;
 
-        if (productData == null)
-        {
-            return;
-        }
+        if (productData == null) return;
 
         productNameText.text =
             productData.ProductName;
@@ -91,7 +84,7 @@ public class StockAlertRow : MonoBehaviour
             return false;
         }
 
-        StockStatus status =
+        var status =
             stockOverview.GetStockStatus(
                 productData
             );
@@ -110,37 +103,37 @@ public class StockAlertRow : MonoBehaviour
             true
         );
 
-        int shelfCount =
+        var shelfCount =
             stockOverview.GetShelfCount(
                 productData
             );
 
-        int storageCount =
+        var storageCount =
             stockOverview.GetStorageCount(
                 productData
             );
 
-        int basketCount =
+        var basketCount =
             stockOverview.GetBasketCount(
                 productData
             );
 
-        int deliveryCount =
+        var deliveryCount =
             stockOverview.GetDeliveryCount(
                 productData
             );
 
-        int looseCount =
+        var looseCount =
             stockOverview.GetLooseCount(
                 productData
             );
 
-        int heldCount =
+        var heldCount =
             stockOverview.GetHeldCount(
                 productData
             );
 
-        int totalStock =
+        var totalStock =
             stockOverview.GetTotalStockCount(
                 productData
             );

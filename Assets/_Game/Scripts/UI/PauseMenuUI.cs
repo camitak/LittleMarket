@@ -5,49 +5,34 @@ using UnityEngine.UI;
 
 public class PauseMenuUI : MonoBehaviour
 {
-    [Header("UI")]
-    [SerializeField]
-    private GameObject pauseOverlay;
+    [Header("UI")] [SerializeField] private GameObject pauseOverlay;
 
-    [SerializeField]
-    private Button resumeButton;
+    [SerializeField] private Button resumeButton;
 
-    [SerializeField]
-    private Button saveGameButton;
+    [SerializeField] private Button saveGameButton;
 
-    [SerializeField]
-    private Button loadGameButton;
+    [SerializeField] private Button loadGameButton;
 
-    [SerializeField]
-    private TMP_Text saveStatusText;
+    [SerializeField] private TMP_Text saveStatusText;
 
-    [Header("Systems")]
-    [SerializeField]
-    private SaveManager saveManager;
+    [Header("Systems")] [SerializeField] private SaveManager saveManager;
 
-    [SerializeField]
-    private OrderingUI orderingUI;
+    [SerializeField] private OrderingUI orderingUI;
 
-    [SerializeField]
-    private EndOfDayUI endOfDayUI;
-    
-    [SerializeField]
-    private ProductCatalogueUI productCatalogueUI;
+    [SerializeField] private EndOfDayUI endOfDayUI;
 
-    [SerializeField]
-    private InteractionUI interactionUI;
+    [SerializeField] private ProductCatalogueUI productCatalogueUI;
 
-    [Header("Player")]
-    [SerializeField]
-    private PlayerController playerController;
+    [SerializeField] private InteractionUI interactionUI;
 
-    [SerializeField]
-    private PlayerInteraction playerInteraction;
+    [Header("Player")] [SerializeField] private PlayerController playerController;
+
+    [SerializeField] private PlayerInteraction playerInteraction;
 
     private bool isOpen;
 
     private static readonly Color32 SuccessColor =
-        new Color32(
+        new(
             111,
             207,
             151,
@@ -55,7 +40,7 @@ public class PauseMenuUI : MonoBehaviour
         );
 
     private static readonly Color32 FailureColor =
-        new Color32(
+        new(
             196,
             107,
             107,
@@ -63,7 +48,7 @@ public class PauseMenuUI : MonoBehaviour
         );
 
     private static readonly Color32 NeutralColor =
-        new Color32(
+        new(
             122,
             104,
             96,
@@ -96,23 +81,16 @@ public class PauseMenuUI : MonoBehaviour
 
     private void Update()
     {
-        if (Keyboard.current == null)
-        {
-            return;
-        }
+        if (Keyboard.current == null) return;
 
         if (!Keyboard.current.escapeKey
-            .wasPressedThisFrame)
-        {
+                .wasPressedThisFrame)
             return;
-        }
 
         if (endOfDayUI != null &&
             endOfDayUI.IsOpen)
-        {
             return;
-        }
-        
+
         if (productCatalogueUI != null &&
             productCatalogueUI.IsOpen)
         {
@@ -141,22 +119,15 @@ public class PauseMenuUI : MonoBehaviour
 
     public void Open()
     {
-        if (isOpen)
-        {
-            return;
-        }
+        if (isOpen) return;
 
         if (endOfDayUI != null &&
             endOfDayUI.IsOpen)
-        {
             return;
-        }
-        
+
         if (productCatalogueUI != null &&
             productCatalogueUI.IsOpen)
-        {
             return;
-        }
 
         isOpen =
             true;
@@ -176,10 +147,7 @@ public class PauseMenuUI : MonoBehaviour
         pauseOverlay.transform
             .SetAsLastSibling();
 
-        if (interactionUI != null)
-        {
-            interactionUI.HidePrompt();
-        }
+        if (interactionUI != null) interactionUI.HidePrompt();
 
         playerController.enabled =
             false;
@@ -199,10 +167,7 @@ public class PauseMenuUI : MonoBehaviour
 
     public void Close()
     {
-        if (!isOpen)
-        {
-            return;
-        }
+        if (!isOpen) return;
 
         isOpen =
             false;
@@ -239,7 +204,7 @@ public class PauseMenuUI : MonoBehaviour
             return;
         }
 
-        bool succeeded =
+        var succeeded =
             saveManager.SaveGame();
 
         ShowStatus(
@@ -262,7 +227,7 @@ public class PauseMenuUI : MonoBehaviour
             return;
         }
 
-        bool succeeded =
+        var succeeded =
             saveManager.LoadGame();
 
         ShowStatus(
@@ -283,8 +248,8 @@ public class PauseMenuUI : MonoBehaviour
 
         saveStatusText.color =
             success
-            ? SuccessColor
-            : FailureColor;
+                ? SuccessColor
+                : FailureColor;
     }
 
     private void RefreshLoadButton()

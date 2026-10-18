@@ -3,20 +3,15 @@ using UnityEngine;
 
 public class CheckoutQueue : MonoBehaviour
 {
-    [Header("Queue")]
-    [SerializeField] private Transform[] queuePoints;
+    [Header("Queue")] [SerializeField] private Transform[] queuePoints;
 
-    private List<CustomerController> customers =
-        new List<CustomerController>();
+    private List<CustomerController> customers = new();
 
     public bool HasSpace
     {
         get
         {
-            if (queuePoints == null)
-            {
-                return false;
-            }
+            if (queuePoints == null) return false;
 
             return customers.Count < queuePoints.Length;
         }
@@ -24,28 +19,16 @@ public class CheckoutQueue : MonoBehaviour
 
     public bool TryJoinQueue(CustomerController customer)
     {
-        if (customer == null)
-        {
-            return false;
-        }
+        if (customer == null) return false;
 
-        if (customers.Contains(customer))
-        {
-            return true;
-        }
+        if (customers.Contains(customer)) return true;
 
-        if (!HasSpace)
-        {
-            return false;
-        }
+        if (!HasSpace) return false;
 
-        Transform nextPoint =
+        var nextPoint =
             queuePoints[customers.Count];
 
-        if (nextPoint == null)
-        {
-            return false;
-        }
+        if (nextPoint == null) return false;
 
         customers.Add(customer);
 
@@ -56,51 +39,36 @@ public class CheckoutQueue : MonoBehaviour
 
     public void LeaveQueue(CustomerController customer)
     {
-        if (customer == null)
-        {
-            return;
-        }
+        if (customer == null) return;
 
-        bool removed =
+        var removed =
             customers.Remove(customer);
 
-        if (!removed)
-        {
-            return;
-        }
+        if (!removed) return;
 
         UpdateCustomerDestinations();
     }
 
     public CustomerController GetFrontCustomer()
     {
-        if (customers.Count == 0)
-        {
-            return null;
-        }
+        if (customers.Count == 0) return null;
 
         return customers[0];
     }
 
     private void UpdateCustomerDestinations()
     {
-        for (int i = 0; i < customers.Count; i++)
+        for (var i = 0; i < customers.Count; i++)
         {
-            CustomerController customer =
+            var customer =
                 customers[i];
 
-            Transform queuePoint =
+            var queuePoint =
                 queuePoints[i];
 
-            if (customer == null)
-            {
-                continue;
-            }
+            if (customer == null) continue;
 
-            if (queuePoint == null)
-            {
-                continue;
-            }
+            if (queuePoint == null) continue;
 
             customer.SetQueueDestination(
                 queuePoint

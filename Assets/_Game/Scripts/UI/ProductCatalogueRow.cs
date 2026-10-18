@@ -3,21 +3,16 @@ using UnityEngine;
 
 public class ProductCatalogueRow : MonoBehaviour
 {
-    [Header("UI")]
-    [SerializeField]
-    private TMP_Text productNameText;
+    [Header("UI")] [SerializeField] private TMP_Text productNameText;
 
-    [SerializeField]
-    private TMP_Text categoryText;
+    [SerializeField] private TMP_Text categoryText;
 
-    [SerializeField]
-    private TMP_Text priceText;
+    [SerializeField] private TMP_Text priceText;
 
-    [SerializeField]
-    private TMP_Text statusText;
+    [SerializeField] private TMP_Text statusText;
 
     private static readonly Color32 NormalNameColor =
-        new Color32(
+        new(
             89,
             70,
             64,
@@ -25,7 +20,7 @@ public class ProductCatalogueRow : MonoBehaviour
         );
 
     private static readonly Color32 NormalTextColor =
-        new Color32(
+        new(
             122,
             104,
             96,
@@ -33,7 +28,7 @@ public class ProductCatalogueRow : MonoBehaviour
         );
 
     private static readonly Color32 UnlockedColor =
-        new Color32(
+        new(
             111,
             207,
             151,
@@ -41,7 +36,7 @@ public class ProductCatalogueRow : MonoBehaviour
         );
 
     private static readonly Color32 LockedColor =
-        new Color32(
+        new(
             196,
             107,
             107,
@@ -53,10 +48,7 @@ public class ProductCatalogueRow : MonoBehaviour
         StoreProgression storeProgression
     )
     {
-        if (productData == null)
-        {
-            return;
-        }
+        if (productData == null) return;
 
         productNameText.color =
             NormalNameColor;
@@ -67,7 +59,7 @@ public class ProductCatalogueRow : MonoBehaviour
         priceText.color =
             NormalTextColor;
 
-        bool isUnlocked =
+        var isUnlocked =
             storeProgression != null
             &&
             storeProgression
@@ -75,7 +67,7 @@ public class ProductCatalogueRow : MonoBehaviour
                     productData
                 );
 
-        bool isNew =
+        var isNew =
             isUnlocked
             &&
             storeProgression
@@ -84,17 +76,13 @@ public class ProductCatalogueRow : MonoBehaviour
                 );
 
         if (isNew)
-        {
             productNameText.text =
                 "<color=#6FCF97><b>NEW</b></color>"
                 + " • "
                 + productData.ProductName;
-        }
         else
-        {
             productNameText.text =
                 productData.ProductName;
-        }
 
         categoryText.text =
             productData.Category
@@ -135,17 +123,14 @@ public class ProductCatalogueRow : MonoBehaviour
         StoreProgression storeProgression
     )
     {
-        if (storeProgression == null)
-        {
-            return "LOCKED";
-        }
+        if (storeProgression == null) return "LOCKED";
 
-        string result =
+        var result =
             "<color=#C46B6B><b>LOCKED</b></color>";
 
         if (productData.RequiredReputation > 0f)
         {
-            bool reputationMet =
+            var reputationMet =
                 storeProgression
                     .MeetsReputationRequirement(
                         productData
@@ -168,7 +153,7 @@ public class ProductCatalogueRow : MonoBehaviour
 
         if (productData.RequiredStoreLevel > 1)
         {
-            bool levelMet =
+            var levelMet =
                 storeProgression
                     .MeetsStoreLevelRequirement(
                         productData
@@ -194,10 +179,7 @@ public class ProductCatalogueRow : MonoBehaviour
         bool completed
     )
     {
-        if (completed)
-        {
-            return "<color=#6FCF97>✓</color>";
-        }
+        if (completed) return "<color=#6FCF97>✓</color>";
 
         return "<color=#C46B6B>✗</color>";
     }

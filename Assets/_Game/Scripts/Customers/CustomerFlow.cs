@@ -3,64 +3,41 @@ using UnityEngine;
 
 public class CustomerFlow : MonoBehaviour
 {
-    [Header("Customer")]
-    [SerializeField]
-    private CustomerController customerPrefab;
+    [Header("Customer")] [SerializeField] private CustomerController customerPrefab;
 
-    [Header("Spawn Timing")]
-    [Min(0f)]
-    [SerializeField]
+    [Header("Spawn Timing")] [Min(0f)] [SerializeField]
     private float initialSpawnDelay = 3f;
 
-    [Min(0.5f)]
-    [SerializeField]
-    private float minSpawnInterval = 6f;
+    [Min(0.5f)] [SerializeField] private float minSpawnInterval = 6f;
 
-    [Min(0.5f)]
-    [SerializeField]
-    private float maxSpawnInterval = 10f;
+    [Min(0.5f)] [SerializeField] private float maxSpawnInterval = 10f;
 
-    [Header("Store Capacity")]
-    [Min(1)]
-    [SerializeField]
+    [Header("Store Capacity")] [Min(1)] [SerializeField]
     private int maxCustomersInStore = 3;
 
-    [Header("Shopping List")]
-    [Range(1, 3)]
-    [SerializeField]
+    [Header("Shopping List")] [Range(1, 3)] [SerializeField]
     private int minItemsPerCustomer = 1;
 
-    [Range(1, 3)]
-    [SerializeField]
-    private int maxItemsPerCustomer = 2;
+    [Range(1, 3)] [SerializeField] private int maxItemsPerCustomer = 2;
 
-    [Header("Store References")]
-    [SerializeField]
+    [Header("Store References")] [SerializeField]
     private StoreClock storeClock;
 
-    [SerializeField]
-    private DailyStats dailyStats;
+    [SerializeField] private DailyStats dailyStats;
 
-    [SerializeField]
-    private StoreReputation storeReputation;
+    [SerializeField] private StoreReputation storeReputation;
 
-    [SerializeField]
-    private StoreProgression storeProgression;
+    [SerializeField] private StoreProgression storeProgression;
 
-    [SerializeField]
-    private ShelfRegistry shelfRegistry;
+    [SerializeField] private ShelfRegistry shelfRegistry;
 
-    [SerializeField]
-    private CheckoutQueue checkoutQueue;
+    [SerializeField] private CheckoutQueue checkoutQueue;
 
-    [SerializeField]
-    private Transform customerSpawnPoint;
+    [SerializeField] private Transform customerSpawnPoint;
 
-    [SerializeField]
-    private Transform customerExitPoint;
+    [SerializeField] private Transform customerExitPoint;
 
-    private List<CustomerController> activeCustomers =
-        new List<CustomerController>();
+    private List<CustomerController> activeCustomers = new();
 
     private float spawnTimer;
 
@@ -76,29 +53,18 @@ public class CustomerFlow : MonoBehaviour
     {
         RemoveDestroyedCustomers();
 
-        if (!HasValidConfiguration())
-        {
-            return;
-        }
+        if (!HasValidConfiguration()) return;
 
-        if (!storeClock.IsStoreOpen)
-        {
-            return;
-        }
+        if (!storeClock.IsStoreOpen) return;
 
         if (activeCustomers.Count
             >= maxCustomersInStore)
-        {
             return;
-        }
 
         spawnTimer -=
             Time.deltaTime;
 
-        if (spawnTimer > 0f)
-        {
-            return;
-        }
+        if (spawnTimer > 0f) return;
 
         SpawnCustomer();
 
@@ -114,20 +80,14 @@ public class CustomerFlow : MonoBehaviour
 
     private void SpawnCustomer()
     {
-        ProductData[] shoppingList =
+        var shoppingList =
             CreateShoppingList();
 
-        if (shoppingList == null)
-        {
-            return;
-        }
+        if (shoppingList == null) return;
 
-        if (shoppingList.Length == 0)
-        {
-            return;
-        }
+        if (shoppingList.Length == 0) return;
 
-        CustomerController customer =
+        var customer =
             Instantiate(
                 customerPrefab,
                 customerSpawnPoint.position,
@@ -149,40 +109,37 @@ public class CustomerFlow : MonoBehaviour
 
     private ProductData[] CreateShoppingList()
     {
-        int minimumItems =
+        var minimumItems =
             Mathf.Clamp(
                 minItemsPerCustomer,
                 1,
                 3
             );
 
-        int maximumItems =
+        var maximumItems =
             Mathf.Clamp(
                 maxItemsPerCustomer,
                 minimumItems,
                 3
             );
 
-        int itemCount =
+        var itemCount =
             Random.Range(
                 minimumItems,
                 maximumItems + 1
             );
 
-        ProductData[] shoppingList =
+        var shoppingList =
             new ProductData[itemCount];
 
-        for (int i = 0;
+        for (var i = 0;
              i < shoppingList.Length;
              i++)
         {
-            ProductData product =
+            var product =
                 GetRandomUnlockedProduct();
 
-            if (product == null)
-            {
-                return null;
-            }
+            if (product == null) return null;
 
             shoppingList[i] =
                 product;
@@ -193,20 +150,14 @@ public class CustomerFlow : MonoBehaviour
 
     private ProductData GetRandomUnlockedProduct()
     {
-        if (storeProgression == null)
-        {
-            return null;
-        }
+        if (storeProgression == null) return null;
 
-        int productCount =
+        var productCount =
             storeProgression.UnlockedProductCount;
 
-        if (productCount <= 0)
-        {
-            return null;
-        }
+        if (productCount <= 0) return null;
 
-        int randomIndex =
+        var randomIndex =
             Random.Range(
                 0,
                 productCount
@@ -220,15 +171,12 @@ public class CustomerFlow : MonoBehaviour
 
     private void RemoveDestroyedCustomers()
     {
-        for (int i =
+        for (var i =
                  activeCustomers.Count - 1;
              i >= 0;
              i--)
         {
-            if (activeCustomers[i] != null)
-            {
-                continue;
-            }
+            if (activeCustomers[i] != null) continue;
 
             activeCustomers.RemoveAt(i);
         }
@@ -245,19 +193,19 @@ public class CustomerFlow : MonoBehaviour
 
     private void ResetSpawnTimer()
     {
-        float minimumInterval =
+        var minimumInterval =
             Mathf.Max(
                 0.5f,
                 minSpawnInterval
             );
 
-        float maximumInterval =
+        var maximumInterval =
             Mathf.Max(
                 minimumInterval,
                 maxSpawnInterval
             );
 
-        float reputationMultiplier =
+        var reputationMultiplier =
             storeReputation
                 .CustomerArrivalIntervalMultiplier;
 
@@ -276,56 +224,27 @@ public class CustomerFlow : MonoBehaviour
 
     private bool HasValidConfiguration()
     {
-        if (customerPrefab == null)
-        {
-            return false;
-        }
+        if (customerPrefab == null) return false;
 
-        if (storeClock == null)
-        {
-            return false;
-        }
+        if (storeClock == null) return false;
 
-        if (dailyStats == null)
-        {
-            return false;
-        }
+        if (dailyStats == null) return false;
 
-        if (storeReputation == null)
-        {
-            return false;
-        }
+        if (storeReputation == null) return false;
 
-        if (storeProgression == null)
-        {
-            return false;
-        }
+        if (storeProgression == null) return false;
 
         if (storeProgression
-            .UnlockedProductCount <= 0)
-        {
+                .UnlockedProductCount <= 0)
             return false;
-        }
 
-        if (shelfRegistry == null)
-        {
-            return false;
-        }
+        if (shelfRegistry == null) return false;
 
-        if (checkoutQueue == null)
-        {
-            return false;
-        }
+        if (checkoutQueue == null) return false;
 
-        if (customerSpawnPoint == null)
-        {
-            return false;
-        }
+        if (customerSpawnPoint == null) return false;
 
-        if (customerExitPoint == null)
-        {
-            return false;
-        }
+        if (customerExitPoint == null) return false;
 
         return true;
     }

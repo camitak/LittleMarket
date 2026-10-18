@@ -5,21 +5,15 @@ using UnityEngine.UI;
 
 public class OrderingProductRow : MonoBehaviour
 {
-    [Header("UI")]
-    [SerializeField]
-    private TMP_Text productNameText;
+    [Header("UI")] [SerializeField] private TMP_Text productNameText;
 
-    [SerializeField]
-    private TMP_Text priceText;
+    [SerializeField] private TMP_Text priceText;
 
-    [SerializeField]
-    private TMP_Text stockText;
+    [SerializeField] private TMP_Text stockText;
 
-    [SerializeField]
-    private Button orderButton;
+    [SerializeField] private Button orderButton;
 
-    [SerializeField]
-    private TMP_Text orderButtonText;
+    [SerializeField] private TMP_Text orderButtonText;
 
     private ProductData productData;
 
@@ -44,7 +38,7 @@ public class OrderingProductRow : MonoBehaviour
         "#4F7F62";
 
     private static readonly Color32 HealthyStockColor =
-        new Color32(
+        new(
             122,
             104,
             96,
@@ -52,7 +46,7 @@ public class OrderingProductRow : MonoBehaviour
         );
 
     private static readonly Color32 LowStockColor =
-        new Color32(
+        new(
             139,
             106,
             31,
@@ -60,7 +54,7 @@ public class OrderingProductRow : MonoBehaviour
         );
 
     private static readonly Color32 RestockColor =
-        new Color32(
+        new(
             79,
             113,
             135,
@@ -68,7 +62,7 @@ public class OrderingProductRow : MonoBehaviour
         );
 
     private static readonly Color32 OutOfStockColor =
-        new Color32(
+        new(
             154,
             79,
             79,
@@ -135,12 +129,9 @@ public class OrderingProductRow : MonoBehaviour
         stockRefreshTimer =
             0f;
 
-        if (productData == null)
-        {
-            return;
-        }
+        if (productData == null) return;
 
-        bool showNewLabel =
+        var showNewLabel =
             storeProgression != null
             &&
             storeProgression
@@ -149,27 +140,23 @@ public class OrderingProductRow : MonoBehaviour
                 );
 
         if (showNewLabel)
-        {
             productNameText.text =
                 "<color="
                 + NewColor
                 + "><b>NEW</b></color>"
                 + " • "
                 + productData.ProductName;
-        }
         else
-        {
             productNameText.text =
                 productData.ProductName;
-        }
 
-        int safeQuantity =
+        var safeQuantity =
             Mathf.Max(
                 1,
                 quantityPerBox
             );
 
-        float boxPrice =
+        var boxPrice =
             productData.BuyPrice
             * safeQuantity;
 
@@ -242,10 +229,7 @@ public class OrderingProductRow : MonoBehaviour
         isLocked =
             true;
 
-        if (productData == null)
-        {
-            return;
-        }
+        if (productData == null) return;
 
         productNameText.text =
             productData.ProductName;
@@ -279,29 +263,18 @@ public class OrderingProductRow : MonoBehaviour
 
     private void Update()
     {
-        if (isLocked)
-        {
-            return;
-        }
+        if (isLocked) return;
 
-        if (productData == null)
-        {
-            return;
-        }
+        if (productData == null) return;
 
-        if (stockOverview == null)
-        {
-            return;
-        }
+        if (stockOverview == null) return;
 
         stockRefreshTimer +=
             Time.unscaledDeltaTime;
 
         if (stockRefreshTimer
             < StockRefreshInterval)
-        {
             return;
-        }
 
         stockRefreshTimer =
             0f;
@@ -311,10 +284,7 @@ public class OrderingProductRow : MonoBehaviour
 
     private void RefreshStockText()
     {
-        if (stockText == null)
-        {
-            return;
-        }
+        if (stockText == null) return;
 
         if (productData == null ||
             stockOverview == null)
@@ -335,37 +305,37 @@ public class OrderingProductRow : MonoBehaviour
                 true
             );
 
-        int shelfCount =
+        var shelfCount =
             stockOverview.GetShelfCount(
                 productData
             );
 
-        int storageCount =
+        var storageCount =
             stockOverview.GetStorageCount(
                 productData
             );
 
-        int basketCount =
+        var basketCount =
             stockOverview.GetBasketCount(
                 productData
             );
 
-        int deliveryCount =
+        var deliveryCount =
             stockOverview.GetDeliveryCount(
                 productData
             );
 
-        int looseCount =
+        var looseCount =
             stockOverview.GetLooseCount(
                 productData
             );
 
-        int heldCount =
+        var heldCount =
             stockOverview.GetHeldCount(
                 productData
             );
 
-        int totalStock =
+        var totalStock =
             stockOverview.GetTotalStockCount(
                 productData
             );
@@ -386,7 +356,7 @@ public class OrderingProductRow : MonoBehaviour
             + "  •  Total "
             + totalStock;
 
-        StockStatus status =
+        var status =
             stockOverview.GetStockStatus(
                 productData
             );
@@ -420,28 +390,26 @@ public class OrderingProductRow : MonoBehaviour
         StoreProgression storeProgression
     )
     {
-        bool requiresReputation =
+        var requiresReputation =
             product.RequiredReputation > 0f;
 
-        bool requiresStoreLevel =
+        var requiresStoreLevel =
             product.RequiredStoreLevel > 1;
 
         if (storeProgression == null)
-        {
             return BuildStaticRequirementText(
                 product
             );
-        }
 
-        string reputationLine =
+        var reputationLine =
             "";
 
-        string storeLevelLine =
+        var storeLevelLine =
             "";
 
         if (requiresReputation)
         {
-            bool reputationMet =
+            var reputationMet =
                 storeProgression
                     .MeetsReputationRequirement(
                         product
@@ -464,7 +432,7 @@ public class OrderingProductRow : MonoBehaviour
 
         if (requiresStoreLevel)
         {
-            bool storeLevelMet =
+            var storeLevelMet =
                 storeProgression
                     .MeetsStoreLevelRequirement(
                         product
@@ -485,21 +453,13 @@ public class OrderingProductRow : MonoBehaviour
 
         if (requiresReputation &&
             requiresStoreLevel)
-        {
             return reputationLine
                    + "\n"
                    + storeLevelLine;
-        }
 
-        if (requiresReputation)
-        {
-            return reputationLine;
-        }
+        if (requiresReputation) return reputationLine;
 
-        if (requiresStoreLevel)
-        {
-            return storeLevelLine;
-        }
+        if (requiresStoreLevel) return storeLevelLine;
 
         return "Locked";
     }
@@ -508,15 +468,14 @@ public class OrderingProductRow : MonoBehaviour
         ProductData product
     )
     {
-        bool requiresReputation =
+        var requiresReputation =
             product.RequiredReputation > 0f;
 
-        bool requiresStoreLevel =
+        var requiresStoreLevel =
             product.RequiredStoreLevel > 1;
 
         if (requiresReputation &&
             requiresStoreLevel)
-        {
             return "Requires REP "
                    + product
                        .RequiredReputation
@@ -524,22 +483,17 @@ public class OrderingProductRow : MonoBehaviour
                    + "\nSTORE LV "
                    + product
                        .RequiredStoreLevel;
-        }
 
         if (requiresReputation)
-        {
             return "Unlock at REP "
                    + product
                        .RequiredReputation
                        .ToString("0");
-        }
 
         if (requiresStoreLevel)
-        {
             return "Unlock at STORE LV "
                    + product
                        .RequiredStoreLevel;
-        }
 
         return "Locked";
     }
@@ -549,11 +503,9 @@ public class OrderingProductRow : MonoBehaviour
     )
     {
         if (completed)
-        {
             return "<color="
                    + PositiveColor
                    + ">✓</color>";
-        }
 
         return "<color="
                + NegativeColor
@@ -562,15 +514,9 @@ public class OrderingProductRow : MonoBehaviour
 
     private void HandleOrderClicked()
     {
-        if (productData == null)
-        {
-            return;
-        }
+        if (productData == null) return;
 
-        if (orderAction == null)
-        {
-            return;
-        }
+        if (orderAction == null) return;
 
         orderAction.Invoke(
             productData

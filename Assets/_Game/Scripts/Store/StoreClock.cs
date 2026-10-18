@@ -3,59 +3,35 @@ using UnityEngine;
 
 public class StoreClock : MonoBehaviour
 {
-    [Header("Day")]
-    [Min(1)]
-    [SerializeField]
+    [Header("Day")] [Min(1)] [SerializeField]
     private int startingDay = 1;
 
-    [Header("Starting Time")]
-    [Range(0, 23)]
-    [SerializeField]
+    [Header("Starting Time")] [Range(0, 23)] [SerializeField]
     private int startHour = 7;
 
-    [Range(0, 59)]
-    [SerializeField]
-    private int startMinute = 0;
+    [Range(0, 59)] [SerializeField] private int startMinute = 0;
 
-    [Header("Store Schedule")]
-    [Range(0, 23)]
-    [SerializeField]
+    [Header("Store Schedule")] [Range(0, 23)] [SerializeField]
     private int openingHour = 8;
 
-    [Range(0, 59)]
-    [SerializeField]
-    private int openingMinute = 0;
+    [Range(0, 59)] [SerializeField] private int openingMinute = 0;
 
-    [Range(0, 23)]
-    [SerializeField]
-    private int closingHour = 21;
+    [Range(0, 23)] [SerializeField] private int closingHour = 21;
 
-    [Range(0, 59)]
-    [SerializeField]
-    private int closingMinute = 0;
+    [Range(0, 59)] [SerializeField] private int closingMinute = 0;
 
-    [Range(0, 23)]
-    [SerializeField]
-    private int dayEndHour = 22;
+    [Range(0, 23)] [SerializeField] private int dayEndHour = 22;
 
-    [Range(0, 59)]
-    [SerializeField]
-    private int dayEndMinute = 0;
+    [Range(0, 59)] [SerializeField] private int dayEndMinute = 0;
 
-    [Header("Time Speed")]
-    [Min(0.1f)]
-    [SerializeField]
+    [Header("Time Speed")] [Min(0.1f)] [SerializeField]
     private float gameMinutesPerRealSecond = 2f;
 
-    [Header("UI")]
-    [SerializeField]
-    private TMP_Text dayText;
+    [Header("UI")] [SerializeField] private TMP_Text dayText;
 
-    [SerializeField]
-    private TMP_Text timeText;
+    [SerializeField] private TMP_Text timeText;
 
-    [SerializeField]
-    private TMP_Text statusText;
+    [SerializeField] private TMP_Text statusText;
 
     private float currentMinutes;
 
@@ -64,7 +40,7 @@ public class StoreClock : MonoBehaviour
     private bool hasDayEnded;
 
     private static readonly Color32 OpenStatusColor =
-        new Color32(
+        new(
             111,
             207,
             151,
@@ -72,7 +48,7 @@ public class StoreClock : MonoBehaviour
         );
 
     private static readonly Color32 PreOpenStatusColor =
-        new Color32(
+        new(
             79,
             113,
             135,
@@ -80,7 +56,7 @@ public class StoreClock : MonoBehaviour
         );
 
     private static readonly Color32 ClosedStatusColor =
-        new Color32(
+        new(
             196,
             107,
             107,
@@ -88,7 +64,7 @@ public class StoreClock : MonoBehaviour
         );
 
     private static readonly Color32 EndedStatusColor =
-        new Color32(
+        new(
             122,
             104,
             96,
@@ -99,10 +75,7 @@ public class StoreClock : MonoBehaviour
     {
         get
         {
-            if (hasDayEnded)
-            {
-                return false;
-            }
+            if (hasDayEnded) return false;
 
             return currentMinutes
                    >= OpeningTimeMinutes
@@ -146,10 +119,7 @@ public class StoreClock : MonoBehaviour
 
     private void Update()
     {
-        if (hasDayEnded)
-        {
-            return;
-        }
+        if (hasDayEnded) return;
 
         currentMinutes +=
             gameMinutesPerRealSecond
@@ -262,10 +232,7 @@ public class StoreClock : MonoBehaviour
 
     private void UpdateDayText()
     {
-        if (dayText == null)
-        {
-            return;
-        }
+        if (dayText == null) return;
 
         dayText.text =
             "DAY "
@@ -274,10 +241,7 @@ public class StoreClock : MonoBehaviour
 
     private void UpdateTimeText()
     {
-        if (timeText == null)
-        {
-            return;
-        }
+        if (timeText == null) return;
 
         timeText.text =
             FormatTime(
@@ -287,10 +251,7 @@ public class StoreClock : MonoBehaviour
 
     private void UpdateStatusText()
     {
-        if (statusText == null)
-        {
-            return;
-        }
+        if (statusText == null) return;
 
         if (hasDayEnded)
         {
@@ -340,7 +301,7 @@ public class StoreClock : MonoBehaviour
         float minutesValue
     )
     {
-        int wholeMinutes =
+        var wholeMinutes =
             Mathf.FloorToInt(
                 Mathf.Clamp(
                     minutesValue,
@@ -349,10 +310,10 @@ public class StoreClock : MonoBehaviour
                 )
             );
 
-        int hours =
+        var hours =
             wholeMinutes / 60;
 
-        int minutes =
+        var minutes =
             wholeMinutes % 60;
 
         return hours.ToString("00")

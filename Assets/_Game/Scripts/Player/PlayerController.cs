@@ -4,16 +4,12 @@ using UnityEngine.InputSystem;
 [RequireComponent(typeof(CharacterController))]
 public class PlayerController : MonoBehaviour
 {
-    [Header("Movement")]
-    [SerializeField]
-    private float moveSpeed = 4f;
+    [Header("Movement")] [SerializeField] private float moveSpeed = 4f;
 
-    [Header("Mouse Look")]
-    [SerializeField]
+    [Header("Mouse Look")] [SerializeField]
     private Camera playerCamera;
 
-    [SerializeField]
-    private float mouseSensitivity = 0.15f;
+    [SerializeField] private float mouseSensitivity = 0.15f;
 
     private CharacterController
         characterController;
@@ -62,38 +58,23 @@ public class PlayerController : MonoBehaviour
 
     private void HandleMovement()
     {
-        if (Keyboard.current == null)
-        {
-            return;
-        }
+        if (Keyboard.current == null) return;
 
-        Vector2 movementInput =
+        var movementInput =
             Vector2.zero;
 
-        if (Keyboard.current.wKey.isPressed)
-        {
-            movementInput.y += 1f;
-        }
+        if (Keyboard.current.wKey.isPressed) movementInput.y += 1f;
 
-        if (Keyboard.current.sKey.isPressed)
-        {
-            movementInput.y -= 1f;
-        }
+        if (Keyboard.current.sKey.isPressed) movementInput.y -= 1f;
 
-        if (Keyboard.current.dKey.isPressed)
-        {
-            movementInput.x += 1f;
-        }
+        if (Keyboard.current.dKey.isPressed) movementInput.x += 1f;
 
-        if (Keyboard.current.aKey.isPressed)
-        {
-            movementInput.x -= 1f;
-        }
+        if (Keyboard.current.aKey.isPressed) movementInput.x -= 1f;
 
         movementInput =
             movementInput.normalized;
 
-        Vector3 movement =
+        var movement =
             transform.forward
             * movementInput.y
             +
@@ -101,13 +82,9 @@ public class PlayerController : MonoBehaviour
             * movementInput.x;
 
         if (characterController.isGrounded)
-        {
             if (verticalVelocity < 0f)
-            {
                 verticalVelocity =
                     -2f;
-            }
-        }
 
         verticalVelocity +=
             Physics.gravity.y
@@ -125,20 +102,17 @@ public class PlayerController : MonoBehaviour
 
     private void HandleMouseLook()
     {
-        if (Mouse.current == null)
-        {
-            return;
-        }
+        if (Mouse.current == null) return;
 
-        Vector2 mouseDelta =
+        var mouseDelta =
             Mouse.current.delta
                 .ReadValue();
 
-        float mouseX =
+        var mouseX =
             mouseDelta.x
             * mouseSensitivity;
 
-        float mouseY =
+        var mouseY =
             mouseDelta.y
             * mouseSensitivity;
 
@@ -158,7 +132,7 @@ public class PlayerController : MonoBehaviour
             );
 
         playerCamera.transform
-            .localRotation =
+                .localRotation =
             Quaternion.Euler(
                 cameraPitch,
                 0f,

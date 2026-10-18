@@ -3,22 +3,17 @@ using UnityEngine;
 
 public class StoreGoals : MonoBehaviour
 {
-    [Header("Goal Schedule")]
-    [SerializeField]
+    [Header("Goal Schedule")] [SerializeField]
     private DayGoalSchedule goalSchedule;
 
-    [Header("Store References")]
-    [SerializeField]
+    [Header("Store References")] [SerializeField]
     private StoreClock storeClock;
 
-    [SerializeField]
-    private DailyStats dailyStats;
+    [SerializeField] private DailyStats dailyStats;
 
-    [SerializeField]
-    private StoreEconomy storeEconomy;
+    [SerializeField] private StoreEconomy storeEconomy;
 
-    private List<string> rewardedGoalIDs =
-        new List<string>();
+    private List<string> rewardedGoalIDs = new();
 
     private bool allGoalsBonusClaimed;
 
@@ -28,10 +23,7 @@ public class StoreGoals : MonoBehaviour
     {
         get
         {
-            if (storeClock == null)
-            {
-                return 1;
-            }
+            if (storeClock == null) return 1;
 
             return storeClock.CurrentDay;
         }
@@ -41,10 +33,7 @@ public class StoreGoals : MonoBehaviour
     {
         get
         {
-            if (goalSchedule == null)
-            {
-                return null;
-            }
+            if (goalSchedule == null) return null;
 
             return goalSchedule.GetGoalSetForDay(
                 CurrentDay
@@ -56,13 +45,10 @@ public class StoreGoals : MonoBehaviour
     {
         get
         {
-            DailyGoalSet goalSet =
+            var goalSet =
                 CurrentGoalSet;
 
-            if (goalSet == null)
-            {
-                return 0;
-            }
+            if (goalSet == null) return 0;
 
             return goalSet.GoalCount;
         }
@@ -72,21 +58,19 @@ public class StoreGoals : MonoBehaviour
     {
         get
         {
-            int completedCount = 0;
+            var completedCount = 0;
 
-            for (int i = 0;
+            for (var i = 0;
                  i < GoalCount;
                  i++)
             {
-                StoreGoalDefinition goal =
+                var goal =
                     GetGoal(i);
 
                 if (!IsGoalComplete(
                         goal
                     ))
-                {
                     continue;
-                }
 
                 completedCount++;
             }
@@ -99,10 +83,7 @@ public class StoreGoals : MonoBehaviour
     {
         get
         {
-            if (GoalCount <= 0)
-            {
-                return false;
-            }
+            if (GoalCount <= 0) return false;
 
             return CompletedGoalCount
                    == GoalCount;
@@ -113,13 +94,10 @@ public class StoreGoals : MonoBehaviour
     {
         get
         {
-            DailyGoalSet goalSet =
+            var goalSet =
                 CurrentGoalSet;
 
-            if (goalSet == null)
-            {
-                return 0f;
-            }
+            if (goalSet == null) return 0f;
 
             return goalSet.AllGoalsBonus;
         }
@@ -140,13 +118,10 @@ public class StoreGoals : MonoBehaviour
         int index
     )
     {
-        DailyGoalSet goalSet =
+        var goalSet =
             CurrentGoalSet;
 
-        if (goalSet == null)
-        {
-            return null;
-        }
+        if (goalSet == null) return null;
 
         return goalSet.GetGoal(
             index
@@ -157,15 +132,9 @@ public class StoreGoals : MonoBehaviour
         StoreGoalDefinition goal
     )
     {
-        if (goal == null)
-        {
-            return 0f;
-        }
+        if (goal == null) return 0f;
 
-        if (dailyStats == null)
-        {
-            return 0f;
-        }
+        if (dailyStats == null) return 0f;
 
         switch (goal.GoalType)
         {
@@ -189,25 +158,17 @@ public class StoreGoals : MonoBehaviour
         StoreGoalDefinition goal
     )
     {
-        if (goal == null)
-        {
-            return false;
-        }
+        if (goal == null) return false;
 
-        if (dailyStats == null)
-        {
-            return false;
-        }
+        if (dailyStats == null) return false;
 
         if (goal.GoalType
             == StoreGoalType.AverageSatisfaction
             &&
             dailyStats.CustomersVisited <= 0)
-        {
             return false;
-        }
 
-        float currentValue =
+        var currentValue =
             GetCurrentValue(
                 goal
             );
@@ -220,12 +181,9 @@ public class StoreGoals : MonoBehaviour
         StoreGoalDefinition goal
     )
     {
-        if (goal == null)
-        {
-            return "";
-        }
+        if (goal == null) return "";
 
-        float currentValue =
+        var currentValue =
             GetCurrentValue(
                 goal
             );
@@ -253,12 +211,10 @@ public class StoreGoals : MonoBehaviour
             case StoreGoalType.AverageSatisfaction:
                 if (dailyStats != null &&
                     dailyStats.CustomersVisited <= 0)
-                {
                     return "N/A / "
                            + goal.TargetValue
                                .ToString("0")
                            + "%";
-                }
 
                 return currentValue
                            .ToString("0")
@@ -279,17 +235,12 @@ public class StoreGoals : MonoBehaviour
         StoreGoalDefinition goal
     )
     {
-        if (goal == null)
-        {
-            return false;
-        }
+        if (goal == null) return false;
 
         if (string.IsNullOrWhiteSpace(
                 goal.GoalID
             ))
-        {
             return false;
-        }
 
         return rewardedGoalIDs.Contains(
             goal.GoalID
@@ -309,26 +260,21 @@ public class StoreGoals : MonoBehaviour
             return 0f;
         }
 
-        float awardedNow = 0f;
+        var awardedNow = 0f;
 
-        for (int i = 0;
+        for (var i = 0;
              i < GoalCount;
              i++)
         {
-            StoreGoalDefinition goal =
+            var goal =
                 GetGoal(i);
 
-            if (goal == null)
-            {
-                continue;
-            }
+            if (goal == null) continue;
 
             if (!IsGoalComplete(
                     goal
                 ))
-            {
                 continue;
-            }
 
             if (string.IsNullOrWhiteSpace(
                     goal.GoalID
@@ -348,22 +294,18 @@ public class StoreGoals : MonoBehaviour
             if (rewardedGoalIDs.Contains(
                     goal.GoalID
                 ))
-            {
                 continue;
-            }
 
-            float reward =
+            var reward =
                 Mathf.Max(
                     0f,
                     goal.MoneyReward
                 );
 
             if (reward > 0f)
-            {
                 storeEconomy.AddMoney(
                     reward
                 );
-            }
 
             rewardedGoalIDs.Add(
                 goal.GoalID
@@ -379,18 +321,16 @@ public class StoreGoals : MonoBehaviour
         if (AllGoalsCompleted &&
             !allGoalsBonusClaimed)
         {
-            float bonus =
+            var bonus =
                 Mathf.Max(
                     0f,
                     CurrentAllGoalsBonus
                 );
 
             if (bonus > 0f)
-            {
                 storeEconomy.AddMoney(
                     bonus
                 );
-            }
 
             allGoalsBonusClaimed =
                 true;
@@ -436,14 +376,10 @@ public class StoreGoals : MonoBehaviour
         totalRewardsPaidToday =
             0f;
 
-        if (saveData == null)
-        {
-            return;
-        }
+        if (saveData == null) return;
 
         if (saveData.rewardedGoalIDs != null)
-        {
-            for (int i = 0;
+            for (var i = 0;
                  i < saveData.rewardedGoalIDs.Count;
                  i++)
             {
@@ -453,22 +389,17 @@ public class StoreGoals : MonoBehaviour
                 if (string.IsNullOrWhiteSpace(
                         goalID
                     ))
-                {
                     continue;
-                }
 
                 if (rewardedGoalIDs.Contains(
                         goalID
                     ))
-                {
                     continue;
-                }
 
                 rewardedGoalIDs.Add(
                     goalID
                 );
             }
-        }
 
         allGoalsBonusClaimed =
             saveData.allGoalsBonusClaimed;
@@ -503,37 +434,31 @@ public class StoreGoals : MonoBehaviour
             return;
         }
 
-        HashSet<int> seenStartDays =
+        var seenStartDays =
             new HashSet<int>();
 
-        bool hasDayOneEntry =
+        var hasDayOneEntry =
             false;
 
-        for (int scheduleIndex = 0;
+        for (var scheduleIndex = 0;
              scheduleIndex
              < goalSchedule.EntryCount;
              scheduleIndex++)
         {
-            DayGoalScheduleEntry entry =
+            var entry =
                 goalSchedule.GetEntry(
                     scheduleIndex
                 );
 
-            if (entry == null)
-            {
-                continue;
-            }
+            if (entry == null) continue;
 
             if (entry.StartDay == 1)
-            {
                 hasDayOneEntry =
                     true;
-            }
 
             if (!seenStartDays.Add(
                     entry.StartDay
                 ))
-            {
                 Debug.LogError(
                     "Day Goal Schedule contains "
                     + "more than one entry starting "
@@ -542,9 +467,8 @@ public class StoreGoals : MonoBehaviour
                     + ".",
                     goalSchedule
                 );
-            }
 
-            DailyGoalSet goalSet =
+            var goalSet =
                 entry.GoalSet;
 
             if (goalSet == null)
@@ -559,22 +483,19 @@ public class StoreGoals : MonoBehaviour
                 continue;
             }
 
-            HashSet<string> goalIDsInSet =
+            var goalIDsInSet =
                 new HashSet<string>();
 
-            for (int goalIndex = 0;
+            for (var goalIndex = 0;
                  goalIndex < goalSet.GoalCount;
                  goalIndex++)
             {
-                StoreGoalDefinition goal =
+                var goal =
                     goalSet.GetGoal(
                         goalIndex
                     );
 
-                if (goal == null)
-                {
-                    continue;
-                }
+                if (goal == null) continue;
 
                 if (string.IsNullOrWhiteSpace(
                         goal.GoalID
@@ -595,7 +516,6 @@ public class StoreGoals : MonoBehaviour
                 if (!goalIDsInSet.Add(
                         goal.GoalID
                     ))
-                {
                     Debug.LogError(
                         "Goal Set scheduled from Day "
                         + entry.StartDay
@@ -604,17 +524,14 @@ public class StoreGoals : MonoBehaviour
                         + "'.",
                         goal
                     );
-                }
             }
         }
 
         if (!hasDayOneEntry)
-        {
             Debug.LogError(
                 "Day Goal Schedule needs an entry "
                 + "starting on Day 1.",
                 goalSchedule
             );
-        }
     }
 }

@@ -10,35 +10,23 @@ public class StorageBay :
     IManagementInteractable,
     IRepeatableInteractable
 {
-    [Header("Identity")]
-    [SerializeField]
-    private string slotID = "";
+    [Header("Identity")] [SerializeField] private string slotID = "";
 
-    [Header("Storage")]
-    [Min(1)]
-    [SerializeField]
+    [Header("Storage")] [Min(1)] [SerializeField]
     private int capacity = 12;
 
-    [Header("Portable Carton")]
-    [SerializeField]
+    [Header("Portable Carton")] [SerializeField]
     private DeliveryBox cartonPrefab;
 
-    [Min(1)]
-    [SerializeField]
-    private int portableCartonCapacity = 4;
+    [Min(1)] [SerializeField] private int portableCartonCapacity = 4;
 
-    [Header("Display")]
-    [SerializeField]
-    private GameObject assignedBoxVisual;
+    [Header("Display")] [SerializeField] private GameObject assignedBoxVisual;
 
-    [SerializeField]
-    private TMP_Text statusText;
+    [SerializeField] private TMP_Text statusText;
 
-    [SerializeField]
-    private Image productIcon;
+    [SerializeField] private Image productIcon;
 
-    [SerializeField]
-    private Image fillBar;
+    [SerializeField] private Image fillBar;
 
     private ProductData assignedProduct;
 
@@ -47,7 +35,7 @@ public class StorageBay :
     private StorageRegistry registeredStorageRegistry;
 
     private static readonly Color32 EmptyColor =
-        new Color32(
+        new(
             122,
             104,
             96,
@@ -55,7 +43,7 @@ public class StorageBay :
         );
 
     private static readonly Color32 NormalColor =
-        new Color32(
+        new(
             89,
             70,
             64,
@@ -63,7 +51,7 @@ public class StorageBay :
         );
 
     private static readonly Color32 LowColor =
-        new Color32(
+        new(
             196,
             107,
             107,
@@ -71,7 +59,7 @@ public class StorageBay :
         );
 
     private static readonly Color32 MidColor =
-        new Color32(
+        new(
             246,
             215,
             122,
@@ -79,7 +67,7 @@ public class StorageBay :
         );
 
     private static readonly Color32 HealthyColor =
-        new Color32(
+        new(
             111,
             207,
             151,
@@ -125,7 +113,7 @@ public class StorageBay :
     private void Start()
     {
         registeredStorageRegistry =
-            Object.FindAnyObjectByType<
+            FindAnyObjectByType<
                 StorageRegistry
             >();
 
@@ -148,10 +136,7 @@ public class StorageBay :
 
     private void OnDestroy()
     {
-        if (registeredStorageRegistry == null)
-        {
-            return;
-        }
+        if (registeredStorageRegistry == null) return;
 
         registeredStorageRegistry.Unregister(
             this
@@ -162,15 +147,9 @@ public class StorageBay :
         ProductData productData
     )
     {
-        if (productData == null)
-        {
-            return false;
-        }
+        if (productData == null) return false;
 
-        if (!IsAssigned)
-        {
-            return true;
-        }
+        if (!IsAssigned) return true;
 
         return assignedProduct
                == productData;
@@ -182,9 +161,7 @@ public class StorageBay :
     {
         if (productData == null ||
             assignedProduct != productData)
-        {
             return 0;
-        }
 
         return quantity;
     }
@@ -193,55 +170,41 @@ public class StorageBay :
         PlayerInteraction player
     )
     {
-        if (player == null)
-        {
-            return "";
-        }
+        if (player == null) return "";
 
-        DeliveryBox heldBox =
+        var heldBox =
             player.GetHeldDeliveryBox();
 
         if (heldBox != null)
-        {
             return GetDeliveryBoxPrompt(
                 heldBox
             );
-        }
 
-        RestockBasket basket =
+        var basket =
             player.GetHeldRestockBasket();
 
         if (basket != null)
-        {
             return GetBasketPrompt(
                 basket
             );
-        }
 
-        PickupItem heldItem =
+        var heldItem =
             player.GetHeldItem();
 
         if (heldItem != null)
-        {
             return GetHeldItemPrompt(
                 heldItem
             );
-        }
 
-        if (!IsAssigned)
-        {
-            return "Empty storage bay";
-        }
+        if (!IsAssigned) return "Empty storage bay";
 
         if (quantity <= 0)
-        {
             return assignedProduct.ProductName
                    + "  •  0 / "
                    + Capacity
                    + "\n[Hold X] Clear assignment";
-        }
 
-        int cartonQuantity =
+        var cartonQuantity =
             Mathf.Min(
                 portableCartonCapacity,
                 quantity
@@ -264,12 +227,9 @@ public class StorageBay :
         PlayerInteraction player
     )
     {
-        if (player == null)
-        {
-            return;
-        }
+        if (player == null) return;
 
-        DeliveryBox heldBox =
+        var heldBox =
             player.GetHeldDeliveryBox();
 
         if (heldBox != null)
@@ -282,7 +242,7 @@ public class StorageBay :
             return;
         }
 
-        RestockBasket basket =
+        var basket =
             player.GetHeldRestockBasket();
 
         if (basket != null)
@@ -299,7 +259,7 @@ public class StorageBay :
             return;
         }
 
-        PickupItem heldItem =
+        var heldItem =
             player.GetHeldItem();
 
         /*
@@ -339,12 +299,9 @@ public class StorageBay :
         PlayerInteraction player
     )
     {
-        if (player == null)
-        {
-            return;
-        }
+        if (player == null) return;
 
-        DeliveryBox heldBox =
+        var heldBox =
             player.GetHeldDeliveryBox();
 
         if (heldBox != null)
@@ -356,11 +313,10 @@ public class StorageBay :
             return;
         }
 
-        RestockBasket basket =
+        var basket =
             player.GetHeldRestockBasket();
 
         if (basket != null)
-        {
             /*
              * R mirrors the sales shelf:
              *
@@ -369,24 +325,19 @@ public class StorageBay :
             TryTakeIntoBasket(
                 basket
             );
-        }
     }
-    
+
     public void HandleCarryAction(
         PlayerInteraction player
     )
     {
         if (player == null ||
             player.HasAnythingHeld)
-        {
             return;
-        }
 
         if (!IsAssigned ||
             quantity <= 0)
-        {
             return;
-        }
 
         TryTakeCarton(
             player
@@ -406,9 +357,7 @@ public class StorageBay :
     {
         if (!IsAssigned ||
             quantity > 0)
-        {
             return;
-        }
 
         assignedProduct =
             null;
@@ -449,42 +398,37 @@ public class StorageBay :
         DeliveryBox deliveryBox
     )
     {
-        ProductData boxProduct =
+        var boxProduct =
             deliveryBox.ProductData;
 
-        if (boxProduct == null)
-        {
-            return "Carton not configured";
-        }
+        if (boxProduct == null) return "Carton not configured";
 
         if (!CanAcceptProduct(
                 boxProduct
             ))
-        {
             return "Bay assigned to "
                    + assignedProduct.ProductName;
-        }
 
-        int availableSpace =
+        var availableSpace =
             Mathf.Max(
                 0,
                 Capacity - quantity
             );
 
-        int unitsToStore =
+        var unitsToStore =
             Mathf.Min(
                 availableSpace,
                 deliveryBox.RemainingQuantity
             );
 
-        int boxFreeSpace =
+        var boxFreeSpace =
             Mathf.Max(
                 0,
                 deliveryBox.Capacity
                 - deliveryBox.RemainingQuantity
             );
 
-        int unitsToReturn =
+        var unitsToReturn =
             IsAssigned &&
             assignedProduct == boxProduct
                 ? Mathf.Min(
@@ -495,18 +439,16 @@ public class StorageBay :
 
         if (unitsToStore > 0 &&
             unitsToReturn > 0)
-        {
             return "[E] Place carton  •  +"
                    + unitsToStore
                    + " "
                    + boxProduct.ProductName
                    + "\n[R] Fill carton from bay  •  +"
                    + unitsToReturn;
-        }
 
         if (unitsToStore > 0)
         {
-            string verb =
+            var verb =
                 IsAssigned
                     ? "Merge carton"
                     : "Place carton";
@@ -520,25 +462,18 @@ public class StorageBay :
         }
 
         if (unitsToReturn > 0)
-        {
             return "[R] Fill carton from bay  •  +"
                    + unitsToReturn
                    + " "
                    + assignedProduct.ProductName;
-        }
 
         if (IsFull)
-        {
             return "Storage bay full  "
                    + quantity
                    + " / "
                    + Capacity;
-        }
 
-        if (deliveryBox.IsEmpty)
-        {
-            return "Carton empty";
-        }
+        if (deliveryBox.IsEmpty) return "Carton empty";
 
         return "";
     }
@@ -547,10 +482,7 @@ public class StorageBay :
         RestockBasket basket
     )
     {
-        if (basket == null)
-        {
-            return "";
-        }
+        if (basket == null) return "";
 
         /*
          * Empty bay:
@@ -560,40 +492,36 @@ public class StorageBay :
          */
         if (!IsAssigned)
         {
-            ProductData firstProduct =
+            var firstProduct =
                 basket.GetFirstProductData();
 
-            if (firstProduct == null)
-            {
-                return "Empty storage bay";
-            }
+            if (firstProduct == null) return "Empty storage bay";
 
             return "[E] Store "
                    + firstProduct.ProductName
                    + "  •  Assign bay  •  Hold";
         }
 
-        int matchingBasketCount =
+        var matchingBasketCount =
             basket.GetProductCount(
                 assignedProduct
             );
 
-        bool canStore =
+        var canStore =
             matchingBasketCount > 0
             && !IsFull;
 
-        bool canTake =
+        var canTake =
             quantity > 0
             && !basket.IsFull;
 
-        string bayCount =
+        var bayCount =
             quantity
             + " / "
             + Capacity;
 
         if (canStore &&
             canTake)
-        {
             return "[E] Store "
                    + assignedProduct.ProductName
                    + "  •  Bay "
@@ -602,38 +530,29 @@ public class StorageBay :
                    + "\n[R] Take "
                    + assignedProduct.ProductName
                    + " into basket  •  Hold";
-        }
 
         if (canStore)
-        {
             return "[E] Store "
                    + assignedProduct.ProductName
                    + "  •  Bay "
                    + bayCount
                    + "  •  Hold";
-        }
 
         if (canTake)
-        {
             return "[R] Take "
                    + assignedProduct.ProductName
                    + " into basket  •  Bay "
                    + bayCount
                    + "  •  Hold";
-        }
 
         if (IsFull &&
             matchingBasketCount > 0)
-        {
             return "Storage bay full  "
                    + bayCount;
-        }
 
         if (basket.IsFull &&
             quantity > 0)
-        {
             return "Restock basket full";
-        }
 
         return assignedProduct.ProductName
                + "  •  "
@@ -644,29 +563,22 @@ public class StorageBay :
         PickupItem heldItem
     )
     {
-        ProductData heldProduct =
+        var heldProduct =
             heldItem.GetProductData();
 
-        if (heldProduct == null)
-        {
-            return "This item cannot be stored";
-        }
+        if (heldProduct == null) return "This item cannot be stored";
 
         if (!CanAcceptProduct(
                 heldProduct
             ))
-        {
             return "Bay assigned to "
                    + assignedProduct.ProductName;
-        }
 
         if (IsFull)
-        {
             return "Storage bay full  "
                    + quantity
                    + " / "
                    + Capacity;
-        }
 
         return "[E] Store "
                + heldProduct.ProductName
@@ -692,51 +604,45 @@ public class StorageBay :
             deliveryBox.ProductData == null ||
             deliveryBox.IsEmpty ||
             IsFull)
-        {
             return;
-        }
 
-        ProductData product =
+        var product =
             deliveryBox.ProductData;
 
         if (!CanAcceptProduct(
                 product
             ))
-        {
             return;
-        }
 
         AssignIfNeeded(
             product
         );
 
-        int availableSpace =
+        var availableSpace =
             Capacity
             - quantity;
 
-        int requestedTransfer =
+        var requestedTransfer =
             Mathf.Min(
                 availableSpace,
                 deliveryBox.RemainingQuantity
             );
 
-        int transferred =
+        var transferred =
             0;
 
-        for (int i = 0;
+        for (var i = 0;
              i < requestedTransfer;
              i++)
         {
-            bool tookUnit =
+            var tookUnit =
                 deliveryBox.TryTakeOneUnit(
-                    out ProductData takenProduct
+                    out var takenProduct
                 );
 
             if (!tookUnit ||
                 takenProduct != product)
-            {
                 break;
-            }
 
             transferred++;
         }
@@ -773,37 +679,32 @@ public class StorageBay :
             quantity <= 0 ||
             deliveryBox.IsFull ||
             deliveryBox.ProductData
-                != assignedProduct)
-        {
+            != assignedProduct)
             return;
-        }
 
-        int availableBoxSpace =
+        var availableBoxSpace =
             deliveryBox.Capacity
             - deliveryBox.RemainingQuantity;
 
-        int requestedTransfer =
+        var requestedTransfer =
             Mathf.Min(
                 quantity,
                 availableBoxSpace
             );
 
-        int transferred =
+        var transferred =
             0;
 
-        for (int i = 0;
+        for (var i = 0;
              i < requestedTransfer;
              i++)
         {
-            bool accepted =
+            var accepted =
                 deliveryBox.TryAddOneUnit(
                     assignedProduct
                 );
 
-            if (!accepted)
-            {
-                break;
-            }
+            if (!accepted) break;
 
             transferred++;
         }
@@ -823,18 +724,16 @@ public class StorageBay :
             !IsAssigned ||
             quantity <= 0 ||
             assignedProduct.WorldPrefab == null)
-        {
             return;
-        }
 
-        PickupItem spawnedItem =
+        var spawnedItem =
             Instantiate(
                 assignedProduct.WorldPrefab,
                 transform.position,
                 transform.rotation
             );
 
-        bool added =
+        var added =
             basket.TryAddItem(
                 spawnedItem
             );
@@ -860,11 +759,9 @@ public class StorageBay :
         if (basket == null ||
             basket.IsEmpty ||
             IsFull)
-        {
             return;
-        }
 
-        ProductData targetProduct =
+        var targetProduct =
             assignedProduct;
 
         /*
@@ -873,30 +770,24 @@ public class StorageBay :
          * this player's chosen storage assignment.
          */
         if (targetProduct == null)
-        {
             targetProduct =
                 basket.GetFirstProductData();
-        }
 
         if (targetProduct == null ||
             !CanAcceptProduct(
                 targetProduct
             ))
-        {
             return;
-        }
 
-        bool foundItem =
+        var foundItem =
             basket.TryTakeMatchingProduct(
                 targetProduct,
-                out PickupItem basketItem
+                out var basketItem
             );
 
         if (!foundItem ||
             basketItem == null)
-        {
             return;
-        }
 
         AssignIfNeeded(
             targetProduct
@@ -920,18 +811,16 @@ public class StorageBay :
             !IsAssigned ||
             quantity <= 0 ||
             assignedProduct.WorldPrefab == null)
-        {
             return;
-        }
 
-        PickupItem spawnedItem =
+        var spawnedItem =
             Instantiate(
                 assignedProduct.WorldPrefab,
                 transform.position,
                 transform.rotation
             );
 
-        bool pickedUp =
+        var pickedUp =
             player.TryPickUp(
                 spawnedItem
             );
@@ -958,20 +847,16 @@ public class StorageBay :
         if (player == null ||
             heldItem == null ||
             IsFull)
-        {
             return;
-        }
 
-        ProductData heldProduct =
+        var heldProduct =
             heldItem.GetProductData();
 
         if (heldProduct == null ||
             !CanAcceptProduct(
                 heldProduct
             ))
-        {
             return;
-        }
 
         AssignIfNeeded(
             heldProduct
@@ -997,11 +882,9 @@ public class StorageBay :
             cartonPrefab == null ||
             !IsAssigned ||
             quantity <= 0)
-        {
             return;
-        }
 
-        int cartonQuantity =
+        var cartonQuantity =
             Mathf.Min(
                 Mathf.Max(
                     1,
@@ -1010,7 +893,7 @@ public class StorageBay :
                 quantity
             );
 
-        DeliveryBox createdCarton =
+        var createdCarton =
             Instantiate(
                 cartonPrefab,
                 transform.position,
@@ -1022,7 +905,7 @@ public class StorageBay :
             cartonQuantity
         );
 
-        bool pickedUp =
+        var pickedUp =
             player.TryPickUpDeliveryBox(
                 createdCarton
             );
@@ -1046,10 +929,7 @@ public class StorageBay :
         ProductData productData
     )
     {
-        if (assignedProduct != null)
-        {
-            return;
-        }
+        if (assignedProduct != null) return;
 
         assignedProduct =
             productData;
@@ -1057,19 +937,17 @@ public class StorageBay :
 
     private void RefreshDisplay()
     {
-        bool assigned =
+        var assigned =
             assignedProduct != null;
 
         if (assignedBoxVisual != null)
-        {
             assignedBoxVisual.SetActive(
                 assigned
             );
-        }
 
         if (productIcon != null)
         {
-            Sprite icon =
+            var icon =
                 assigned
                     ? assignedProduct.Icon
                     : null;
@@ -1088,7 +966,7 @@ public class StorageBay :
                 assigned
             );
 
-            float ratio =
+            var ratio =
                 assigned
                     ? Mathf.Clamp01(
                         (float)quantity
@@ -1096,7 +974,7 @@ public class StorageBay :
                     )
                     : 0f;
 
-            RectTransform fillRect =
+            var fillRect =
                 fillBar.rectTransform;
 
             fillRect.anchorMin =
@@ -1118,26 +996,17 @@ public class StorageBay :
                 Vector2.zero;
 
             if (ratio <= 0.25f)
-            {
                 fillBar.color =
                     LowColor;
-            }
             else if (ratio <= 0.6f)
-            {
                 fillBar.color =
                     MidColor;
-            }
             else
-            {
                 fillBar.color =
                     HealthyColor;
-            }
         }
 
-        if (statusText == null)
-        {
-            return;
-        }
+        if (statusText == null) return;
 
         if (!assigned)
         {
@@ -1162,7 +1031,7 @@ public class StorageBay :
                 ? LowColor
                 : NormalColor;
     }
-    
+
     public float ManagementHoldDuration =>
         0.6f;
 
@@ -1172,9 +1041,7 @@ public class StorageBay :
     {
         if (player == null ||
             player.HasAnythingHeld)
-        {
             return false;
-        }
 
         return IsAssigned
                && quantity <= 0;
@@ -1187,9 +1054,7 @@ public class StorageBay :
         if (!CanUseManagementAction(
                 player
             ))
-        {
             return;
-        }
 
         ClearAssignment();
     }
@@ -1198,10 +1063,7 @@ public class StorageBay :
         PlayerInteraction player
     )
     {
-        if (player == null)
-        {
-            return false;
-        }
+        if (player == null) return false;
 
         /*
          * Individual basket products move one
@@ -1217,10 +1079,7 @@ public class StorageBay :
         PlayerInteraction player
     )
     {
-        if (player == null)
-        {
-            return false;
-        }
+        if (player == null) return false;
 
         return player.GetHeldRestockBasket()
                != null;

@@ -2,29 +2,21 @@ using UnityEngine;
 
 public class StoreStockOverview : MonoBehaviour
 {
-    [Header("Stock Rules")]
-    [Min(0)]
-    [SerializeField]
+    [Header("Stock Rules")] [Min(0)] [SerializeField]
     private int lowStockThreshold = 2;
 
-    [Header("Store References")]
-    [SerializeField]
+    [Header("Store References")] [SerializeField]
     private ShelfRegistry shelfRegistry;
 
-    [SerializeField]
-    private StorageRegistry storageRegistry;
+    [SerializeField] private StorageRegistry storageRegistry;
 
-    [SerializeField]
-    private DeliveryZone deliveryZone;
+    [SerializeField] private DeliveryZone deliveryZone;
 
-    [SerializeField]
-    private WorldItemRegistry worldItemRegistry;
+    [SerializeField] private WorldItemRegistry worldItemRegistry;
 
-    [SerializeField]
-    private PlayerInteraction playerInteraction;
+    [SerializeField] private PlayerInteraction playerInteraction;
 
-    [SerializeField]
-    private RestockBasket restockBasket;
+    [SerializeField] private RestockBasket restockBasket;
 
     public int LowStockThreshold =>
         lowStockThreshold;
@@ -35,26 +27,21 @@ public class StoreStockOverview : MonoBehaviour
     {
         if (productData == null ||
             shelfRegistry == null)
-        {
             return 0;
-        }
 
-        int count =
+        var count =
             0;
 
-        for (int i = 0;
+        for (var i = 0;
              i < shelfRegistry.RegisteredSlotCount;
              i++)
         {
-            ShelfSlot slot =
+            var slot =
                 shelfRegistry.GetRegisteredSlot(
                     i
                 );
 
-            if (slot == null)
-            {
-                continue;
-            }
+            if (slot == null) continue;
 
             count +=
                 slot.GetStoredProductCount(
@@ -71,26 +58,21 @@ public class StoreStockOverview : MonoBehaviour
     {
         if (productData == null ||
             storageRegistry == null)
-        {
             return 0;
-        }
 
-        int count =
+        var count =
             0;
 
-        for (int i = 0;
+        for (var i = 0;
              i < storageRegistry.RegisteredSlotCount;
              i++)
         {
-            StorageBay bay =
+            var bay =
                 storageRegistry.GetRegisteredSlot(
                     i
                 );
 
-            if (bay == null)
-            {
-                continue;
-            }
+            if (bay == null) continue;
 
             count +=
                 bay.GetStoredProductCount(
@@ -107,9 +89,7 @@ public class StoreStockOverview : MonoBehaviour
     {
         if (productData == null ||
             restockBasket == null)
-        {
             return 0;
-        }
 
         return restockBasket
             .GetProductCount(
@@ -121,33 +101,28 @@ public class StoreStockOverview : MonoBehaviour
         ProductData productData
     )
     {
-        if (productData == null)
-        {
-            return 0;
-        }
+        if (productData == null) return 0;
 
-        DeliveryBox[] boxes =
-            Object.FindObjectsByType<
+        var boxes =
+            FindObjectsByType<
                 DeliveryBox
             >(
                 FindObjectsSortMode.None
             );
 
-        int count =
+        var count =
             0;
 
-        for (int i = 0;
+        for (var i = 0;
              i < boxes.Length;
              i++)
         {
-            DeliveryBox box =
+            var box =
                 boxes[i];
 
             if (box == null ||
                 box.ProductData != productData)
-            {
                 continue;
-            }
 
             count +=
                 Mathf.Max(
@@ -165,14 +140,12 @@ public class StoreStockOverview : MonoBehaviour
     {
         if (productData == null ||
             worldItemRegistry == null)
-        {
             return 0;
-        }
 
-        int count =
+        var count =
             0;
 
-        for (int i = 0;
+        for (var i = 0;
              i < worldItemRegistry.RegisteredItemCount;
              i++)
         {
@@ -181,21 +154,13 @@ public class StoreStockOverview : MonoBehaviour
                     i
                 );
 
-            if (item == null)
-            {
-                continue;
-            }
+            if (item == null) continue;
 
-            if (!item.IsLooseWorldItem)
-            {
-                continue;
-            }
+            if (!item.IsLooseWorldItem) continue;
 
             if (item.GetProductData()
                 != productData)
-            {
                 continue;
-            }
 
             count++;
         }
@@ -209,23 +174,16 @@ public class StoreStockOverview : MonoBehaviour
     {
         if (productData == null ||
             playerInteraction == null)
-        {
             return 0;
-        }
 
-        PickupItem heldItem =
+        var heldItem =
             playerInteraction.GetHeldItem();
 
-        if (heldItem == null)
-        {
-            return 0;
-        }
+        if (heldItem == null) return 0;
 
         if (heldItem.GetProductData()
             != productData)
-        {
             return 0;
-        }
 
         return 1;
     }
@@ -276,36 +234,29 @@ public class StoreStockOverview : MonoBehaviour
         ProductData productData
     )
     {
-        int shelfCount =
+        var shelfCount =
             GetShelfCount(
                 productData
             );
 
-        int backStockCount =
+        var backStockCount =
             GetBackStockCount(
                 productData
             );
 
-        int totalStock =
+        var totalStock =
             shelfCount
             + backStockCount;
 
-        if (totalStock <= 0)
-        {
-            return StockStatus.OutOfStock;
-        }
+        if (totalStock <= 0) return StockStatus.OutOfStock;
 
         if (shelfCount <= 0 &&
             backStockCount > 0)
-        {
             return StockStatus.Restock;
-        }
 
         if (totalStock
             <= lowStockThreshold)
-        {
             return StockStatus.Low;
-        }
 
         return StockStatus.Healthy;
     }

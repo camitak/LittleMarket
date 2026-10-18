@@ -4,12 +4,9 @@ using UnityEngine;
 [Serializable]
 public class DayGoalScheduleEntry
 {
-    [Min(1)]
-    [SerializeField]
-    private int startDay = 1;
+    [Min(1)] [SerializeField] private int startDay = 1;
 
-    [SerializeField]
-    private DailyGoalSet goalSet;
+    [SerializeField] private DailyGoalSet goalSet;
 
     public int StartDay => startDay;
 

@@ -6,69 +6,45 @@ using UnityEngine;
 )]
 public class ProductData : ScriptableObject
 {
-    [Header("Basic Information")]
-    [SerializeField]
+    [Header("Basic Information")] [SerializeField]
     private string productName = "New Product";
 
-    [SerializeField]
-    private string productID = "product_id";
+    [SerializeField] private string productID = "product_id";
 
-    [SerializeField]
-    private ProductCategory category;
+    [SerializeField] private ProductCategory category;
 
-    [SerializeField]
-    private Sprite icon;
+    [SerializeField] private Sprite icon;
 
-    [TextArea]
-    [SerializeField]
-    private string description = "";
+    [TextArea] [SerializeField] private string description = "";
 
-    [Header("World")]
-    [SerializeField]
-    private PickupItem worldPrefab;
+    [Header("World")] [SerializeField] private PickupItem worldPrefab;
 
-    [Header("Sales Shelf Display")]
-    [Min(1)]
-    [SerializeField]
+    [Header("Sales Shelf Display")] [Min(1)] [SerializeField]
     private int shelfColumns = 1;
 
-    [Min(1)]
-    [SerializeField]
-    private int shelfVerticalLayers = 1;
+    [Min(1)] [SerializeField] private int shelfVerticalLayers = 1;
 
-    [Min(1)]
-    [SerializeField]
-    private int shelfDepthRows = 1;
+    [Min(1)] [SerializeField] private int shelfDepthRows = 1;
 
-    [SerializeField]
-    private Vector3 shelfItemSpacing =
-        new Vector3(
+    [SerializeField] private Vector3 shelfItemSpacing =
+        new(
             0.2f,
             0.2f,
             0.2f
         );
 
-    [SerializeField]
-    private Vector3 shelfDisplayOffset =
+    [SerializeField] private Vector3 shelfDisplayOffset =
         Vector3.zero;
 
-    [Header("Economy")]
-    [Min(0f)]
-    [SerializeField]
+    [Header("Economy")] [Min(0f)] [SerializeField]
     private float buyPrice = 1f;
 
-    [Min(0f)]
-    [SerializeField]
-    private float sellPrice = 2f;
+    [Min(0f)] [SerializeField] private float sellPrice = 2f;
 
-    [Header("Progression")]
-    [Range(0f, 100f)]
-    [SerializeField]
+    [Header("Progression")] [Range(0f, 100f)] [SerializeField]
     private float requiredReputation = 0f;
 
-    [Min(1)]
-    [SerializeField]
-    private int requiredStoreLevel = 1;
+    [Min(1)] [SerializeField] private int requiredStoreLevel = 1;
 
     public string ProductName =>
         productName;
@@ -114,30 +90,30 @@ public class ProductData : ScriptableObject
         int index
     )
     {
-        int columns =
+        var columns =
             Mathf.Max(
                 1,
                 shelfColumns
             );
 
-        int verticalLayers =
+        var verticalLayers =
             Mathf.Max(
                 1,
                 shelfVerticalLayers
             );
 
-        int depthRows =
+        var depthRows =
             Mathf.Max(
                 1,
                 shelfDepthRows
             );
 
-        int capacity =
+        var capacity =
             columns
             * verticalLayers
             * depthRows;
 
-        int safeIndex =
+        var safeIndex =
             Mathf.Clamp(
                 index,
                 0,
@@ -151,16 +127,16 @@ public class ProductData : ScriptableObject
          * then front/back,
          * then upward.
          */
-        int column =
+        var column =
             safeIndex % columns;
 
-        int remaining =
+        var remaining =
             safeIndex / columns;
 
-        int depth =
+        var depth =
             remaining % depthRows;
 
-        int vertical =
+        var vertical =
             remaining / depthRows;
 
         /*
@@ -169,15 +145,15 @@ public class ProductData : ScriptableObject
          * Vertical layers always build upward
          * from the shelf surface.
          */
-        float centeredColumn =
+        var centeredColumn =
             column
             - (columns - 1) * 0.5f;
 
-        float centeredDepth =
+        var centeredDepth =
             depth
             - (depthRows - 1) * 0.5f;
 
-        Vector3 position =
+        var position =
             shelfDisplayOffset;
 
         position.x +=

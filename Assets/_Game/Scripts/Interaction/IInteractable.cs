@@ -48,10 +48,7 @@ public interface ICarryInteractable
  */
 public interface IManagementInteractable
 {
-    float ManagementHoldDuration
-    {
-        get;
-    }
+    float ManagementHoldDuration { get; }
 
     bool CanUseManagementAction(
         PlayerInteraction player

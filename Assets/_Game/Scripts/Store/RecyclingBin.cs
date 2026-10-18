@@ -5,17 +5,11 @@ public class RecyclingBin :
     MonoBehaviour,
     IInteractable
 {
-    [Header("Feedback")]
-    [SerializeField]
-    private Transform feedbackVisual;
+    [Header("Feedback")] [SerializeField] private Transform feedbackVisual;
 
-    [Min(0f)]
-    [SerializeField]
-    private float feedbackLift = 0.08f;
+    [Min(0f)] [SerializeField] private float feedbackLift = 0.08f;
 
-    [Min(0.05f)]
-    [SerializeField]
-    private float feedbackDuration = 0.22f;
+    [Min(0.05f)] [SerializeField] private float feedbackDuration = 0.22f;
 
     private Vector3 feedbackBaseLocalPosition;
 
@@ -24,28 +18,22 @@ public class RecyclingBin :
     private void Awake()
     {
         if (feedbackVisual != null)
-        {
             feedbackBaseLocalPosition =
                 feedbackVisual.localPosition;
-        }
     }
 
     public string GetInteractionPrompt(
         PlayerInteraction player
     )
     {
-        if (player == null)
-        {
-            return "";
-        }
+        if (player == null) return "";
 
-        DeliveryBox heldBox =
+        var heldBox =
             player.GetHeldDeliveryBox();
 
         if (heldBox != null)
         {
             if (!heldBox.IsEmpty)
-            {
                 return "Carton still contains "
                        + heldBox.RemainingQuantity
                        + " product"
@@ -54,22 +42,17 @@ public class RecyclingBin :
                                ? ""
                                : "s"
                        );
-            }
 
             return "[E] Recycle empty carton";
         }
 
         if (player.GetHeldRestockBasket()
             != null)
-        {
             return "This bin is for empty cartons";
-        }
 
         if (player.GetHeldItem()
             != null)
-        {
             return "This bin is for empty cartons";
-        }
 
         return "Cardboard recycling"
                + "\nBring empty cartons here";
@@ -79,19 +62,14 @@ public class RecyclingBin :
         PlayerInteraction player
     )
     {
-        if (player == null)
-        {
-            return;
-        }
+        if (player == null) return;
 
-        DeliveryBox heldBox =
+        var heldBox =
             player.GetHeldDeliveryBox();
 
         if (heldBox == null ||
             !heldBox.IsEmpty)
-        {
             return;
-        }
 
         /*
          * Remove the player's reference first.
@@ -112,17 +90,12 @@ public class RecyclingBin :
 
     private void PlayRecycleFeedback()
     {
-        if (feedbackVisual == null)
-        {
-            return;
-        }
+        if (feedbackVisual == null) return;
 
         if (feedbackRoutine != null)
-        {
             StopCoroutine(
                 feedbackRoutine
             );
-        }
 
         feedbackVisual.localPosition =
             feedbackBaseLocalPosition;
@@ -136,13 +109,13 @@ public class RecyclingBin :
     private IEnumerator
         RecycleFeedbackRoutine()
     {
-        float duration =
+        var duration =
             Mathf.Max(
                 0.05f,
                 feedbackDuration
             );
 
-        float elapsed =
+        var elapsed =
             0f;
 
         while (elapsed < duration)
@@ -150,12 +123,12 @@ public class RecyclingBin :
             elapsed +=
                 Time.deltaTime;
 
-            float t =
+            var t =
                 Mathf.Clamp01(
                     elapsed / duration
                 );
 
-            float lift =
+            var lift =
                 Mathf.Sin(
                     t * Mathf.PI
                 )

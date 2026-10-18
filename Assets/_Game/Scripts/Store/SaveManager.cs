@@ -4,61 +4,40 @@ using UnityEngine;
 
 public class SaveManager : MonoBehaviour
 {
-    private const int CurrentSaveVersion = 13;
+    private const int CurrentSaveVersion = 14;
 
-    [Header("Store References")]
-    [SerializeField]
+    [Header("Store References")] [SerializeField]
     private StoreClock storeClock;
 
-    [SerializeField]
-    private StoreEconomy storeEconomy;
+    [SerializeField] private StoreEconomy storeEconomy;
 
-    [SerializeField]
-    private StoreReputation storeReputation;
+    [SerializeField] private StoreReputation storeReputation;
 
-    [SerializeField]
-    private StoreProgression storeProgression;
+    [SerializeField] private StoreProgression storeProgression;
 
-    [SerializeField]
-    private DailyStats dailyStats;
+    [SerializeField] private DailyStats dailyStats;
 
-    [SerializeField]
-    private StoreGoals storeGoals;
+    [SerializeField] private StoreGoals storeGoals;
 
-    [SerializeField]
-    private StoreLevelProgression storeLevelProgression;
+    [SerializeField] private StoreLevelProgression storeLevelProgression;
 
-    [SerializeField]
-    private CustomerFlow customerFlow;
+    [SerializeField] private CustomerFlow customerFlow;
 
-    [SerializeField]
-    private ShelfRegistry shelfRegistry;
-    
-    [SerializeField]
-    private StorageRegistry storageRegistry;
+    [SerializeField] private ShelfRegistry shelfRegistry;
 
-    [SerializeField]
-    private DeliveryZone deliveryZone;
+    [SerializeField] private StorageRegistry storageRegistry;
 
-    [SerializeField]
-    private WorldItemRegistry worldItemRegistry;
+    [SerializeField] private DeliveryZone deliveryZone;
 
-    [Header("Delivery")]
-    [SerializeField]
-    private DeliveryBox deliveryBoxPrefab;
+    [SerializeField] private WorldItemRegistry worldItemRegistry;
 
-    [Header("Player")]
-    [SerializeField]
-    private PlayerInteraction playerInteraction;
-    
-    [SerializeField]
-    private RestockBasket restockBasket;
+    [Header("Delivery")] [SerializeField] private DeliveryBox deliveryBoxPrefab;
 
-    public string LastOperationMessage
-    {
-        get;
-        private set;
-    } = "";
+    [Header("Player")] [SerializeField] private PlayerInteraction playerInteraction;
+
+    [SerializeField] private RestockBasket restockBasket;
+
+    public string LastOperationMessage { get; private set; } = "";
 
     public bool HasSaveFile =>
         File.Exists(
@@ -86,12 +65,9 @@ public class SaveManager : MonoBehaviour
             return false;
         }
 
-        if (!CanUseSaveSystemNow())
-        {
-            return false;
-        }
+        if (!CanUseSaveSystemNow()) return false;
 
-        StoreSaveData saveData =
+        var saveData =
             new StoreSaveData();
 
         saveData.saveVersion =
@@ -115,7 +91,7 @@ public class SaveManager : MonoBehaviour
 
         saveData.shelfSlots =
             BuildShelfSlotSaveData();
-        
+
         saveData.storageSlots =
             BuildStorageSlotSaveData();
 
@@ -135,7 +111,7 @@ public class SaveManager : MonoBehaviour
             storeLevelProgression
                 .CreateSaveData();
 
-        string json =
+        var json =
             JsonUtility.ToJson(
                 saveData,
                 true
@@ -183,10 +159,7 @@ public class SaveManager : MonoBehaviour
             return false;
         }
 
-        if (!CanUseSaveSystemNow())
-        {
-            return false;
-        }
+        if (!CanUseSaveSystemNow()) return false;
 
         if (!File.Exists(
                 SavePath
@@ -202,12 +175,12 @@ public class SaveManager : MonoBehaviour
             return false;
         }
 
-        string json =
+        var json =
             File.ReadAllText(
                 SavePath
             );
 
-        StoreSaveData saveData =
+        var saveData =
             JsonUtility.FromJson<
                 StoreSaveData
             >(
@@ -249,63 +222,37 @@ public class SaveManager : MonoBehaviour
         return true;
     }
 
-    private List<ShelfSlotSaveData>
-        BuildShelfSlotSaveData()
+    private List<ShelfSlotSaveData> BuildShelfSlotSaveData()
     {
         List<ShelfSlotSaveData> savedSlots =
             new List<ShelfSlotSaveData>();
 
-        for (int i = 0;
-             i < shelfRegistry.RegisteredSlotCount;
-             i++)
+        for (int i = 0; i < shelfRegistry.RegisteredSlotCount; i++)
         {
-            ShelfSlot slot =
-                shelfRegistry.GetRegisteredSlot(
-                    i
-                );
+            ShelfSlot slot = shelfRegistry.GetRegisteredSlot(i);
 
-            if (slot == null)
+            if (slot == null || !slot.IsAssigned)
             {
                 continue;
             }
 
-            ProductData product =
-                slot.GetStoredProductData();
+            ProductData product = slot.AssignedProduct;
 
-            if (product == null)
+            if (product == null ||
+                string.IsNullOrWhiteSpace(slot.SlotID) ||
+                string.IsNullOrWhiteSpace(product.ProductID))
             {
                 continue;
             }
 
-            if (string.IsNullOrWhiteSpace(
-                    slot.SlotID
-                ))
+            ShelfSlotSaveData slotSaveData = new ShelfSlotSaveData
             {
-                continue;
-            }
+                slotID = slot.SlotID,
+                productID = product.ProductID,
+                quantity = slot.StoredItemCount
+            };
 
-            if (string.IsNullOrWhiteSpace(
-                    product.ProductID
-                ))
-            {
-                continue;
-            }
-
-            ShelfSlotSaveData slotSaveData =
-                new ShelfSlotSaveData();
-
-            slotSaveData.slotID =
-                slot.SlotID;
-
-            slotSaveData.productID =
-                product.ProductID;
-            
-            slotSaveData.quantity =
-                slot.StoredItemCount;
-
-            savedSlots.Add(
-                slotSaveData
-            );
+            savedSlots.Add(slotSaveData);
         }
 
         return savedSlots;
@@ -314,47 +261,38 @@ public class SaveManager : MonoBehaviour
     private List<StorageSlotSaveData>
         BuildStorageSlotSaveData()
     {
-        List<StorageSlotSaveData> savedSlots =
+        var savedSlots =
             new List<StorageSlotSaveData>();
 
-        for (int i = 0;
+        for (var i = 0;
              i < storageRegistry.RegisteredSlotCount;
              i++)
         {
-            StorageBay bay =
+            var bay =
                 storageRegistry.GetRegisteredSlot(
                     i
                 );
 
             if (bay == null ||
                 !bay.IsAssigned)
-            {
                 continue;
-            }
 
-            ProductData product =
+            var product =
                 bay.AssignedProduct;
 
-            if (product == null)
-            {
-                continue;
-            }
+            if (product == null) continue;
 
             if (string.IsNullOrWhiteSpace(
                     bay.SlotID
                 ))
-            {
                 continue;
-            }
 
             if (string.IsNullOrWhiteSpace(
                     product.ProductID
                 ))
-            {
                 continue;
-            }
 
-            StorageSlotSaveData slotSaveData =
+            var slotSaveData =
                 new StorageSlotSaveData();
 
             slotSaveData.slotID =
@@ -373,7 +311,7 @@ public class SaveManager : MonoBehaviour
 
         return savedSlots;
     }
-    
+
     private void RestoreStorageInventory(
         List<StorageSlotSaveData> savedSlots,
         int saveVersion
@@ -381,24 +319,18 @@ public class SaveManager : MonoBehaviour
     {
         ClearCurrentStorageInventory();
 
-        if (savedSlots == null)
-        {
-            return;
-        }
+        if (savedSlots == null) return;
 
-        for (int i = 0;
+        for (var i = 0;
              i < savedSlots.Count;
              i++)
         {
-            StorageSlotSaveData slotSaveData =
+            var slotSaveData =
                 savedSlots[i];
 
-            if (slotSaveData == null)
-            {
-                continue;
-            }
+            if (slotSaveData == null) continue;
 
-            StorageBay bay =
+            var bay =
                 storageRegistry.FindSlotByID(
                     slotSaveData.slotID
                 );
@@ -415,7 +347,7 @@ public class SaveManager : MonoBehaviour
                 continue;
             }
 
-            ProductData product =
+            var product =
                 storeProgression
                     .FindCatalogProductByID(
                         slotSaveData.productID
@@ -437,7 +369,7 @@ public class SaveManager : MonoBehaviour
              * Before Version 12, each storage slot
              * represented exactly one product.
              */
-            int restoredQuantity =
+            var restoredQuantity =
                 saveVersion >= 12
                     ? Mathf.Max(
                         0,
@@ -451,64 +383,56 @@ public class SaveManager : MonoBehaviour
             );
         }
     }
-    
+
     private void ClearCurrentStorageInventory()
     {
-        for (int i = 0;
+        for (var i = 0;
              i < storageRegistry.RegisteredSlotCount;
              i++)
         {
-            StorageBay bay =
+            var bay =
                 storageRegistry.GetRegisteredSlot(
                     i
                 );
 
-            if (bay == null)
-            {
-                continue;
-            }
+            if (bay == null) continue;
 
             bay.ClearForLoad();
         }
     }
-    
+
     private List<DeliveryBoxSaveData>
         BuildDeliverySaveData()
     {
-        List<DeliveryBoxSaveData> savedDeliveries =
+        var savedDeliveries =
             new List<DeliveryBoxSaveData>();
 
-        DeliveryBox[] allBoxes =
-            Object.FindObjectsByType<
+        var allBoxes =
+            FindObjectsByType<
                 DeliveryBox
             >(
                 FindObjectsSortMode.None
             );
 
-        for (int i = 0;
+        for (var i = 0;
              i < allBoxes.Length;
              i++)
         {
-            DeliveryBox delivery =
+            var delivery =
                 allBoxes[i];
 
-            if (delivery == null)
-            {
-                continue;
-            }
+            if (delivery == null) continue;
 
-            ProductData product =
+            var product =
                 delivery.ProductData;
 
             if (product == null ||
                 string.IsNullOrWhiteSpace(
                     product.ProductID
                 ))
-            {
                 continue;
-            }
 
-            DeliveryBoxSaveData deliverySaveData =
+            var deliverySaveData =
                 new DeliveryBoxSaveData();
 
             /*
@@ -552,10 +476,9 @@ public class SaveManager : MonoBehaviour
     private List<LooseProductSaveData>
         BuildLooseProductSaveData()
     {
-        List<LooseProductSaveData> savedProducts =
-            new List<LooseProductSaveData>();
+        List<LooseProductSaveData> savedProducts = new();
 
-        for (int i = 0;
+        for (var i = 0;
              i < worldItemRegistry.RegisteredItemCount;
              i++)
         {
@@ -564,30 +487,19 @@ public class SaveManager : MonoBehaviour
                     i
                 );
 
-            if (item == null)
-            {
-                continue;
-            }
+            if (item == null) continue;
 
-            if (!item.IsLooseWorldItem)
-            {
-                continue;
-            }
+            if (!item.IsLooseWorldItem) continue;
 
-            ProductData productData =
+            var productData =
                 item.GetProductData();
 
-            if (productData == null)
-            {
-                continue;
-            }
+            if (productData == null) continue;
 
             if (string.IsNullOrWhiteSpace(
                     productData.ProductID
                 ))
-            {
                 continue;
-            }
 
             LooseProductSaveData productSaveData =
                 new LooseProductSaveData();
@@ -620,12 +532,9 @@ public class SaveManager : MonoBehaviour
             return;
         }
 
-        for (int i = 0;
-             i < savedSlots.Count;
-             i++)
+        for (int i = 0; i < savedSlots.Count; i++)
         {
-            ShelfSlotSaveData slotSaveData =
-                savedSlots[i];
+            ShelfSlotSaveData slotSaveData = savedSlots[i];
 
             if (slotSaveData == null)
             {
@@ -633,60 +542,39 @@ public class SaveManager : MonoBehaviour
             }
 
             ShelfSlot slot =
-                shelfRegistry.FindSlotByID(
-                    slotSaveData.slotID
-                );
+                shelfRegistry.FindSlotByID(slotSaveData.slotID);
 
             if (slot == null)
             {
                 Debug.LogWarning(
-                    "Saved ShelfSlot '"
-                    + slotSaveData.slotID
-                    + "' does not exist "
-                    + "in the current scene."
+                    $"Saved ShelfSlot '{slotSaveData.slotID}' does not exist in the current scene."
                 );
 
                 continue;
             }
 
             ProductData product =
-                storeProgression
-                    .FindCatalogProductByID(
-                        slotSaveData.productID
-                    );
+                storeProgression.FindCatalogProductByID(
+                    slotSaveData.productID
+                );
 
             if (product == null)
             {
                 Debug.LogWarning(
-                    "Saved product ID '"
-                    + slotSaveData.productID
-                    + "' does not exist "
-                    + "in the current catalog."
+                    $"Saved product ID '{slotSaveData.productID}' does not exist in the current catalog."
                 );
 
                 continue;
             }
 
-            int quantity =
-                Mathf.Max(
-                    1,
-                    slotSaveData.quantity
-                );
+            int quantity = Mathf.Max(0, slotSaveData.quantity);
 
-            bool restored =
-                slot.RestoreProduct(
-                    product,
-                    quantity
-                );
+            bool restored = slot.RestoreProduct(product, quantity);
 
             if (!restored)
             {
                 Debug.LogWarning(
-                    "Could not restore product '"
-                    + slotSaveData.productID
-                    + "' into ShelfSlot '"
-                    + slotSaveData.slotID
-                    + "'."
+                    $"Could not restore product '{slotSaveData.productID}' into ShelfSlot '{slotSaveData.slotID}'."
                 );
             }
         }
@@ -700,31 +588,26 @@ public class SaveManager : MonoBehaviour
          * Destroy loose cartons created from storage
          * before rebuilding the save state.
          */
-        DeliveryBox[] existingBoxes =
-            Object.FindObjectsByType<
+        var existingBoxes =
+            FindObjectsByType<
                 DeliveryBox
             >(
                 FindObjectsSortMode.None
             );
 
-        for (int i = 0;
+        for (var i = 0;
              i < existingBoxes.Length;
              i++)
         {
-            DeliveryBox existingBox =
+            var existingBox =
                 existingBoxes[i];
 
-            if (existingBox == null)
-            {
-                continue;
-            }
+            if (existingBox == null) continue;
 
             if (deliveryZone.GetSlotIndex(
                     existingBox
                 ) >= 0)
-            {
                 continue;
-            }
 
             Destroy(
                 existingBox.gameObject
@@ -738,24 +621,18 @@ public class SaveManager : MonoBehaviour
         deliveryZone
             .ClearAllDeliveriesForLoad();
 
-        if (savedDeliveries == null)
-        {
-            return;
-        }
+        if (savedDeliveries == null) return;
 
-        for (int i = 0;
+        for (var i = 0;
              i < savedDeliveries.Count;
              i++)
         {
-            DeliveryBoxSaveData deliverySaveData =
+            var deliverySaveData =
                 savedDeliveries[i];
 
-            if (deliverySaveData == null)
-            {
-                continue;
-            }
+            if (deliverySaveData == null) continue;
 
-            ProductData product =
+            var product =
                 storeProgression
                     .FindCatalogProductByID(
                         deliverySaveData.productID
@@ -778,7 +655,7 @@ public class SaveManager : MonoBehaviour
              */
             if (deliverySaveData.slotIndex >= 0)
             {
-                bool restored =
+                var restored =
                     deliveryZone.TryRestoreDelivery(
                         deliveryBoxPrefab,
                         deliverySaveData.slotIndex,
@@ -786,21 +663,18 @@ public class SaveManager : MonoBehaviour
                         deliverySaveData.quantity,
                         deliverySaveData.capacity,
                         deliverySaveData.isOpen,
-                        out DeliveryBox restoredDelivery
+                        out var restoredDelivery
                     );
 
                 if (restored &&
                     restoredDelivery != null &&
                     deliverySaveData.hasWorldTransform)
-                {
                     restoredDelivery.RestoreWorldTransform(
                         deliverySaveData.position,
                         deliverySaveData.rotation
                     );
-                }
 
                 if (!restored)
-                {
                     Debug.LogWarning(
                         "Could not restore delivery "
                         + "in slot "
@@ -809,7 +683,6 @@ public class SaveManager : MonoBehaviour
                         + deliverySaveData.productID
                         + "'."
                     );
-                }
 
                 continue;
             }
@@ -820,12 +693,9 @@ public class SaveManager : MonoBehaviour
              * It is intentionally NOT registered to a
              * delivery slot.
              */
-            if (!deliverySaveData.hasWorldTransform)
-            {
-                continue;
-            }
+            if (!deliverySaveData.hasWorldTransform) continue;
 
-            DeliveryBox looseCarton =
+            var looseCarton =
                 Instantiate(
                     deliveryBoxPrefab,
                     deliverySaveData.position,
@@ -853,24 +723,18 @@ public class SaveManager : MonoBehaviour
         worldItemRegistry
             .ClearLooseWorldItemsForLoad();
 
-        if (savedProducts == null)
-        {
-            return;
-        }
+        if (savedProducts == null) return;
 
-        for (int i = 0;
+        for (var i = 0;
              i < savedProducts.Count;
              i++)
         {
             LooseProductSaveData productSaveData =
                 savedProducts[i];
 
-            if (productSaveData == null)
-            {
-                continue;
-            }
+            if (productSaveData == null) continue;
 
-            ProductData productData =
+            var productData =
                 storeProgression
                     .FindCatalogProductByID(
                         productSaveData.productID
@@ -897,33 +761,24 @@ public class SaveManager : MonoBehaviour
                     );
 
             if (!restored)
-            {
                 Debug.LogWarning(
                     "Could not restore loose product '"
                     + productSaveData.productID
                     + "'."
                 );
-            }
         }
     }
 
     private void ClearCurrentShelfInventory()
     {
-        for (int i = 0;
-             i < shelfRegistry.RegisteredSlotCount;
-             i++)
+        for (int i = 0; i < shelfRegistry.RegisteredSlotCount; i++)
         {
-            ShelfSlot slot =
-                shelfRegistry.GetRegisteredSlot(
-                    i
-                );
+            ShelfSlot slot = shelfRegistry.GetRegisteredSlot(i);
 
-            if (slot == null)
+            if (slot != null)
             {
-                continue;
+                slot.ClearForLoad();
             }
-
-            slot.ClearStoredItemForLoad();
         }
     }
 
@@ -1055,7 +910,7 @@ public class SaveManager : MonoBehaviour
                 + "save predates Store Level progression."
             );
         }
-        
+
         storeProgression.RefreshUnlocks();
 
         if (saveData.saveVersion >= 4)
@@ -1077,7 +932,7 @@ public class SaveManager : MonoBehaviour
                 + "started at the configured start time."
             );
         }
-        
+
         if (saveData.saveVersion >= 9)
         {
             RestoreStorageInventory(
@@ -1124,25 +979,21 @@ public class SaveManager : MonoBehaviour
 
             return false;
         }
-        
-        RestockBasket heldBasket =
+
+        var heldBasket =
             playerInteraction
                 .GetHeldRestockBasket();
 
         if (heldBasket != null)
         {
             if (heldBasket.ItemCount > 0)
-            {
                 LastOperationMessage =
                     "Empty and put down the restock "
                     + "basket before saving or loading.";
-            }
             else
-            {
                 LastOperationMessage =
                     "Put down the restock basket "
                     + "before saving or loading.";
-            }
 
             Debug.LogWarning(
                 LastOperationMessage
@@ -1163,8 +1014,8 @@ public class SaveManager : MonoBehaviour
 
             return false;
         }
-        
-        DeliveryBox heldDeliveryBox =
+
+        var heldDeliveryBox =
             playerInteraction
                 .GetHeldDeliveryBox();
 
@@ -1200,15 +1051,15 @@ public class SaveManager : MonoBehaviour
         float totalMinutes
     )
     {
-        int wholeMinutes =
+        var wholeMinutes =
             Mathf.FloorToInt(
                 totalMinutes
             );
 
-        int hours =
+        var hours =
             wholeMinutes / 60;
 
-        int minutes =
+        var minutes =
             wholeMinutes % 60;
 
         return hours.ToString("00")
@@ -1218,81 +1069,36 @@ public class SaveManager : MonoBehaviour
 
     private bool HasValidConfiguration()
     {
-        if (storeClock == null)
-        {
-            return false;
-        }
+        if (storeClock == null) return false;
 
-        if (storeEconomy == null)
-        {
-            return false;
-        }
+        if (storeEconomy == null) return false;
 
-        if (storeReputation == null)
-        {
-            return false;
-        }
+        if (storeReputation == null) return false;
 
-        if (storeProgression == null)
-        {
-            return false;
-        }
+        if (storeProgression == null) return false;
 
-        if (dailyStats == null)
-        {
-            return false;
-        }
+        if (dailyStats == null) return false;
 
-        if (storeGoals == null)
-        {
-            return false;
-        }
+        if (storeGoals == null) return false;
 
-        if (storeLevelProgression == null)
-        {
-            return false;
-        }
+        if (storeLevelProgression == null) return false;
 
-        if (customerFlow == null)
-        {
-            return false;
-        }
+        if (customerFlow == null) return false;
 
-        if (shelfRegistry == null)
-        {
-            return false;
-        }
+        if (shelfRegistry == null) return false;
 
-        if (deliveryZone == null)
-        {
-            return false;
-        }
+        if (deliveryZone == null) return false;
 
-        if (worldItemRegistry == null)
-        {
-            return false;
-        }
+        if (worldItemRegistry == null) return false;
 
-        if (deliveryBoxPrefab == null)
-        {
-            return false;
-        }
+        if (deliveryBoxPrefab == null) return false;
 
-        if (playerInteraction == null)
-        {
-            return false;
-        }
-        
-        if (storageRegistry == null)
-        {
-            return false;
-        }
-        
-        if (restockBasket == null)
-        {
-            return false;
-        }
-        
+        if (playerInteraction == null) return false;
+
+        if (storageRegistry == null) return false;
+
+        if (restockBasket == null) return false;
+
         return true;
     }
 }

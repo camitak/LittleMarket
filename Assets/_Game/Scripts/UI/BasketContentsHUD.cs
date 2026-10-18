@@ -1,4 +1,3 @@
-
 using System.Text;
 using TMPro;
 using UnityEngine;
@@ -6,46 +5,31 @@ using UnityEngine.InputSystem;
 
 public class BasketContentsHUD : MonoBehaviour
 {
-    [Header("UI")]
-    [SerializeField]
-    private GameObject basketPanel;
+    [Header("UI")] [SerializeField] private GameObject basketPanel;
 
-    [SerializeField]
-    private RectTransform basketPanelRect;
+    [SerializeField] private RectTransform basketPanelRect;
 
-    [SerializeField]
-    private TMP_Text capacityText;
+    [SerializeField] private TMP_Text capacityText;
 
-    [SerializeField]
-    private TMP_Text contentsText;
+    [SerializeField] private TMP_Text contentsText;
 
-    [Header("References")]
-    [SerializeField]
+    [Header("References")] [SerializeField]
     private PlayerInteraction playerInteraction;
 
-    [SerializeField]
-    private StoreProgression storeProgression;
+    [SerializeField] private StoreProgression storeProgression;
 
-    [Header("Layout")]
-    [SerializeField]
-    private float collapsedHeight = 42f;
+    [Header("Layout")] [SerializeField] private float collapsedHeight = 42f;
 
-    [SerializeField]
-    private float expandedHeight = 156f;
+    [SerializeField] private float expandedHeight = 156f;
 
-    [Header("Refresh")]
-    [Min(0.05f)]
-    [SerializeField]
+    [Header("Refresh")] [Min(0.05f)] [SerializeField]
     private float refreshInterval = 0.15f;
 
-    private static readonly Color32 NormalColor =
-        new Color32(89, 70, 64, 255);
+    private static readonly Color32 NormalColor = new(89, 70, 64, 255);
 
-    private static readonly Color32 FullColor =
-        new Color32(176, 133, 41, 255);
+    private static readonly Color32 FullColor = new(176, 133, 41, 255);
 
-    private readonly StringBuilder textBuilder =
-        new StringBuilder();
+    private readonly StringBuilder textBuilder = new();
 
     private RestockBasket previousBasket;
     private bool previousExpanded;
@@ -53,10 +37,7 @@ public class BasketContentsHUD : MonoBehaviour
 
     private void Awake()
     {
-        if (basketPanel != null)
-        {
-            basketPanel.SetActive(false);
-        }
+        if (basketPanel != null) basketPanel.SetActive(false);
     }
 
     private void Update()
@@ -66,10 +47,8 @@ public class BasketContentsHUD : MonoBehaviour
         if (playerInteraction != null &&
             playerInteraction.isActiveAndEnabled &&
             Time.timeScale > 0f)
-        {
             basket =
                 playerInteraction.GetHeldRestockBasket();
-        }
 
         if (basket == null)
         {
@@ -82,30 +61,23 @@ public class BasketContentsHUD : MonoBehaviour
             capacityText == null ||
             contentsText == null ||
             storeProgression == null)
-        {
             return;
-        }
 
-        bool wasVisible = basketPanel.activeSelf;
+        var wasVisible = basketPanel.activeSelf;
 
-        if (!wasVisible)
-        {
-            basketPanel.SetActive(true);
-        }
+        if (!wasVisible) basketPanel.SetActive(true);
 
-        bool expanded =
+        var expanded =
             Keyboard.current != null &&
             Keyboard.current.tabKey.isPressed;
 
         if (expanded != previousExpanded ||
             !wasVisible)
-        {
             UpdatePanelLayout(expanded);
-        }
 
         refreshTimer += Time.unscaledDeltaTime;
 
-        bool needsRefresh =
+        var needsRefresh =
             !wasVisible ||
             basket != previousBasket ||
             expanded != previousExpanded ||
@@ -145,10 +117,7 @@ public class BasketContentsHUD : MonoBehaviour
         capacityText.color =
             basket.IsFull ? FullColor : NormalColor;
 
-        if (!expanded)
-        {
-            return;
-        }
+        if (!expanded) return;
 
         textBuilder.Clear();
 
@@ -158,30 +127,21 @@ public class BasketContentsHUD : MonoBehaviour
         }
         else
         {
-            for (int i = 0;
+            for (var i = 0;
                  i < storeProgression.CatalogProductCount;
                  i++)
             {
-                ProductData product =
+                var product =
                     storeProgression.GetCatalogProduct(i);
 
-                if (product == null)
-                {
-                    continue;
-                }
+                if (product == null) continue;
 
-                int count =
+                var count =
                     basket.GetProductCount(product);
 
-                if (count <= 0)
-                {
-                    continue;
-                }
+                if (count <= 0) continue;
 
-                if (textBuilder.Length > 0)
-                {
-                    textBuilder.AppendLine();
-                }
+                if (textBuilder.Length > 0) textBuilder.AppendLine();
 
                 textBuilder.Append(product.ProductName);
                 textBuilder.Append("  x");
@@ -189,11 +149,9 @@ public class BasketContentsHUD : MonoBehaviour
             }
 
             if (textBuilder.Length == 0)
-            {
                 textBuilder.Append(
                     "Contents not found in catalogue."
                 );
-            }
         }
 
         contentsText.text = textBuilder.ToString();
@@ -203,9 +161,7 @@ public class BasketContentsHUD : MonoBehaviour
     {
         if (basketPanel != null &&
             basketPanel.activeSelf)
-        {
             basketPanel.SetActive(false);
-        }
 
         previousBasket = null;
         previousExpanded = false;

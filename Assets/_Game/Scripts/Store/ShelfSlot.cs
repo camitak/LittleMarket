@@ -1,83 +1,54 @@
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Serialization;
 
 public class ShelfSlot :
     MonoBehaviour,
     IInteractable,
     ISecondaryInteractable,
+    IManagementInteractable,
     IRepeatableInteractable
 {
     [Header("Identity")]
-    [SerializeField]
-    private string slotID = "";
+    [SerializeField] private string slotID = "";
 
     [Header("Shelf Rules")]
-    [SerializeField]
-    private ProductData acceptedProduct;
-    
+    [SerializeField] private ProductCategory allowedCategory = ProductCategory.Cereal;
+
+    [FormerlySerializedAs("acceptedProduct")]
+    [SerializeField] private ProductData assignedProduct;
+
     [Header("Placement")]
-    [SerializeField]
-    private Transform displayOrigin;
+    [SerializeField] private Transform displayOrigin;
 
     [Header("Customer")]
-    [SerializeField]
-    private Transform customerStandPoint;
+    [SerializeField] private Transform customerStandPoint;
 
     [Header("Access")]
-    [SerializeField]
-    private bool customerAccessible = true;
+    [SerializeField] private bool customerAccessible = true;
 
-    private readonly List<PickupItem>
-        storedItems =
-            new List<PickupItem>();
-
+    private readonly List<PickupItem> storedItems = new List<PickupItem>();
     private ShelfRegistry registeredShelfRegistry;
 
-    public string SlotID =>
-        slotID;
+    public string SlotID => slotID;
+    public Transform CustomerStandPoint => customerStandPoint;
+    public bool CustomerAccessible => customerAccessible;
 
-    public Transform CustomerStandPoint =>
-        customerStandPoint;
+    public bool IsAssigned => assignedProduct != null;
+    public ProductData AssignedProduct => assignedProduct;
 
-    public bool CustomerAccessible =>
-        customerAccessible;
+    public bool HasStoredItem => StoredItemCount > 0;
+    public int StoredItemCount => storedItems.Count;
 
-    public bool IsGenericStorage =>
-        !customerAccessible
-        && acceptedProduct == null;
-
-    public bool HasStoredItem =>
-        StoredItemCount > 0;
-
-    public int StoredItemCount =>
-        storedItems.Count;
-
-    public int Capacity
-    {
-        get
-        {
-            /*
-             * Back-room storage is still the old
-             * one-object system until its dedicated
-             * container refactor.
-             */
-            if (!customerAccessible)
-            {
-                return 1;
-            }
-
-            if (acceptedProduct == null)
-            {
-                return 1;
-            }
-
-            return acceptedProduct
-                .SalesShelfCapacity;
-        }
-    }
+    public int Capacity =>
+        assignedProduct != null
+            ? assignedProduct.SalesShelfCapacity
+            : 0;
 
     public bool IsFull =>
-        StoredItemCount >= Capacity;
+        IsAssigned && StoredItemCount >= Capacity;
+
+    public float ManagementHoldDuration => 0.6f;
 
     private void Start()
     {
@@ -89,52 +60,34 @@ public class ShelfSlot :
         UnregisterFromCurrentRegistry();
     }
 
-    public bool CanAcceptProduct(
-        ProductData productData
-    )
+    public bool CanAcceptProduct(ProductData productData)
     {
-        if (productData == null)
+        if (productData == null || !customerAccessible)
         {
             return false;
         }
 
-        if (IsGenericStorage)
-        {
-            return true;
-        }
-
-        if (acceptedProduct == null)
+        if (productData.Category != allowedCategory)
         {
             return false;
         }
 
-        return acceptedProduct
-               == productData;
+        return assignedProduct == null || assignedProduct == productData;
     }
 
     public ProductData GetStoredProductData()
     {
         RemoveNullEntries();
 
-        if (storedItems.Count <= 0)
+        if (storedItems.Count == 0)
         {
             return null;
         }
 
-        PickupItem item =
-            storedItems[0];
-
-        if (item == null)
-        {
-            return null;
-        }
-
-        return item.GetProductData();
+        return storedItems[0]?.GetProductData();
     }
 
-    public int GetStoredProductCount(
-        ProductData productData
-    )
+    public int GetStoredProductCount(ProductData productData)
     {
         if (productData == null)
         {
@@ -143,23 +96,13 @@ public class ShelfSlot :
 
         RemoveNullEntries();
 
-        int count =
-            0;
+        int count = 0;
 
-        for (int i = 0;
-             i < storedItems.Count;
-             i++)
+        for (int i = 0; i < storedItems.Count; i++)
         {
-            PickupItem item =
-                storedItems[i];
+            PickupItem item = storedItems[i];
 
-            if (item == null)
-            {
-                continue;
-            }
-
-            if (item.GetProductData()
-                == productData)
+            if (item != null && item.GetProductData() == productData)
             {
                 count++;
             }
@@ -168,109 +111,81 @@ public class ShelfSlot :
         return count;
     }
 
-    public Vector3 GetDisplayWorldPosition(
-        int displayIndex
-    )
+    public Vector3 GetDisplayWorldPosition(int displayIndex)
     {
-        Transform placementFrame =
-            GetDisplayPlacementFrame();
+        Transform placementFrame = GetDisplayPlacementFrame();
 
-        if (!customerAccessible ||
-            acceptedProduct == null)
+        if (assignedProduct == null)
         {
             return placementFrame.position;
         }
 
         Vector3 localPosition =
-            acceptedProduct
-                .GetSalesShelfLocalPosition(
-                    displayIndex
-                );
+            assignedProduct.GetSalesShelfLocalPosition(displayIndex);
 
-        return placementFrame.TransformPoint(
-            localPosition
-        );
+        return placementFrame.TransformPoint(localPosition);
     }
 
     public Quaternion GetDisplayWorldRotation()
     {
-        return GetDisplayPlacementFrame()
-            .rotation;
+        return GetDisplayPlacementFrame().rotation;
     }
-    
+
     private Transform GetDisplayPlacementFrame()
     {
-        if (displayOrigin != null)
-        {
-            return displayOrigin;
-        }
-
-        /*
-         * Backward-compatible fallback while older
-         * shelf prefabs are being migrated.
-         */
-        return transform;
+        return displayOrigin != null ? displayOrigin : transform;
     }
 
     public void ClearStoredItemForLoad()
     {
-        if (storedItems.Count <= 0)
+        if (storedItems.Count == 0)
         {
             return;
         }
 
         List<PickupItem> itemsToDestroy =
-            new List<PickupItem>(
-                storedItems
-            );
+            new List<PickupItem>(storedItems);
 
         storedItems.Clear();
 
-        for (int i = 0;
-             i < itemsToDestroy.Count;
-             i++)
+        for (int i = 0; i < itemsToDestroy.Count; i++)
         {
-            PickupItem item =
-                itemsToDestroy[i];
+            PickupItem item = itemsToDestroy[i];
 
-            if (item == null)
+            if (item != null)
             {
-                continue;
+                Destroy(item.gameObject);
             }
-
-            Destroy(
-                item.gameObject
-            );
         }
     }
 
-    public bool RestoreProduct(
-        ProductData productData,
-        int quantity = 1
-    )
+    public void ClearForLoad()
     {
-        if (productData == null)
+        ClearStoredItemForLoad();
+        assignedProduct = null;
+    }
+
+    public bool RestoreProduct(ProductData productData, int quantity = 1)
+    {
+        if (productData == null || productData.WorldPrefab == null)
         {
             return false;
         }
 
-        if (productData.WorldPrefab == null)
-        {
-            return false;
-        }
-
-        if (!CanAcceptProduct(
-                productData
-            ))
+        if (productData.Category != allowedCategory)
         {
             Debug.LogWarning(
-                "Cannot restore "
-                + productData.ProductName
-                + " into ShelfSlot '"
-                + slotID
-                + "' because "
-                + GetRestoreRuleDescription()
-                + ".",
+                $"Cannot restore {productData.ProductName} into ShelfSlot '{slotID}' because the facing only accepts {allowedCategory}.",
+                this
+            );
+
+            return false;
+        }
+
+        if (assignedProduct != null && assignedProduct != productData)
+        {
+            Debug.LogWarning(
+                $"Cannot restore {productData.ProductName} into ShelfSlot '{slotID}' because it is assigned to {assignedProduct.ProductName}.",
                 this
             );
 
@@ -278,50 +193,33 @@ public class ShelfSlot :
         }
 
         ClearStoredItemForLoad();
+        assignedProduct = productData;
 
-        int restoreCount =
-            Mathf.Clamp(
-                quantity,
-                1,
-                Capacity
-            );
+        int restoreCount = Mathf.Clamp(quantity, 0, Capacity);
 
-        for (int i = 0;
-             i < restoreCount;
-             i++)
+        for (int i = 0; i < restoreCount; i++)
         {
-            PickupItem restoredItem =
-                Instantiate(
-                    productData.WorldPrefab,
-                    transform.position,
-                    transform.rotation
-                );
-
-            AddStoredItem(
-                restoredItem
+            PickupItem restoredItem = Instantiate(
+                productData.WorldPrefab,
+                transform.position,
+                transform.rotation
             );
+
+            AddStoredItem(restoredItem);
         }
 
         if (quantity > Capacity)
         {
             Debug.LogWarning(
-                "Saved ShelfSlot '"
-                + slotID
-                + "' contained "
-                + quantity
-                + " units, but its current capacity is "
-                + Capacity
-                + ". Extra units were not restored.",
+                $"Saved ShelfSlot '{slotID}' contained {quantity} units, but its current capacity is {Capacity}. Extra units were not restored.",
                 this
             );
         }
 
-        return storedItems.Count > 0;
+        return true;
     }
 
-    public string GetInteractionPrompt(
-        PlayerInteraction player
-    )
+    public string GetInteractionPrompt(PlayerInteraction player)
     {
         if (player == null)
         {
@@ -329,35 +227,26 @@ public class ShelfSlot :
         }
 
         RemoveNullEntries();
-        
-        DeliveryBox heldDeliveryBox =
-            player.GetHeldDeliveryBox();
+
+        DeliveryBox heldDeliveryBox = player.GetHeldDeliveryBox();
 
         if (heldDeliveryBox != null)
         {
-            return GetDeliveryBoxInteractionPrompt(
-                heldDeliveryBox
-            );
+            return GetDeliveryBoxInteractionPrompt(heldDeliveryBox);
         }
 
-        RestockBasket heldBasket =
-            player.GetHeldRestockBasket();
+        RestockBasket heldBasket = player.GetHeldRestockBasket();
 
         if (heldBasket != null)
         {
-            return GetBasketInteractionPrompt(
-                heldBasket
-            );
+            return GetBasketInteractionPrompt(heldBasket);
         }
 
-        PickupItem heldItem =
-            player.GetHeldItem();
+        PickupItem heldItem = player.GetHeldItem();
 
         if (heldItem != null)
         {
-            return GetHeldItemPrompt(
-                heldItem
-            );
+            return GetHeldItemPrompt(heldItem);
         }
 
         if (HasStoredItem)
@@ -368,9 +257,7 @@ public class ShelfSlot :
         return GetEmptySlotPrompt();
     }
 
-    public void Interact(
-        PlayerInteraction player
-    )
+    public void Interact(PlayerInteraction player)
     {
         if (player == null)
         {
@@ -378,58 +265,30 @@ public class ShelfSlot :
         }
 
         RemoveNullEntries();
-        
-        DeliveryBox heldDeliveryBox =
-            player.GetHeldDeliveryBox();
+
+        DeliveryBox heldDeliveryBox = player.GetHeldDeliveryBox();
 
         if (heldDeliveryBox != null)
         {
-            TryStockFromDeliveryBox(
-                heldDeliveryBox
-            );
-
+            TryStockFromDeliveryBox(heldDeliveryBox);
             return;
         }
 
-        RestockBasket heldBasket =
-            player.GetHeldRestockBasket();
+        RestockBasket heldBasket = player.GetHeldRestockBasket();
 
-        /*
-         * E with basket:
-         *
-         * Basket -> target only.
-         */
         if (heldBasket != null)
         {
-            HandleBasketInteraction(
-                heldBasket
-            );
-
+            HandleBasketInteraction(heldBasket);
             return;
         }
 
-        /*
-         * E with individual product:
-         *
-         * Hand -> target only.
-         */
         if (player.GetHeldItem() != null)
         {
-            TryStoreHeldItem(
-                player
-            );
+            TryStoreHeldItem(player);
         }
-
-        /*
-         * E with empty hands does not remove stock.
-         *
-         * R owns that action now.
-         */
     }
-    
-    public void TakeOne(
-        PlayerInteraction player
-    )
+
+    public void TakeOne(PlayerInteraction player)
     {
         if (player == null)
         {
@@ -442,27 +301,17 @@ public class ShelfSlot :
         {
             return;
         }
-        
-        DeliveryBox heldDeliveryBox =
-            player.GetHeldDeliveryBox();
+
+        DeliveryBox heldDeliveryBox = player.GetHeldDeliveryBox();
 
         if (heldDeliveryBox != null)
         {
-            TryTakeOneIntoDeliveryBox(
-                heldDeliveryBox
-            );
-
+            TryTakeOneIntoDeliveryBox(heldDeliveryBox);
             return;
         }
 
-        RestockBasket basket =
-            player.GetHeldRestockBasket();
+        RestockBasket basket = player.GetHeldRestockBasket();
 
-        /*
-         * R while carrying basket:
-         *
-         * Shelf/Storage -> Basket
-         */
         if (basket != null)
         {
             if (basket.IsFull)
@@ -470,211 +319,173 @@ public class ShelfSlot :
                 return;
             }
 
-            PickupItem item =
-                GetLastStoredItem();
+            PickupItem item = GetLastStoredItem();
 
-            if (item == null)
+            if (item != null)
             {
-                return;
+                basket.TryAddItem(item);
             }
 
-            basket.TryAddItem(
-                item
-            );
-
             return;
         }
 
-        /*
-         * R with empty hands:
-         *
-         * Shelf/Storage -> Hand
-         */
-        if (player.GetHeldItem() != null)
+        if (player.GetHeldItem() == null)
         {
-            return;
+            TryRemoveStoredItem(player);
         }
-
-        TryRemoveStoredItem(
-            player
-        );
     }
 
-    public void SecondaryInteract(
-        PlayerInteraction player
-    )
+    public void SecondaryInteract(PlayerInteraction player)
     {
-        TakeOne(
-            player
-        );
+        TakeOne(player);
     }
 
-    public bool CanRepeatPrimary(
-        PlayerInteraction player
-    )
+    public bool CanRepeatPrimary(PlayerInteraction player)
     {
         if (player == null)
         {
             return false;
         }
 
-        return player.GetHeldRestockBasket()
-               != null
-               ||
-               player.GetHeldDeliveryBox()
-               != null;
+        return player.GetHeldRestockBasket() != null ||
+               player.GetHeldDeliveryBox() != null;
     }
 
-    public bool CanRepeatSecondary(
-        PlayerInteraction player
-    )
+    public bool CanRepeatSecondary(PlayerInteraction player)
     {
         if (player == null)
         {
             return false;
         }
 
-        return player.GetHeldRestockBasket()
-               != null
-               ||
-               player.GetHeldDeliveryBox()
-               != null;
+        return player.GetHeldRestockBasket() != null ||
+               player.GetHeldDeliveryBox() != null;
     }
-    
-    private string GetHeldItemPrompt(
-        PickupItem heldItem
-    )
+
+    public bool CanUseManagementAction(PlayerInteraction player)
+    {
+        if (player == null || player.HasAnythingHeld)
+        {
+            return false;
+        }
+
+        RemoveNullEntries();
+
+        return IsAssigned && StoredItemCount == 0;
+    }
+
+    public void ManagementInteract(PlayerInteraction player)
+    {
+        if (!CanUseManagementAction(player))
+        {
+            return;
+        }
+
+        ClearAssignment();
+    }
+
+    public void ClearAssignment()
+    {
+        RemoveNullEntries();
+
+        if (StoredItemCount > 0)
+        {
+            return;
+        }
+
+        assignedProduct = null;
+    }
+
+    private string GetHeldItemPrompt(PickupItem heldItem)
     {
         if (heldItem == null)
         {
             return "";
         }
 
-        ProductData heldProduct =
-            heldItem.GetProductData();
+        ProductData heldProduct = heldItem.GetProductData();
 
         if (heldProduct == null)
         {
             return "This item cannot be stocked here";
         }
 
-        if (!CanAcceptProduct(
-                heldProduct
-            ))
+        if (!CanAcceptProduct(heldProduct))
         {
-            return GetRejectedProductPrompt();
+            return GetRejectedProductPrompt(heldProduct);
         }
 
-        if (IsFull)
-        {
-            if (customerAccessible)
-            {
-                return "Shelf full  "
-                       + StoredItemCount
-                       + " / "
-                       + Capacity;
-            }
+        int capacity =
+            IsAssigned ? Capacity : heldProduct.SalesShelfCapacity;
 
-            return "Storage occupied";
+        if (IsAssigned && IsFull)
+        {
+            return $"Shelf full  {StoredItemCount} / {Capacity}";
         }
 
-        if (customerAccessible)
+        if (!IsAssigned)
         {
-            return "[E] Stock "
-                   + heldProduct.ProductName
-                   + "  •  "
-                   + StoredItemCount
-                   + " / "
-                   + Capacity;
+            return $"[E] Stock {heldProduct.ProductName}  •  Assign facing  •  0 / {capacity}";
         }
 
-        return "[E] Store "
-               + heldProduct.ProductName;
+        return $"[E] Stock {heldProduct.ProductName}  •  {StoredItemCount} / {capacity}";
     }
-    
-    private string GetDeliveryBoxInteractionPrompt(
-        DeliveryBox deliveryBox
-    )
+
+    private string GetDeliveryBoxInteractionPrompt(DeliveryBox deliveryBox)
     {
-        if (deliveryBox == null ||
-            deliveryBox.ProductData == null)
+        if (deliveryBox == null || deliveryBox.ProductData == null)
         {
             return "";
         }
 
-        ProductData boxProduct =
-            deliveryBox.ProductData;
+        ProductData boxProduct = deliveryBox.ProductData;
 
-        if (!CanAcceptProduct(
-                boxProduct
-            ))
+        if (!CanAcceptProduct(boxProduct))
         {
-            return GetRejectedProductPrompt();
+            return GetRejectedProductPrompt(boxProduct);
         }
 
-        bool canStock =
-            deliveryBox.RemainingQuantity > 0
-            && !IsFull;
+        int capacity =
+            IsAssigned ? Capacity : boxProduct.SalesShelfCapacity;
 
-        ProductData storedProduct =
-            GetStoredProductData();
+        bool canStock =
+            deliveryBox.RemainingQuantity > 0 &&
+            (!IsAssigned || !IsFull);
 
         bool canReturn =
-            HasStoredItem
-            && storedProduct == boxProduct
-            && !deliveryBox.IsFull;
+            IsAssigned &&
+            HasStoredItem &&
+            assignedProduct == boxProduct &&
+            !deliveryBox.IsFull;
 
-        string locationCount =
-            StoredItemCount
-            + " / "
-            + Capacity;
-
+        string shelfCount = $"{StoredItemCount} / {capacity}";
         string boxCount =
-            deliveryBox.RemainingQuantity
-            + " / "
-            + deliveryBox.Capacity;
-
-        string putVerb =
-            customerAccessible
-                ? "Stock "
-                : "Store ";
+            $"{deliveryBox.RemainingQuantity} / {deliveryBox.Capacity}";
 
         if (canStock && canReturn)
         {
-            return "[E] "
-                   + putVerb
-                   + boxProduct.ProductName
-                   + " from box  •  "
-                   + locationCount
-                   + "  •  Hold"
-                   + "\n[R] Return one to box  •  Box "
-                   + boxCount;
+            return
+                $"[E] Stock {boxProduct.ProductName} from box  •  {shelfCount}  •  Hold\n" +
+                $"[R] Return one to box  •  Box {boxCount}";
         }
 
         if (canStock)
         {
-            return "[E] "
-                   + putVerb
-                   + boxProduct.ProductName
-                   + " from box  •  "
-                   + locationCount
-                   + "  •  Hold";
+            string assignment = IsAssigned ? "" : "  •  Assign facing";
+
+            return
+                $"[E] Stock {boxProduct.ProductName} from box  •  {shelfCount}{assignment}  •  Hold";
         }
 
         if (canReturn)
         {
-            return "[R] Return "
-                   + boxProduct.ProductName
-                   + " to box  •  Box "
-                   + boxCount
-                   + "  •  Hold";
+            return
+                $"[R] Return {boxProduct.ProductName} to box  •  Box {boxCount}  •  Hold";
         }
 
         if (IsFull)
         {
-            return customerAccessible
-                ? "Shelf full  " + locationCount
-                : "Storage occupied";
+            return $"Shelf full  {shelfCount}";
         }
 
         if (deliveryBox.IsEmpty)
@@ -685,9 +496,7 @@ public class ShelfSlot :
         return "";
     }
 
-    private void TryStockFromDeliveryBox(
-        DeliveryBox deliveryBox
-    )
+    private void TryStockFromDeliveryBox(DeliveryBox deliveryBox)
     {
         if (deliveryBox == null ||
             deliveryBox.ProductData == null ||
@@ -696,47 +505,37 @@ public class ShelfSlot :
             return;
         }
 
-        ProductData product =
-            deliveryBox.ProductData;
+        ProductData product = deliveryBox.ProductData;
 
-        if (!CanAcceptProduct(
-                product
-            ))
-        {
-            return;
-        }
-
-        if (IsFull)
+        if (!CanAcceptProduct(product) || IsFull)
         {
             return;
         }
 
         bool tookUnit =
-            deliveryBox.TryTakeOneUnit(
-                out ProductData takenProduct
-            );
+            deliveryBox.TryTakeOneUnit(out ProductData takenProduct);
 
-        if (!tookUnit ||
-            takenProduct == null)
+        if (!tookUnit || takenProduct == null)
         {
             return;
         }
 
-        PickupItem item =
-            Instantiate(
-                takenProduct.WorldPrefab,
-                transform.position,
-                transform.rotation
-            );
-
-        AddStoredItem(
-            item
+        PickupItem item = Instantiate(
+            takenProduct.WorldPrefab,
+            transform.position,
+            transform.rotation
         );
+
+        if (AddStoredItem(item))
+        {
+            return;
+        }
+
+        Destroy(item.gameObject);
+        deliveryBox.TryAddOneUnit(takenProduct);
     }
 
-    private void TryTakeOneIntoDeliveryBox(
-        DeliveryBox deliveryBox
-    )
+    private void TryTakeOneIntoDeliveryBox(DeliveryBox deliveryBox)
     {
         if (deliveryBox == null ||
             deliveryBox.IsFull ||
@@ -745,16 +544,14 @@ public class ShelfSlot :
             return;
         }
 
-        PickupItem item =
-            GetLastStoredItem();
+        PickupItem item = GetLastStoredItem();
 
         if (item == null)
         {
             return;
         }
 
-        ProductData itemProduct =
-            item.GetProductData();
+        ProductData itemProduct = item.GetProductData();
 
         if (itemProduct == null ||
             itemProduct != deliveryBox.ProductData)
@@ -762,419 +559,212 @@ public class ShelfSlot :
             return;
         }
 
-        bool accepted =
-            deliveryBox.TryAddOneUnit(
-                itemProduct
-            );
-
-        if (!accepted)
+        if (!deliveryBox.TryAddOneUnit(itemProduct))
         {
             return;
         }
 
-        RemoveItem(
-            item
-        );
-
-        Destroy(
-            item.gameObject
-        );
+        RemoveItem(item);
+        Destroy(item.gameObject);
     }
 
-    private string GetBasketInteractionPrompt(
-        RestockBasket basket
-    )
+    private string GetBasketInteractionPrompt(RestockBasket basket)
     {
         if (basket == null)
         {
             return "";
         }
 
-        /*
-         * SALES SHELF
-         */
-        if (customerAccessible)
+        if (!IsAssigned)
         {
-            if (acceptedProduct == null)
+            ProductData candidate =
+                basket.GetFirstProductData(allowedCategory);
+
+            if (candidate == null)
             {
-                return "Shelf section not configured";
+                return $"Basket has no {allowedCategory} product";
             }
 
-            int matchingCount =
-                basket.GetProductCount(
-                    acceptedProduct
-                );
-
-            bool canStock =
-                matchingCount > 0
-                && !IsFull;
-
-            bool canTake =
-                HasStoredItem
-                && !basket.IsFull;
-
-            string shelfCount =
-                StoredItemCount
-                + " / "
-                + Capacity;
-
-            if (canStock && canTake)
-            {
-                return "[E] Stock "
-                       + acceptedProduct.ProductName
-                       + "  •  "
-                       + shelfCount
-                       + "  •  Hold"
-                       + "\n[R] Take one";
-            }
-
-            if (canStock)
-            {
-                return "[E] Stock "
-                       + acceptedProduct.ProductName
-                       + "  •  "
-                       + shelfCount
-                       + "  •  Hold";
-            }
-
-            if (canTake)
-            {
-                return "[R] Take "
-                       + acceptedProduct.ProductName
-                       + " into basket  •  "
-                       + shelfCount
-                       + "  •  Hold";
-            }
-
-            if (IsFull)
-            {
-                return "Shelf full  "
-                       + shelfCount;
-            }
-
-            if (basket.IsFull)
-            {
-                return "Restock basket full";
-            }
-
-            return "Basket has no "
-                   + acceptedProduct.ProductName;
+            return
+                $"[E] Stock {candidate.ProductName}  •  Assign facing  •  0 / {candidate.SalesShelfCapacity}  •  Hold";
         }
 
-        /*
-         * CURRENT SINGLE-UNIT STORAGE
-         */
-        if (HasStoredItem)
+        int matchingCount =
+            basket.GetProductCount(assignedProduct);
+
+        bool canStock =
+            matchingCount > 0 &&
+            !IsFull;
+
+        bool canTake =
+            HasStoredItem &&
+            !basket.IsFull;
+
+        string shelfCount =
+            $"{StoredItemCount} / {Capacity}";
+
+        if (canStock && canTake)
         {
-            ProductData storedProduct =
-                GetStoredProductData();
-
-            string productName =
-                storedProduct != null
-                    ? storedProduct.ProductName
-                    : "product";
-
-            if (basket.IsFull)
-            {
-                return "Restock basket full";
-            }
-
-            return "[R] Take "
-                   + productName
-                   + " into basket";
+            return
+                $"[E] Stock {assignedProduct.ProductName}  •  {shelfCount}  •  Hold\n" +
+                $"[R] Take one into basket";
         }
 
-        if (basket.IsEmpty)
+        if (canStock)
         {
-            return "Restock basket empty";
+            return
+                $"[E] Stock {assignedProduct.ProductName}  •  {shelfCount}  •  Hold";
         }
 
-        ProductData firstProduct =
-            basket.GetFirstProductData();
-
-        if (firstProduct == null)
+        if (canTake)
         {
-            return "Restock basket empty";
-        }
-
-        if (!CanAcceptProduct(
-                firstProduct
-            ))
-        {
-            return GetRejectedProductPrompt();
-        }
-
-        return "[E] Store "
-               + firstProduct.ProductName
-               + " from basket";
-    }
-
-    private string GetOccupiedEmptyHandsPrompt()
-    {
-        ProductData storedProduct =
-            GetStoredProductData();
-
-        string productName =
-            storedProduct != null
-                ? storedProduct.ProductName
-                : "product";
-
-        if (customerAccessible)
-        {
-            return "[R] Take "
-                   + productName
-                   + "  •  "
-                   + StoredItemCount
-                   + " / "
-                   + Capacity;
-        }
-
-        return "[R] Take "
-               + productName
-               + " from storage";
-    }
-
-    private string GetEmptySlotPrompt()
-    {
-        if (IsGenericStorage)
-        {
-            return "Empty storage slot";
-        }
-
-        if (acceptedProduct == null)
-        {
-            if (customerAccessible)
-            {
-                return "Shelf slot not configured";
-            }
-
-            return "Storage slot not configured";
-        }
-
-        if (customerAccessible)
-        {
-            return "Empty shelf - "
-                   + acceptedProduct.ProductName
-                   + "  •  0 / "
-                   + Capacity;
-        }
-
-        return "Empty storage - "
-               + acceptedProduct.ProductName;
-    }
-
-    private void HandleBasketInteraction(
-        RestockBasket basket
-    )
-    {
-        if (basket == null)
-        {
-            return;
-        }
-
-        if (customerAccessible)
-        {
-            HandleSalesShelfBasketInteraction(
-                basket
-            );
-
-            return;
-        }
-
-        HandleStorageBasketInteraction(
-            basket
-        );
-    }
-
-    private void HandleSalesShelfBasketInteraction(
-        RestockBasket basket
-    )
-    {
-        if (basket == null ||
-            acceptedProduct == null)
-        {
-            return;
+            return
+                $"[R] Take {assignedProduct.ProductName} into basket  •  {shelfCount}  •  Hold";
         }
 
         if (IsFull)
         {
-            return;
+            return $"Shelf full  {shelfCount}";
         }
 
-        /*
-         * E has ONE direction:
-         *
-         * Basket -> Shelf
-         */
-        bool tookMatchingItem =
-            basket.TryTakeMatchingProduct(
-                acceptedProduct,
-                out PickupItem basketItem
-            );
-
-        if (!tookMatchingItem ||
-            basketItem == null)
+        if (basket.IsFull)
         {
-            return;
+            return "Restock basket full";
         }
 
-        AddStoredItem(
-            basketItem
-        );
+        return $"Basket has no {assignedProduct.ProductName}";
     }
 
-    private void HandleStorageBasketInteraction(
-        RestockBasket basket
-    )
+    private string GetOccupiedEmptyHandsPrompt()
+    {
+        string productName =
+            assignedProduct != null
+                ? assignedProduct.ProductName
+                : "product";
+
+        return $"[R] Take {productName}  •  {StoredItemCount} / {Capacity}";
+    }
+
+    private string GetEmptySlotPrompt()
+    {
+        if (!IsAssigned)
+        {
+            return
+                $"Empty {allowedCategory} facing\nStock a matching product to assign";
+        }
+
+        return
+            $"{assignedProduct.ProductName}  •  0 / {Capacity}\n" +
+            "[Hold X] Clear facing";
+    }
+
+    private void HandleBasketInteraction(RestockBasket basket)
     {
         if (basket == null)
         {
             return;
         }
 
-        /*
-         * E never removes an existing storage item.
-         *
-         * Use R for that.
-         */
-        if (HasStoredItem)
-        {
-            return;
-        }
+        ProductData targetProduct =
+            assignedProduct ??
+            basket.GetFirstProductData(allowedCategory);
 
-        if (basket.IsEmpty)
-        {
-            return;
-        }
-
-        ProductData firstProduct =
-            basket.GetFirstProductData();
-
-        if (!CanAcceptProduct(
-                firstProduct
-            ))
+        if (targetProduct == null ||
+            !CanAcceptProduct(targetProduct) ||
+            IsFull)
         {
             return;
         }
 
         bool tookItem =
-            basket.TryTakeFirstItem(
+            basket.TryTakeMatchingProduct(
+                targetProduct,
                 out PickupItem basketItem
             );
 
-        if (!tookItem ||
-            basketItem == null)
+        if (!tookItem || basketItem == null)
         {
             return;
         }
 
-        AddStoredItem(
-            basketItem
-        );
+        if (AddStoredItem(basketItem))
+        {
+            return;
+        }
+
+        basket.TryAddItem(basketItem);
     }
 
-    private void TryStoreHeldItem(
-        PlayerInteraction player
-    )
+    private void TryStoreHeldItem(PlayerInteraction player)
     {
-        PickupItem heldItem =
-            player.GetHeldItem();
+        PickupItem heldItem = player.GetHeldItem();
 
         if (heldItem == null)
         {
             return;
         }
 
-        ProductData heldProduct =
-            heldItem.GetProductData();
+        ProductData heldProduct = heldItem.GetProductData();
 
-        if (!CanAcceptProduct(
-                heldProduct
-            ))
+        if (!CanAcceptProduct(heldProduct) || IsFull)
         {
             return;
+        }
+
+        if (AddStoredItem(heldItem))
+        {
+            player.RemoveHeldItem();
+        }
+    }
+
+    private void TryRemoveStoredItem(PlayerInteraction player)
+    {
+        PickupItem item = GetLastStoredItem();
+
+        if (item != null)
+        {
+            player.TryPickUp(item);
+        }
+    }
+
+    private bool AddStoredItem(PickupItem item)
+    {
+        if (item == null || storedItems.Contains(item))
+        {
+            return false;
+        }
+
+        ProductData product = item.GetProductData();
+
+        if (!CanAcceptProduct(product))
+        {
+            return false;
+        }
+
+        if (!IsAssigned)
+        {
+            assignedProduct = product;
         }
 
         if (IsFull)
         {
-            return;
+            return false;
         }
 
-        player.RemoveHeldItem();
+        storedItems.Add(item);
+        item.PlaceOnShelf(this, storedItems.Count - 1);
 
-        AddStoredItem(
-            heldItem
-        );
+        return true;
     }
 
-    private void TryRemoveStoredItem(
-        PlayerInteraction player
-    )
-    {
-        if (player.GetHeldItem() != null)
-        {
-            return;
-        }
-
-        PickupItem item =
-            GetLastStoredItem();
-
-        if (item == null)
-        {
-            return;
-        }
-
-        player.TryPickUp(
-            item
-        );
-    }
-
-    private void AddStoredItem(
-        PickupItem item
-    )
+    public void RemoveItem(PickupItem item)
     {
         if (item == null)
         {
             return;
         }
 
-        if (IsFull)
-        {
-            return;
-        }
-
-        if (storedItems.Contains(
-                item
-            ))
-        {
-            return;
-        }
-
-        storedItems.Add(
-            item
-        );
-
-        item.PlaceOnShelf(
-            this,
-            storedItems.Count - 1
-        );
-    }
-
-    public void RemoveItem(
-        PickupItem item
-    )
-    {
-        if (item == null)
-        {
-            return;
-        }
-
-        bool removed =
-            storedItems.Remove(
-                item
-            );
-
-        if (!removed)
+        if (!storedItems.Remove(item))
         {
             return;
         }
@@ -1182,14 +772,9 @@ public class ShelfSlot :
         RepackStoredItems();
     }
 
-    public bool ContainsProduct(
-        ProductData productData
-    )
+    public bool ContainsProduct(ProductData productData)
     {
-        return GetStoredProductCount(
-                   productData
-               )
-               > 0;
+        return GetStoredProductCount(productData) > 0;
     }
 
     public bool TryTakeItemForCustomer(
@@ -1197,8 +782,7 @@ public class ShelfSlot :
         out PickupItem takenItem
     )
     {
-        takenItem =
-            null;
+        takenItem = null;
 
         if (!customerAccessible)
         {
@@ -1207,30 +791,20 @@ public class ShelfSlot :
 
         RemoveNullEntries();
 
-        if (storedItems.Count <= 0)
+        if (storedItems.Count == 0)
         {
             return false;
         }
 
-        PickupItem itemToTake =
-            storedItems[0];
+        PickupItem itemToTake = storedItems[0];
 
         if (itemToTake == null)
         {
             return false;
         }
 
-        /*
-         * PickUpForCustomer calls back into
-         * RemoveItem(), which removes this item
-         * from the section and repacks the rest.
-         */
-        itemToTake.PickUpForCustomer(
-            carryPoint
-        );
-
-        takenItem =
-            itemToTake;
+        itemToTake.PickUpForCustomer(carryPoint);
+        takenItem = itemToTake;
 
         return true;
     }
@@ -1239,138 +813,81 @@ public class ShelfSlot :
     {
         RemoveNullEntries();
 
-        if (storedItems.Count <= 0)
+        if (storedItems.Count == 0)
         {
             return null;
         }
 
-        return storedItems[
-            storedItems.Count - 1
-        ];
+        return storedItems[storedItems.Count - 1];
     }
 
     private void RepackStoredItems()
     {
         RemoveNullEntries();
 
-        for (int i = 0;
-             i < storedItems.Count;
-             i++)
+        for (int i = 0; i < storedItems.Count; i++)
         {
-            PickupItem item =
-                storedItems[i];
+            PickupItem item = storedItems[i];
 
-            if (item == null)
+            if (item != null)
             {
-                continue;
+                item.PlaceOnShelf(this, i);
             }
-
-            item.PlaceOnShelf(
-                this,
-                i
-            );
         }
     }
 
     private void RemoveNullEntries()
     {
-        for (int i =
-                 storedItems.Count - 1;
-             i >= 0;
-             i--)
+        for (int i = storedItems.Count - 1; i >= 0; i--)
         {
-            if (storedItems[i] != null)
+            if (storedItems[i] == null)
             {
-                continue;
+                storedItems.RemoveAt(i);
             }
-
-            storedItems.RemoveAt(
-                i
-            );
         }
     }
 
-    private string GetRejectedProductPrompt()
+    private string GetRejectedProductPrompt(ProductData product)
     {
-        if (acceptedProduct == null)
+        if (product == null)
         {
-            if (customerAccessible)
-            {
-                return "Shelf slot not configured";
-            }
-
-            return "Storage slot not configured";
+            return "This item cannot be stocked here";
         }
 
-        if (customerAccessible)
+        if (product.Category != allowedCategory)
         {
-            return "Shelf section is for "
-                   + acceptedProduct.ProductName;
+            return $"This shelf is for {allowedCategory}";
         }
 
-        return "Storage slot is for "
-               + acceptedProduct.ProductName;
+        if (assignedProduct != null && assignedProduct != product)
+        {
+            return $"Facing assigned to {assignedProduct.ProductName}";
+        }
+
+        return "This product cannot be stocked here";
     }
 
-    private string GetRestoreRuleDescription()
-    {
-        if (acceptedProduct != null)
-        {
-            if (customerAccessible)
-            {
-                return "that shelf section accepts "
-                       + acceptedProduct.ProductName;
-            }
-
-            return "that storage slot accepts "
-                   + acceptedProduct.ProductName;
-        }
-
-        if (customerAccessible)
-        {
-            return "that customer-facing shelf "
-                   + "has no Accepted Product configured";
-        }
-
-        return "that storage slot is not configured";
-    }
     private void RegisterWithCorrectRegistry()
     {
-        /*
-         * ShelfSlot is now exclusively registered
-         * as a customer-facing sales shelf.
-         *
-         * Back-room storage uses StorageBay instead.
-         *
-         * During the Lesson 61 prefab conversion,
-         * old non-customer ShelfSlots may still exist
-         * temporarily. They simply do not register.
-         */
         if (!customerAccessible)
         {
             return;
         }
 
         registeredShelfRegistry =
-            Object.FindAnyObjectByType<
-                ShelfRegistry
-            >();
+            Object.FindAnyObjectByType<ShelfRegistry>();
 
         if (registeredShelfRegistry == null)
         {
             Debug.LogError(
-                "ShelfSlot '"
-                + gameObject.name
-                + "' could not find a ShelfRegistry.",
+                $"ShelfSlot '{gameObject.name}' could not find a ShelfRegistry.",
                 this
             );
 
             return;
         }
 
-        registeredShelfRegistry.RegisterSlot(
-            this
-        );
+        registeredShelfRegistry.RegisterSlot(this);
     }
 
     private void UnregisterFromCurrentRegistry()
@@ -1380,14 +897,10 @@ public class ShelfSlot :
             return;
         }
 
-        registeredShelfRegistry.UnregisterSlot(
-            this
-        );
-
-        registeredShelfRegistry =
-            null;
+        registeredShelfRegistry.UnregisterSlot(this);
+        registeredShelfRegistry = null;
     }
-    
+
     private void OnDrawGizmosSelected()
     {
         PlacementUtility.DrawFrameGizmo(

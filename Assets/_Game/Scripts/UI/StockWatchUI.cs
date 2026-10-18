@@ -6,52 +6,34 @@ using UnityEngine.UI;
 
 public class StockWatchUI : MonoBehaviour
 {
-    [Header("UI")]
-    [SerializeField]
-    private Transform stockAlertContent;
+    [Header("UI")] [SerializeField] private Transform stockAlertContent;
 
-    [SerializeField]
-    private StockAlertRow stockAlertRowPrefab;
+    [SerializeField] private StockAlertRow stockAlertRowPrefab;
 
-    [SerializeField]
-    private TMP_Text allStockedText;
+    [SerializeField] private TMP_Text allStockedText;
 
-    [SerializeField]
-    private ScrollRect stockScrollRect;
+    [SerializeField] private ScrollRect stockScrollRect;
 
-    [Header("Store")]
-    [SerializeField]
-    private StoreProgression storeProgression;
+    [Header("Store")] [SerializeField] private StoreProgression storeProgression;
 
-    [SerializeField]
-    private StoreStockOverview stockOverview;
+    [SerializeField] private StoreStockOverview stockOverview;
 
-    [Header("Other UI")]
-    [SerializeField]
-    private OrderingUI orderingUI;
+    [Header("Other UI")] [SerializeField] private OrderingUI orderingUI;
 
-    [SerializeField]
-    private ProductCatalogueUI productCatalogueUI;
+    [SerializeField] private ProductCatalogueUI productCatalogueUI;
 
-    [SerializeField]
-    private PauseMenuUI pauseMenuUI;
+    [SerializeField] private PauseMenuUI pauseMenuUI;
 
-    [SerializeField]
-    private EndOfDayUI endOfDayUI;
+    [SerializeField] private EndOfDayUI endOfDayUI;
 
-    [Header("Refresh")]
-    [Min(0.05f)]
-    [SerializeField]
+    [Header("Refresh")] [Min(0.05f)] [SerializeField]
     private float refreshInterval = 0.25f;
 
-    [Header("Gameplay Scrolling")]
-    [Range(0.05f, 0.5f)]
-    [SerializeField]
+    [Header("Gameplay Scrolling")] [Range(0.05f, 0.5f)] [SerializeField]
     private float mouseWheelStep = 0.18f;
 
     private readonly List<StockAlertRow>
-        spawnedRows =
-            new List<StockAlertRow>();
+        spawnedRows = new();
 
     private int builtUnlockedProductCount =
         -1;
@@ -74,9 +56,7 @@ public class StockWatchUI : MonoBehaviour
 
         if (refreshTimer
             < refreshInterval)
-        {
             return;
-        }
 
         refreshTimer =
             0f;
@@ -85,37 +65,24 @@ public class StockWatchUI : MonoBehaviour
             builtUnlockedProductCount
             != storeProgression
                 .UnlockedProductCount)
-        {
             RebuildRows();
-        }
 
         RefreshRows();
     }
 
     private void HandleGameplayMouseWheel()
     {
-        if (IsAnotherModalUIOpen())
-        {
-            return;
-        }
+        if (IsAnotherModalUIOpen()) return;
 
-        if (Mouse.current == null)
-        {
-            return;
-        }
+        if (Mouse.current == null) return;
 
-        if (stockScrollRect == null)
-        {
-            return;
-        }
+        if (stockScrollRect == null) return;
 
         if (stockScrollRect.content == null ||
             stockScrollRect.viewport == null)
-        {
             return;
-        }
 
-        float scrollDelta =
+        var scrollDelta =
             Mouse.current.scroll
                 .ReadValue().y;
 
@@ -123,17 +90,15 @@ public class StockWatchUI : MonoBehaviour
                 scrollDelta,
                 0f
             ))
-        {
             return;
-        }
 
         Canvas.ForceUpdateCanvases();
 
-        float contentHeight =
+        var contentHeight =
             stockScrollRect
                 .content.rect.height;
 
-        float viewportHeight =
+        var viewportHeight =
             stockScrollRect
                 .viewport.rect.height;
 
@@ -141,25 +106,25 @@ public class StockWatchUI : MonoBehaviour
             <= viewportHeight + 1f)
         {
             stockScrollRect
-                .verticalNormalizedPosition =
+                    .verticalNormalizedPosition =
                 1f;
 
             return;
         }
 
-        float direction =
+        var direction =
             scrollDelta > 0f
-            ? 1f
-            : -1f;
+                ? 1f
+                : -1f;
 
-        float newPosition =
+        var newPosition =
             stockScrollRect
                 .verticalNormalizedPosition
             + direction
             * mouseWheelStep;
 
         stockScrollRect
-            .verticalNormalizedPosition =
+                .verticalNormalizedPosition =
             Mathf.Clamp01(
                 newPosition
             );
@@ -169,27 +134,19 @@ public class StockWatchUI : MonoBehaviour
     {
         if (orderingUI != null &&
             orderingUI.IsOpen)
-        {
             return true;
-        }
 
         if (productCatalogueUI != null &&
             productCatalogueUI.IsOpen)
-        {
             return true;
-        }
 
         if (pauseMenuUI != null &&
             pauseMenuUI.IsOpen)
-        {
             return true;
-        }
 
         if (endOfDayUI != null &&
             endOfDayUI.IsOpen)
-        {
             return true;
-        }
 
         return false;
     }
@@ -198,38 +155,26 @@ public class StockWatchUI : MonoBehaviour
     {
         ClearRows();
 
-        if (storeProgression == null)
-        {
-            return;
-        }
+        if (storeProgression == null) return;
 
-        if (stockAlertContent == null)
-        {
-            return;
-        }
+        if (stockAlertContent == null) return;
 
-        if (stockAlertRowPrefab == null)
-        {
-            return;
-        }
+        if (stockAlertRowPrefab == null) return;
 
-        for (int i = 0;
+        for (var i = 0;
              i < storeProgression
                  .UnlockedProductCount;
              i++)
         {
-            ProductData product =
+            var product =
                 storeProgression
                     .GetUnlockedProduct(
                         i
                     );
 
-            if (product == null)
-            {
-                continue;
-            }
+            if (product == null) continue;
 
-            StockAlertRow newRow =
+            var newRow =
                 Instantiate(
                     stockAlertRowPrefab,
                     stockAlertContent
@@ -251,54 +196,41 @@ public class StockWatchUI : MonoBehaviour
         Canvas.ForceUpdateCanvases();
 
         if (stockScrollRect != null)
-        {
             stockScrollRect
-                .verticalNormalizedPosition =
+                    .verticalNormalizedPosition =
                 1f;
-        }
     }
 
     private void RefreshRows()
     {
-        if (stockOverview == null)
-        {
-            return;
-        }
+        if (stockOverview == null) return;
 
-        int warningCount =
+        var warningCount =
             0;
 
-        for (int i = 0;
+        for (var i = 0;
              i < spawnedRows.Count;
              i++)
         {
-            StockAlertRow row =
+            var row =
                 spawnedRows[i];
 
-            if (row == null)
-            {
-                continue;
-            }
+            if (row == null) continue;
 
-            bool showingWarning =
+            var showingWarning =
                 row.Refresh(
                     stockOverview
                 );
 
-            if (showingWarning)
-            {
-                warningCount++;
-            }
+            if (showingWarning) warningCount++;
         }
 
         if (allStockedText != null)
-        {
             allStockedText
                 .gameObject
                 .SetActive(
                     warningCount <= 0
                 );
-        }
 
         Canvas.ForceUpdateCanvases();
 
@@ -307,47 +239,37 @@ public class StockWatchUI : MonoBehaviour
 
     private void ClampScrollPositionIfNeeded()
     {
-        if (stockScrollRect == null)
-        {
-            return;
-        }
+        if (stockScrollRect == null) return;
 
         if (stockScrollRect.content == null ||
             stockScrollRect.viewport == null)
-        {
             return;
-        }
 
-        float contentHeight =
+        var contentHeight =
             stockScrollRect
                 .content.rect.height;
 
-        float viewportHeight =
+        var viewportHeight =
             stockScrollRect
                 .viewport.rect.height;
 
         if (contentHeight
             <= viewportHeight + 1f)
-        {
             stockScrollRect
-                .verticalNormalizedPosition =
+                    .verticalNormalizedPosition =
                 1f;
-        }
     }
 
     private void ClearRows()
     {
-        for (int i = 0;
+        for (var i = 0;
              i < spawnedRows.Count;
              i++)
         {
-            StockAlertRow row =
+            var row =
                 spawnedRows[i];
 
-            if (row == null)
-            {
-                continue;
-            }
+            if (row == null) continue;
 
             row.gameObject.SetActive(
                 false

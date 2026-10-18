@@ -6,9 +6,7 @@ public class PickupItem :
     MonoBehaviour,
     IInteractable
 {
-    [Header("Product")]
-    [SerializeField]
-    private ProductData productData;
+    [Header("Product")] [SerializeField] private ProductData productData;
 
     [Header("Placement")]
     [FormerlySerializedAs(
@@ -32,15 +30,9 @@ public class PickupItem :
     {
         get
         {
-            if (currentShelfSlot != null)
-            {
-                return false;
-            }
+            if (currentShelfSlot != null) return false;
 
-            if (transform.parent != null)
-            {
-                return false;
-            }
+            if (transform.parent != null) return false;
 
             return true;
         }
@@ -66,10 +58,7 @@ public class PickupItem :
 
     private void OnDestroy()
     {
-        if (worldItemRegistry == null)
-        {
-            return;
-        }
+        if (worldItemRegistry == null) return;
 
         worldItemRegistry.UnregisterItem(
             this
@@ -105,25 +94,20 @@ public class PickupItem :
         PlayerInteraction player
     )
     {
-        if (player == null)
-        {
-            return "";
-        }
+        if (player == null) return "";
 
-        RestockBasket heldBasket =
+        var heldBasket =
             player.GetHeldRestockBasket();
 
         if (heldBasket != null)
         {
             if (heldBasket.IsFull)
-            {
                 return "Restock basket full"
                        + " ("
                        + heldBasket.ItemCount
                        + " / "
                        + heldBasket.Capacity
                        + ")";
-            }
 
             return "[E] Load "
                    + GetItemName()
@@ -135,10 +119,7 @@ public class PickupItem :
                    + ")";
         }
 
-        if (player.GetHeldItem() != null)
-        {
-            return "Hands full";
-        }
+        if (player.GetHeldItem() != null) return "Hands full";
 
         return "[E] Pick up "
                + GetItemName();
@@ -148,12 +129,9 @@ public class PickupItem :
         PlayerInteraction player
     )
     {
-        if (player == null)
-        {
-            return;
-        }
+        if (player == null) return;
 
-        RestockBasket heldBasket =
+        var heldBasket =
             player.GetHeldRestockBasket();
 
         if (heldBasket != null)
@@ -165,10 +143,7 @@ public class PickupItem :
             return;
         }
 
-        if (player.GetHeldItem() != null)
-        {
-            return;
-        }
+        if (player.GetHeldItem() != null) return;
 
         player.TryPickUp(
             this
@@ -179,10 +154,7 @@ public class PickupItem :
         Transform holdPoint
     )
     {
-        if (holdPoint == null)
-        {
-            return;
-        }
+        if (holdPoint == null) return;
 
         LeaveShelfIfNeeded();
 
@@ -213,15 +185,12 @@ public class PickupItem :
         transform.localRotation =
             Quaternion.identity;
     }
-    
+
     public void PickUpForCustomer(
         Transform carryPoint
     )
     {
-        if (carryPoint == null)
-        {
-            return;
-        }
+        if (carryPoint == null) return;
 
         LeaveShelfIfNeeded();
 
@@ -285,15 +254,9 @@ public class PickupItem :
         int displayIndex
     )
     {
-        if (shelfSlot == null)
-        {
-            return;
-        }
-        
-        if (currentShelfSlot != shelfSlot)
-        {
-            LeaveShelfIfNeeded();
-        }
+        if (shelfSlot == null) return;
+
+        if (currentShelfSlot != shelfSlot) LeaveShelfIfNeeded();
 
         currentShelfSlot =
             shelfSlot;
@@ -303,7 +266,7 @@ public class PickupItem :
 
         itemRigidbody.isKinematic =
             true;
-        
+
         SetItemCollidersEnabled(
             false
         );
@@ -332,10 +295,7 @@ public class PickupItem :
         Transform containerPoint
     )
     {
-        if (containerPoint == null)
-        {
-            return;
-        }
+        if (containerPoint == null) return;
 
         LeaveShelfIfNeeded();
 
@@ -402,10 +362,7 @@ public class PickupItem :
 
     public string GetItemName()
     {
-        if (productData == null)
-        {
-            return "Item";
-        }
+        if (productData == null) return "Item";
 
         return productData.ProductName;
     }
@@ -417,12 +374,9 @@ public class PickupItem :
 
     private void LeaveShelfIfNeeded()
     {
-        if (currentShelfSlot == null)
-        {
-            return;
-        }
+        if (currentShelfSlot == null) return;
 
-        ShelfSlot previousShelfSlot =
+        var previousShelfSlot =
             currentShelfSlot;
 
         currentShelfSlot =
@@ -437,22 +391,16 @@ public class PickupItem :
         bool enabled
     )
     {
-        if (itemColliders == null)
-        {
-            return;
-        }
+        if (itemColliders == null) return;
 
-        for (int i = 0;
+        for (var i = 0;
              i < itemColliders.Length;
              i++)
         {
-            Collider itemCollider =
+            var itemCollider =
                 itemColliders[i];
 
-            if (itemCollider == null)
-            {
-                continue;
-            }
+            if (itemCollider == null) continue;
 
             itemCollider.enabled =
                 enabled;

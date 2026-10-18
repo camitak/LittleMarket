@@ -6,14 +6,10 @@ using UnityEngine;
 )]
 public class DailyGoalSet : ScriptableObject
 {
-    [Header("Reward")]
-    [Min(0f)]
-    [SerializeField]
+    [Header("Reward")] [Min(0f)] [SerializeField]
     private float allGoalsBonus = 5f;
 
-    [Header("Goals")]
-    [SerializeField]
-    private StoreGoalDefinition[] goals;
+    [Header("Goals")] [SerializeField] private StoreGoalDefinition[] goals;
 
     public float AllGoalsBonus =>
         allGoalsBonus;
@@ -22,10 +18,7 @@ public class DailyGoalSet : ScriptableObject
     {
         get
         {
-            if (goals == null)
-            {
-                return 0;
-            }
+            if (goals == null) return 0;
 
             return goals.Length;
         }
@@ -35,16 +28,11 @@ public class DailyGoalSet : ScriptableObject
         int index
     )
     {
-        if (goals == null)
-        {
-            return null;
-        }
+        if (goals == null) return null;
 
         if (index < 0 ||
             index >= goals.Length)
-        {
             return null;
-        }
 
         return goals[index];
     }

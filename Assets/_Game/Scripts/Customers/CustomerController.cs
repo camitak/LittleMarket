@@ -6,12 +6,10 @@ using UnityEngine.AI;
 [RequireComponent(typeof(NavMeshAgent))]
 public class CustomerController : MonoBehaviour
 {
-    [Header("References")]
-    [SerializeField]
+    [Header("References")] [SerializeField]
     private Transform[] carrySlots;
 
-    [SerializeField]
-    private Transform visual;
+    [SerializeField] private Transform visual;
 
     private NavMeshAgent agent;
 
@@ -29,8 +27,7 @@ public class CustomerController : MonoBehaviour
 
     private CustomerState currentState;
 
-    private List<PickupItem> carriedItems =
-        new List<PickupItem>();
+    private List<PickupItem> carriedItems = new();
 
     private int currentShoppingIndex;
 
@@ -67,18 +64,13 @@ public class CustomerController : MonoBehaviour
             GetComponent<NavMeshAgent>();
 
         if (visual != null)
-        {
             visualBaseScale =
                 visual.localScale;
-        }
     }
 
     private void Update()
     {
-        if (!isConfigured)
-        {
-            return;
-        }
+        if (!isConfigured) return;
 
         switch (currentState)
         {
@@ -179,7 +171,7 @@ public class CustomerController : MonoBehaviour
             return;
         }
 
-        ProductData desiredProduct =
+        var desiredProduct =
             shoppingList[
                 currentShoppingIndex
             ];
@@ -199,10 +191,10 @@ public class CustomerController : MonoBehaviour
             return;
         }
 
-        bool foundProduct =
+        var foundProduct =
             shelfRegistry.TryFindStockedSlot(
                 desiredProduct,
-                out ShelfSlot foundSlot
+                out var foundSlot
             );
 
         if (!foundProduct)
@@ -219,7 +211,7 @@ public class CustomerController : MonoBehaviour
         targetShelfSlot =
             foundSlot;
 
-        Transform shoppingPoint =
+        var shoppingPoint =
             targetShelfSlot.CustomerStandPoint;
 
         if (shoppingPoint == null)
@@ -234,23 +226,17 @@ public class CustomerController : MonoBehaviour
         currentState =
             CustomerState.WalkingToProduct;
 
-        bool destinationAccepted =
+        var destinationAccepted =
             agent.SetDestination(
                 shoppingPoint.position
             );
 
-        if (!destinationAccepted)
-        {
-            BeginLeaving();
-        }
+        if (!destinationAccepted) BeginLeaving();
     }
 
     private void UpdateWalkingToProduct()
     {
-        if (!HasReachedDestination())
-        {
-            return;
-        }
+        if (!HasReachedDestination()) return;
 
         currentState =
             CustomerState.TakingProduct;
@@ -264,7 +250,7 @@ public class CustomerController : MonoBehaviour
             return;
         }
 
-        Transform carrySlot =
+        var carrySlot =
             GetNextCarrySlot();
 
         if (carrySlot == null)
@@ -273,10 +259,10 @@ public class CustomerController : MonoBehaviour
             return;
         }
 
-        bool tookProduct =
+        var tookProduct =
             targetShelfSlot.TryTakeItemForCustomer(
                 carrySlot,
-                out PickupItem item
+                out var item
             );
 
         if (!tookProduct)
@@ -316,19 +302,14 @@ public class CustomerController : MonoBehaviour
 
     private Transform GetNextCarrySlot()
     {
-        if (carrySlots == null)
-        {
-            return null;
-        }
+        if (carrySlots == null) return null;
 
-        int nextIndex =
+        var nextIndex =
             carriedItems.Count;
 
         if (nextIndex
             >= carrySlots.Length)
-        {
             return null;
-        }
 
         return carrySlots[nextIndex];
     }
@@ -358,7 +339,7 @@ public class CustomerController : MonoBehaviour
             return;
         }
 
-        bool joinedQueue =
+        var joinedQueue =
             checkoutQueue.TryJoinQueue(
                 this
             );
@@ -377,10 +358,7 @@ public class CustomerController : MonoBehaviour
 
     public void SetQueueDestination(Transform queuePoint)
     {
-        if (queuePoint == null)
-        {
-            return;
-        }
+        if (queuePoint == null) return;
 
         // If this customer is already assigned to this exact queue
         // position, do not restart their checkout-walking state.
@@ -391,35 +369,25 @@ public class CustomerController : MonoBehaviour
         if (assignedQueuePoint == queuePoint &&
             (currentState == CustomerState.WalkingToCheckout ||
              currentState == CustomerState.WaitingInCheckoutQueue))
-        {
             return;
-        }
 
         assignedQueuePoint = queuePoint;
         currentState = CustomerState.WalkingToCheckout;
 
-        bool destinationAccepted = agent.SetDestination(queuePoint.position);
+        var destinationAccepted = agent.SetDestination(queuePoint.position);
 
-        if (!destinationAccepted)
-        {
-            BeginLeaving();
-        }
+        if (!destinationAccepted) BeginLeaving();
     }
 
     private void UpdateWalkingToCheckout()
     {
-        if (!HasReachedDestination())
-        {
-            return;
-        }
+        if (!HasReachedDestination()) return;
 
         agent.ResetPath();
 
         if (assignedQueuePoint != null)
-        {
             transform.rotation =
                 assignedQueuePoint.rotation;
-        }
 
         currentState =
             CustomerState.WaitingInCheckoutQueue;
@@ -442,64 +410,51 @@ public class CustomerController : MonoBehaviour
     {
         return carriedItems.Count;
     }
-    
+
     public PickupItem GetCarriedItem(
         int index
     )
     {
         if (index < 0 ||
             index >= carriedItems.Count)
-        {
             return null;
-        }
 
         return carriedItems[index];
     }
-    
+
     public ProductData GetCarriedProductData(
         int index
     )
     {
         if (index < 0 ||
             index >= carriedItems.Count)
-        {
             return null;
-        }
-    
-        PickupItem item =
+
+        var item =
             carriedItems[index];
-    
-        if (item == null)
-        {
-            return null;
-        }
-    
+
+        if (item == null) return null;
+
         return item.GetProductData();
     }
 
     public float GetCheckoutTotal()
     {
-        float total = 0f;
+        var total = 0f;
 
-        for (int i = 0;
+        for (var i = 0;
              i < carriedItems.Count;
              i++)
         {
-            PickupItem item =
+            var item =
                 carriedItems[i];
 
-            if (item == null)
-            {
-                continue;
-            }
+            if (item == null) continue;
 
-            ProductData productData =
+            var productData =
                 item.GetProductData();
 
-            if (productData == null)
-            {
-                continue;
-            }
+            if (productData == null) continue;
 
             total +=
                 productData.SellPrice;
@@ -510,19 +465,13 @@ public class CustomerController : MonoBehaviour
 
     public bool CompleteCheckout()
     {
-        if (!IsReadyForCheckout())
-        {
-            return false;
-        }
+        if (!IsReadyForCheckout()) return false;
 
-        if (carriedItems.Count == 0)
-        {
-            return false;
-        }
+        if (carriedItems.Count == 0) return false;
 
         if (checkoutQueue != null)
         {
-            CheckoutQueue previousQueue =
+            var previousQueue =
                 checkoutQueue;
 
             checkoutQueue = null;
@@ -532,17 +481,14 @@ public class CustomerController : MonoBehaviour
             );
         }
 
-        for (int i = 0;
+        for (var i = 0;
              i < carriedItems.Count;
              i++)
         {
-            PickupItem item =
+            var item =
                 carriedItems[i];
 
-            if (item == null)
-            {
-                continue;
-            }
+            if (item == null) continue;
 
             Destroy(
                 item.gameObject
@@ -573,39 +519,28 @@ public class CustomerController : MonoBehaviour
             return;
         }
 
-        bool destinationAccepted =
+        var destinationAccepted =
             agent.SetDestination(
                 exitPoint.position
             );
 
-        if (!destinationAccepted)
-        {
-            FinishVisit();
-        }
+        if (!destinationAccepted) FinishVisit();
     }
 
     private void UpdateWalkingToExit()
     {
-        if (!HasReachedDestination())
-        {
-            return;
-        }
+        if (!HasReachedDestination()) return;
 
         FinishVisit();
     }
 
     private bool HasReachedDestination()
     {
-        if (agent.pathPending)
-        {
-            return false;
-        }
+        if (agent.pathPending) return false;
 
         if (agent.remainingDistance
             > agent.stoppingDistance)
-        {
             return false;
-        }
 
         return true;
     }
@@ -616,25 +551,21 @@ public class CustomerController : MonoBehaviour
             CustomerState.Finished;
 
         if (checkoutQueue != null)
-        {
             checkoutQueue.LeaveQueue(
                 this
             );
-        }
 
-        for (int i = 0;
+        for (var i = 0;
              i < carriedItems.Count;
              i++)
         {
-            PickupItem item =
+            var item =
                 carriedItems[i];
 
             if (item != null)
-            {
                 Destroy(
                     item.gameObject
                 );
-            }
         }
 
         carriedItems.Clear();
@@ -648,22 +579,16 @@ public class CustomerController : MonoBehaviour
 
     private void ReportVisitIfNeeded()
     {
-        if (visitReported)
-        {
-            return;
-        }
+        if (visitReported) return;
 
         visitReported = true;
 
-        if (dailyStats == null)
-        {
-            return;
-        }
+        if (dailyStats == null) return;
 
-        float waitPenalty =
+        var waitPenalty =
             CalculateCheckoutWaitPenalty();
 
-        float finalSatisfaction =
+        var finalSatisfaction =
             satisfactionScore
             - waitPenalty;
 
@@ -683,14 +608,14 @@ public class CustomerController : MonoBehaviour
 
     private float CalculateCheckoutWaitPenalty()
     {
-        float penalizedSeconds =
+        var penalizedSeconds =
             Mathf.Max(
                 0f,
                 checkoutWaitSeconds
                 - CheckoutGraceSeconds
             );
 
-        float penalty =
+        var penalty =
             penalizedSeconds
             * CheckoutPenaltyPerSecond;
 
@@ -702,17 +627,12 @@ public class CustomerController : MonoBehaviour
 
     private void PlayHappyReaction()
     {
-        if (visual == null)
-        {
-            return;
-        }
+        if (visual == null) return;
 
         if (happyReactionRoutine != null)
-        {
             StopCoroutine(
                 happyReactionRoutine
             );
-        }
 
         happyReactionRoutine =
             StartCoroutine(
@@ -722,21 +642,21 @@ public class CustomerController : MonoBehaviour
 
     private IEnumerator HappyBounceRoutine()
     {
-        float duration = 0.35f;
+        var duration = 0.35f;
 
-        float elapsed = 0f;
+        var elapsed = 0f;
 
         while (elapsed < duration)
         {
             elapsed +=
                 Time.deltaTime;
 
-            float t =
+            var t =
                 Mathf.Clamp01(
                     elapsed / duration
                 );
 
-            float scaleMultiplier =
+            var scaleMultiplier =
                 1f
                 + 0.12f
                 * Mathf.Sin(
