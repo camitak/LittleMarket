@@ -29,6 +29,7 @@ public class ShelfSlot :
 
     private readonly List<PickupItem> storedItems = new List<PickupItem>();
     private ShelfRegistry registeredShelfRegistry;
+    private ShelfPriceTag priceTag;
 
     public string SlotID => slotID;
     public Transform CustomerStandPoint => customerStandPoint;
@@ -50,11 +51,17 @@ public class ShelfSlot :
 
     public float ManagementHoldDuration => 0.6f;
 
+    private void Awake()
+    {
+        priceTag = GetComponentInChildren<ShelfPriceTag>(true);
+    }
+    
     private void Start()
     {
         RegisterWithCorrectRegistry();
+        RefreshPriceTag();
     }
-
+    
     private void OnDestroy()
     {
         UnregisterFromCurrentRegistry();
@@ -163,6 +170,7 @@ public class ShelfSlot :
     {
         ClearStoredItemForLoad();
         assignedProduct = null;
+        RefreshPriceTag();
     }
 
     public bool RestoreProduct(ProductData productData, int quantity = 1)
@@ -194,6 +202,7 @@ public class ShelfSlot :
 
         ClearStoredItemForLoad();
         assignedProduct = productData;
+        RefreshPriceTag();
 
         int restoreCount = Mathf.Clamp(quantity, 0, Capacity);
 
@@ -394,6 +403,7 @@ public class ShelfSlot :
         }
 
         assignedProduct = null;
+        RefreshPriceTag();
     }
 
     private string GetHeldItemPrompt(PickupItem heldItem)
@@ -744,6 +754,7 @@ public class ShelfSlot :
         if (!IsAssigned)
         {
             assignedProduct = product;
+            RefreshPriceTag();
         }
 
         if (IsFull)
@@ -907,5 +918,12 @@ public class ShelfSlot :
             GetDisplayPlacementFrame(),
             0.14f
         );
+    }
+    private void RefreshPriceTag()
+    {
+        if (priceTag != null)
+        {
+            priceTag.Refresh(assignedProduct);
+        }
     }
 }
