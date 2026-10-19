@@ -246,7 +246,7 @@ MonoBehaviour:
   allowedCategory: 0
   assignedProduct: {fileID: 0}
   displayOrigin: {fileID: 8517859312037599376}
-  customerStandPoint: {fileID: 0}
+  customerStandPoint: {fileID: 2895260676985261079}
   customerAccessible: 1
 --- !u!1 &2758066116662333083
 GameObject:
@@ -320,7 +320,7 @@ MonoBehaviour:
   allowedCategory: 0
   assignedProduct: {fileID: 0}
   displayOrigin: {fileID: 5346669966466491424}
-  customerStandPoint: {fileID: 0}
+  customerStandPoint: {fileID: 2895260676985261079}
   customerAccessible: 1
 --- !u!1 &2828287805156500656
 GameObject:
@@ -394,7 +394,7 @@ MonoBehaviour:
   allowedCategory: 0
   assignedProduct: {fileID: 0}
   displayOrigin: {fileID: 4283881757661021897}
-  customerStandPoint: {fileID: 0}
+  customerStandPoint: {fileID: 2895260676985261079}
   customerAccessible: 1
 --- !u!1 &3136496658547509591
 GameObject:
@@ -468,7 +468,7 @@ MonoBehaviour:
   allowedCategory: 0
   assignedProduct: {fileID: 0}
   displayOrigin: {fileID: 777823893043802607}
-  customerStandPoint: {fileID: 0}
+  customerStandPoint: {fileID: 2895260676985261079}
   customerAccessible: 1
 --- !u!1 &3457331461783563248
 GameObject:
@@ -542,7 +542,7 @@ MonoBehaviour:
   allowedCategory: 0
   assignedProduct: {fileID: 0}
   displayOrigin: {fileID: 8724420894337435722}
-  customerStandPoint: {fileID: 0}
+  customerStandPoint: {fileID: 2895260676985261079}
   customerAccessible: 1
 --- !u!1 &3827868519010643524
 GameObject:
@@ -709,7 +709,7 @@ MonoBehaviour:
   allowedCategory: 0
   assignedProduct: {fileID: 0}
   displayOrigin: {fileID: 4210287189654049136}
-  customerStandPoint: {fileID: 0}
+  customerStandPoint: {fileID: 2895260676985261079}
   customerAccessible: 1
 --- !u!1 &4813899327942991012
 GameObject:
@@ -1007,6 +1007,7 @@ Transform:
   - {fileID: 2708226078323526347}
   - {fileID: 8287091292935927352}
   - {fileID: 9204266038756747683}
+  - {fileID: 2895260676985261079}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &6875319657879054714
@@ -1081,7 +1082,7 @@ MonoBehaviour:
   allowedCategory: 0
   assignedProduct: {fileID: 0}
   displayOrigin: {fileID: 4201983812790628043}
-  customerStandPoint: {fileID: 0}
+  customerStandPoint: {fileID: 2895260676985261079}
   customerAccessible: 1
 --- !u!1 &6960334547369661765
 GameObject:
@@ -1195,6 +1196,37 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 1, y: 1, z: 1}
   m_Center: {x: 0, y: 0, z: 0}
+--- !u!1 &7557572069453041274
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 2895260676985261079}
+  m_Layer: 0
+  m_Name: Customer_Point
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &2895260676985261079
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7557572069453041274}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: -0.6}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 1090177418780046489}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &7826164477118681535
 GameObject:
   m_ObjectHideFlags: 0
@@ -1329,7 +1361,7 @@ MonoBehaviour:
   allowedCategory: 0
   assignedProduct: {fileID: 0}
   displayOrigin: {fileID: 1798204172411353360}
-  customerStandPoint: {fileID: 0}
+  customerStandPoint: {fileID: 2895260676985261079}
   customerAccessible: 1
 --- !u!1001 &7160822179246454
 PrefabInstance:

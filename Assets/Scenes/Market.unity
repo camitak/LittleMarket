@@ -550,7 +550,7 @@ PrefabInstance:
     - target: {fileID: 1060167468770235413, guid: b2ab179c58af96d479747fad85aed525, type: 3}
       propertyPath: customerStandPoint
       value: 
-      objectReference: {fileID: 1929900}
+      objectReference: {fileID: 75906507}
     - target: {fileID: 1090177418780046489, guid: b2ab179c58af96d479747fad85aed525, type: 3}
       propertyPath: m_LocalPosition.x
       value: -6.16
@@ -602,7 +602,7 @@ PrefabInstance:
     - target: {fileID: 1279697291076289229, guid: b2ab179c58af96d479747fad85aed525, type: 3}
       propertyPath: customerStandPoint
       value: 
-      objectReference: {fileID: 1929900}
+      objectReference: {fileID: 75906507}
     - target: {fileID: 1352348362251811348, guid: b2ab179c58af96d479747fad85aed525, type: 3}
       propertyPath: m_Name
       value: Slot_01
@@ -622,7 +622,7 @@ PrefabInstance:
     - target: {fileID: 1910520044676378309, guid: b2ab179c58af96d479747fad85aed525, type: 3}
       propertyPath: customerStandPoint
       value: 
-      objectReference: {fileID: 1929900}
+      objectReference: {fileID: 75906507}
     - target: {fileID: 2521552372185246625, guid: b2ab179c58af96d479747fad85aed525, type: 3}
       propertyPath: slotID
       value: slot_bakery_facing_05
@@ -634,7 +634,7 @@ PrefabInstance:
     - target: {fileID: 2521552372185246625, guid: b2ab179c58af96d479747fad85aed525, type: 3}
       propertyPath: customerStandPoint
       value: 
-      objectReference: {fileID: 1929900}
+      objectReference: {fileID: 75906507}
     - target: {fileID: 2708226078323526347, guid: b2ab179c58af96d479747fad85aed525, type: 3}
       propertyPath: m_LocalPosition.z
       value: -0.3
@@ -658,7 +658,7 @@ PrefabInstance:
     - target: {fileID: 3046213625299195560, guid: b2ab179c58af96d479747fad85aed525, type: 3}
       propertyPath: customerStandPoint
       value: 
-      objectReference: {fileID: 1929900}
+      objectReference: {fileID: 75906507}
     - target: {fileID: 3066893431586318043, guid: b2ab179c58af96d479747fad85aed525, type: 3}
       propertyPath: slotID
       value: slot_bakery_facing_06
@@ -670,7 +670,7 @@ PrefabInstance:
     - target: {fileID: 3066893431586318043, guid: b2ab179c58af96d479747fad85aed525, type: 3}
       propertyPath: customerStandPoint
       value: 
-      objectReference: {fileID: 1929900}
+      objectReference: {fileID: 75906507}
     - target: {fileID: 3457331461783563248, guid: b2ab179c58af96d479747fad85aed525, type: 3}
       propertyPath: m_Name
       value: Slot_03
@@ -702,7 +702,7 @@ PrefabInstance:
     - target: {fileID: 3837043004271950274, guid: b2ab179c58af96d479747fad85aed525, type: 3}
       propertyPath: customerStandPoint
       value: 
-      objectReference: {fileID: 1929900}
+      objectReference: {fileID: 75906507}
     - target: {fileID: 4661067243534627180, guid: b2ab179c58af96d479747fad85aed525, type: 3}
       propertyPath: m_Name
       value: Slot_02
@@ -730,7 +730,7 @@ PrefabInstance:
     - target: {fileID: 5491406873839152957, guid: b2ab179c58af96d479747fad85aed525, type: 3}
       propertyPath: customerStandPoint
       value: 
-      objectReference: {fileID: 1929900}
+      objectReference: {fileID: 75906507}
     - target: {fileID: 5825871848133253286, guid: b2ab179c58af96d479747fad85aed525, type: 3}
       propertyPath: m_LocalPosition.y
       value: 1.044
@@ -832,6 +832,11 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: b2ab179c58af96d479747fad85aed525, type: 3}
+--- !u!4 &75906507 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 2895260676985261079, guid: b2ab179c58af96d479747fad85aed525, type: 3}
+  m_PrefabInstance: {fileID: 75906506}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1 &90844816
 GameObject:
   m_ObjectHideFlags: 0
@@ -4249,7 +4254,7 @@ PrefabInstance:
     - target: {fileID: 1060167468770235413, guid: b2ab179c58af96d479747fad85aed525, type: 3}
       propertyPath: customerStandPoint
       value: 
-      objectReference: {fileID: 1166928113}
+      objectReference: {fileID: 504022907}
     - target: {fileID: 1090177418780046489, guid: b2ab179c58af96d479747fad85aed525, type: 3}
       propertyPath: m_LocalPosition.x
       value: -3
@@ -4301,7 +4306,7 @@ PrefabInstance:
     - target: {fileID: 1279697291076289229, guid: b2ab179c58af96d479747fad85aed525, type: 3}
       propertyPath: customerStandPoint
       value: 
-      objectReference: {fileID: 1166928113}
+      objectReference: {fileID: 504022907}
     - target: {fileID: 1352348362251811348, guid: b2ab179c58af96d479747fad85aed525, type: 3}
       propertyPath: m_Name
       value: Slot_01
@@ -4321,7 +4326,7 @@ PrefabInstance:
     - target: {fileID: 1910520044676378309, guid: b2ab179c58af96d479747fad85aed525, type: 3}
       propertyPath: customerStandPoint
       value: 
-      objectReference: {fileID: 1166928113}
+      objectReference: {fileID: 504022907}
     - target: {fileID: 2521552372185246625, guid: b2ab179c58af96d479747fad85aed525, type: 3}
       propertyPath: slotID
       value: slot_dairy_facing_05
@@ -4333,7 +4338,7 @@ PrefabInstance:
     - target: {fileID: 2521552372185246625, guid: b2ab179c58af96d479747fad85aed525, type: 3}
       propertyPath: customerStandPoint
       value: 
-      objectReference: {fileID: 1166928113}
+      objectReference: {fileID: 504022907}
     - target: {fileID: 2708226078323526347, guid: b2ab179c58af96d479747fad85aed525, type: 3}
       propertyPath: m_LocalPosition.z
       value: -0.3
@@ -4357,7 +4362,7 @@ PrefabInstance:
     - target: {fileID: 3046213625299195560, guid: b2ab179c58af96d479747fad85aed525, type: 3}
       propertyPath: customerStandPoint
       value: 
-      objectReference: {fileID: 1166928113}
+      objectReference: {fileID: 504022907}
     - target: {fileID: 3066893431586318043, guid: b2ab179c58af96d479747fad85aed525, type: 3}
       propertyPath: slotID
       value: slot_dairy_facing_06
@@ -4369,7 +4374,7 @@ PrefabInstance:
     - target: {fileID: 3066893431586318043, guid: b2ab179c58af96d479747fad85aed525, type: 3}
       propertyPath: customerStandPoint
       value: 
-      objectReference: {fileID: 1166928113}
+      objectReference: {fileID: 504022907}
     - target: {fileID: 3457331461783563248, guid: b2ab179c58af96d479747fad85aed525, type: 3}
       propertyPath: m_Name
       value: Slot_03
@@ -4401,7 +4406,7 @@ PrefabInstance:
     - target: {fileID: 3837043004271950274, guid: b2ab179c58af96d479747fad85aed525, type: 3}
       propertyPath: customerStandPoint
       value: 
-      objectReference: {fileID: 1166928113}
+      objectReference: {fileID: 504022907}
     - target: {fileID: 4661067243534627180, guid: b2ab179c58af96d479747fad85aed525, type: 3}
       propertyPath: m_Name
       value: Slot_02
@@ -4429,7 +4434,7 @@ PrefabInstance:
     - target: {fileID: 5491406873839152957, guid: b2ab179c58af96d479747fad85aed525, type: 3}
       propertyPath: customerStandPoint
       value: 
-      objectReference: {fileID: 1166928113}
+      objectReference: {fileID: 504022907}
     - target: {fileID: 5825871848133253286, guid: b2ab179c58af96d479747fad85aed525, type: 3}
       propertyPath: m_LocalPosition.y
       value: 1.044
@@ -4531,6 +4536,11 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: b2ab179c58af96d479747fad85aed525, type: 3}
+--- !u!4 &504022907 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 2895260676985261079, guid: b2ab179c58af96d479747fad85aed525, type: 3}
+  m_PrefabInstance: {fileID: 504022906}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1 &535011371
 GameObject:
   m_ObjectHideFlags: 0
@@ -14912,7 +14922,7 @@ PrefabInstance:
     - target: {fileID: 1060167468770235413, guid: b2ab179c58af96d479747fad85aed525, type: 3}
       propertyPath: customerStandPoint
       value: 
-      objectReference: {fileID: 1634093710}
+      objectReference: {fileID: 579178314505797684}
     - target: {fileID: 1090177418780046489, guid: b2ab179c58af96d479747fad85aed525, type: 3}
       propertyPath: m_LocalPosition.x
       value: 0
@@ -14960,7 +14970,7 @@ PrefabInstance:
     - target: {fileID: 1279697291076289229, guid: b2ab179c58af96d479747fad85aed525, type: 3}
       propertyPath: customerStandPoint
       value: 
-      objectReference: {fileID: 1634093710}
+      objectReference: {fileID: 579178314505797684}
     - target: {fileID: 1352348362251811348, guid: b2ab179c58af96d479747fad85aed525, type: 3}
       propertyPath: m_Name
       value: Slot_01
@@ -14976,7 +14986,7 @@ PrefabInstance:
     - target: {fileID: 1910520044676378309, guid: b2ab179c58af96d479747fad85aed525, type: 3}
       propertyPath: customerStandPoint
       value: 
-      objectReference: {fileID: 1634093710}
+      objectReference: {fileID: 579178314505797684}
     - target: {fileID: 2521552372185246625, guid: b2ab179c58af96d479747fad85aed525, type: 3}
       propertyPath: slotID
       value: slot_cereal_facing_05
@@ -14984,7 +14994,7 @@ PrefabInstance:
     - target: {fileID: 2521552372185246625, guid: b2ab179c58af96d479747fad85aed525, type: 3}
       propertyPath: customerStandPoint
       value: 
-      objectReference: {fileID: 1634093710}
+      objectReference: {fileID: 579178314505797684}
     - target: {fileID: 3046213625299195560, guid: b2ab179c58af96d479747fad85aed525, type: 3}
       propertyPath: slotID
       value: slot_cereal_facing_04
@@ -15000,7 +15010,7 @@ PrefabInstance:
     - target: {fileID: 3046213625299195560, guid: b2ab179c58af96d479747fad85aed525, type: 3}
       propertyPath: customerStandPoint
       value: 
-      objectReference: {fileID: 1634093710}
+      objectReference: {fileID: 579178314505797684}
     - target: {fileID: 3066893431586318043, guid: b2ab179c58af96d479747fad85aed525, type: 3}
       propertyPath: slotID
       value: slot_cereal_facing_06
@@ -15008,7 +15018,7 @@ PrefabInstance:
     - target: {fileID: 3066893431586318043, guid: b2ab179c58af96d479747fad85aed525, type: 3}
       propertyPath: customerStandPoint
       value: 
-      objectReference: {fileID: 1634093710}
+      objectReference: {fileID: 579178314505797684}
     - target: {fileID: 3457331461783563248, guid: b2ab179c58af96d479747fad85aed525, type: 3}
       propertyPath: m_Name
       value: Slot_03
@@ -15036,7 +15046,7 @@ PrefabInstance:
     - target: {fileID: 3837043004271950274, guid: b2ab179c58af96d479747fad85aed525, type: 3}
       propertyPath: customerStandPoint
       value: 
-      objectReference: {fileID: 1634093710}
+      objectReference: {fileID: 579178314505797684}
     - target: {fileID: 4661067243534627180, guid: b2ab179c58af96d479747fad85aed525, type: 3}
       propertyPath: m_Name
       value: Slot_02
@@ -15060,7 +15070,7 @@ PrefabInstance:
     - target: {fileID: 5491406873839152957, guid: b2ab179c58af96d479747fad85aed525, type: 3}
       propertyPath: customerStandPoint
       value: 
-      objectReference: {fileID: 1634093710}
+      objectReference: {fileID: 579178314505797684}
     - target: {fileID: 5825871848133253286, guid: b2ab179c58af96d479747fad85aed525, type: 3}
       propertyPath: m_LocalPosition.y
       value: 1.044
@@ -15134,6 +15144,11 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: b2ab179c58af96d479747fad85aed525, type: 3}
+--- !u!4 &579178314505797684 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 2895260676985261079, guid: b2ab179c58af96d479747fad85aed525, type: 3}
+  m_PrefabInstance: {fileID: 579178314505797683}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0

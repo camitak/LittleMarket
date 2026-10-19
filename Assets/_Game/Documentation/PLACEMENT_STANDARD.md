@@ -61,3 +61,26 @@ Instead:
 4. Position the PlacementAnchor at bottom-center.
 5. Configure collider(s).
 6. Verify in Front and Right orthographic Scene views.
+## Sales shelf merchandising layout
+
+Do not move ShelfSlot transforms to compensate for different product dimensions.
+
+ShelfSlot and DisplayOrigin describe the furniture.
+
+ProductData controls the arrangement of a particular SKU within a facing:
+
+- `shelfColumns` = horizontal arrangement
+- `shelfVerticalLayers` = vertical arrangement
+- `shelfDepthRows` = front/back arrangement
+- `shelfItemSpacing` = spacing between product centres
+- `shelfDisplayOffset` = offset of the complete arrangement within the facing
+
+Use `shelfDisplayOffset` for intentional merchandising placement such as moving
+a deep product arrangement farther toward the back of the shelf.
+
+Do not use it to repair an incorrect product pivot or PlacementAnchor.
+
+The product `PlacementAnchor` must still represent its true bottom-centre contact point.
+
+Price tags belong to the shelf facing and should not move when product-specific
+display offsets change.

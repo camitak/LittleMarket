@@ -22,7 +22,7 @@ MonoBehaviour:
   shelfVerticalLayers: 1
   shelfDepthRows: 3
   shelfItemSpacing: {x: 0, y: 0, z: 0.23}
-  shelfDisplayOffset: {x: 0, y: 0, z: 0}
+  shelfDisplayOffset: {x: 0, y: 0, z: -0.15}
   buyPrice: 0.95
   sellPrice: 2.1
   requiredReputation: 55
