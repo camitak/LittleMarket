@@ -237,33 +237,62 @@ public class ShelfSlot :
 
         RemoveNullEntries();
 
+        string prompt;
+
         DeliveryBox heldDeliveryBox = player.GetHeldDeliveryBox();
 
         if (heldDeliveryBox != null)
         {
-            return GetDeliveryBoxInteractionPrompt(heldDeliveryBox);
+            prompt = GetDeliveryBoxInteractionPrompt(heldDeliveryBox);
         }
-
-        RestockBasket heldBasket = player.GetHeldRestockBasket();
-
-        if (heldBasket != null)
+        else
         {
-            return GetBasketInteractionPrompt(heldBasket);
+            RestockBasket heldBasket = player.GetHeldRestockBasket();
+
+            if (heldBasket != null)
+            {
+                prompt = GetBasketInteractionPrompt(heldBasket);
+            }
+            else
+            {
+                PickupItem heldItem = player.GetHeldItem();
+
+                if (heldItem != null)
+                {
+                    prompt = GetHeldItemPrompt(heldItem);
+                }
+                else if (HasStoredItem)
+                {
+                    prompt = GetOccupiedEmptyHandsPrompt();
+                }
+                else
+                {
+                    prompt = GetEmptySlotPrompt();
+                }
+            }
         }
 
-        PickupItem heldItem = player.GetHeldItem();
-
-        if (heldItem != null)
+        return AppendManagementPrompt(prompt, player);
+    }
+    
+    private string AppendManagementPrompt(
+        string prompt,
+        PlayerInteraction player
+    )
+    {
+        if (!CanUseManagementAction(player))
         {
-            return GetHeldItemPrompt(heldItem);
+            return prompt;
         }
 
-        if (HasStoredItem)
+        const string managementPrompt = "[Hold X] Clear facing";
+
+        if (string.IsNullOrWhiteSpace(prompt))
         {
-            return GetOccupiedEmptyHandsPrompt();
+            return managementPrompt;
         }
 
-        return GetEmptySlotPrompt();
+        return $"{prompt}\n{managementPrompt}";
     }
 
     public void Interact(PlayerInteraction player)
@@ -373,7 +402,7 @@ public class ShelfSlot :
 
     public bool CanUseManagementAction(PlayerInteraction player)
     {
-        if (player == null || player.HasAnythingHeld)
+        if (player == null)
         {
             return false;
         }
@@ -659,13 +688,10 @@ public class ShelfSlot :
     {
         if (!IsAssigned)
         {
-            return
-                $"Empty {allowedCategory} facing\nStock a matching product to assign";
+            return $"Empty {allowedCategory} facing\nStock a matching product to assign";
         }
 
-        return
-            $"{assignedProduct.ProductName}  •  0 / {Capacity}\n" +
-            "[Hold X] Clear facing";
+        return $"{assignedProduct.ProductName}  •  0 / {Capacity}";
     }
 
     private void HandleBasketInteraction(RestockBasket basket)
