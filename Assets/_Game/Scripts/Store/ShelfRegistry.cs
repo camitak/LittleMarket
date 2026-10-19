@@ -72,23 +72,32 @@ public class ShelfRegistry : MonoBehaviour
 
     public ShelfSlot FindSlotByID(string slotID)
     {
-        if (string.IsNullOrWhiteSpace(
-                slotID
-            ))
-            return null;
-
-        for (var i = 0;
-             i < registeredSlots.Count;
-             i++)
+        if (string.IsNullOrWhiteSpace(slotID))
         {
-            var slot =
-                registeredSlots[i];
+            return null;
+        }
 
-            if (slot == null) continue;
+        // First try the current automatic identity.
+        for (int i = 0; i < registeredSlots.Count; i++)
+        {
+            ShelfSlot slot = registeredSlots[i];
 
-            if (slot.SlotID != slotID) continue;
+            if (slot != null && slot.SlotID == slotID)
+            {
+                return slot;
+            }
+        }
 
-            return slot;
+        // Compatibility with Version 14 and older manually
+        // assigned shelf IDs.
+        for (int i = 0; i < registeredSlots.Count; i++)
+        {
+            ShelfSlot slot = registeredSlots[i];
+
+            if (slot != null && slot.LegacySlotID == slotID)
+            {
+                return slot;
+            }
         }
 
         return null;

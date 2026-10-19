@@ -10,7 +10,11 @@ public class ShelfSlot :
     IRepeatableInteractable
 {
     [Header("Identity")]
-    [SerializeField] private string slotID = "";
+    [SerializeField] private string localSlotKey = "";
+
+    [FormerlySerializedAs("slotID")]
+    [SerializeField, HideInInspector]
+    private string legacySlotID = "";
 
     [Header("Shelf Rules")]
     [SerializeField] private ProductCategory allowedCategory = ProductCategory.Cereal;
@@ -30,8 +34,30 @@ public class ShelfSlot :
     private readonly List<PickupItem> storedItems = new List<PickupItem>();
     private ShelfRegistry registeredShelfRegistry;
     private ShelfPriceTag priceTag;
+    private ShelfIdentity shelfIdentity;
 
-    public string SlotID => slotID;
+    public string SlotID
+    {
+        get
+        {
+            if (shelfIdentity == null)
+            {
+                shelfIdentity = GetComponentInParent<ShelfIdentity>();
+            }
+
+            if (shelfIdentity != null &&
+                !string.IsNullOrWhiteSpace(shelfIdentity.PersistentID) &&
+                !string.IsNullOrWhiteSpace(localSlotKey))
+            {
+                return $"{shelfIdentity.PersistentID}:{localSlotKey}";
+            }
+
+            // Backward-compatible fallback.
+            return legacySlotID;
+        }
+    }
+
+    public string LegacySlotID => legacySlotID;
     public Transform CustomerStandPoint => customerStandPoint;
     public bool CustomerAccessible => customerAccessible;
 
@@ -54,6 +80,7 @@ public class ShelfSlot :
     private void Awake()
     {
         priceTag = GetComponentInChildren<ShelfPriceTag>(true);
+        shelfIdentity = GetComponentInParent<ShelfIdentity>();
     }
     
     private void Start()
@@ -183,7 +210,7 @@ public class ShelfSlot :
         if (productData.Category != allowedCategory)
         {
             Debug.LogWarning(
-                $"Cannot restore {productData.ProductName} into ShelfSlot '{slotID}' because the facing only accepts {allowedCategory}.",
+                $"Cannot restore {productData.ProductName} into ShelfSlot '{SlotID}' because the facing only accepts {allowedCategory}.",
                 this
             );
 
@@ -193,7 +220,7 @@ public class ShelfSlot :
         if (assignedProduct != null && assignedProduct != productData)
         {
             Debug.LogWarning(
-                $"Cannot restore {productData.ProductName} into ShelfSlot '{slotID}' because it is assigned to {assignedProduct.ProductName}.",
+                $"Cannot restore {productData.ProductName} into ShelfSlot '{SlotID}' because it is assigned to {assignedProduct.ProductName}.",
                 this
             );
 
@@ -220,7 +247,7 @@ public class ShelfSlot :
         if (quantity > Capacity)
         {
             Debug.LogWarning(
-                $"Saved ShelfSlot '{slotID}' contained {quantity} units, but its current capacity is {Capacity}. Extra units were not restored.",
+                $"Saved ShelfSlot '{SlotID}' contained {quantity} units, but its current capacity is {Capacity}. Extra units were not restored.",
                 this
             );
         }

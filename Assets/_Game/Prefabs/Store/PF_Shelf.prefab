@@ -242,7 +242,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 66cd52bbfaeae2a468321fefd48e5a6d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ShelfSlot
-  slotID: 
+  localSlotKey: 01
+  legacySlotID: 
   allowedCategory: 0
   assignedProduct: {fileID: 0}
   displayOrigin: {fileID: 8517859312037599376}
@@ -316,7 +317,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 66cd52bbfaeae2a468321fefd48e5a6d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ShelfSlot
-  slotID: 
+  localSlotKey: 08
+  legacySlotID: 
   allowedCategory: 0
   assignedProduct: {fileID: 0}
   displayOrigin: {fileID: 5346669966466491424}
@@ -390,7 +392,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 66cd52bbfaeae2a468321fefd48e5a6d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ShelfSlot
-  slotID: 
+  localSlotKey: 06
+  legacySlotID: 
   allowedCategory: 0
   assignedProduct: {fileID: 0}
   displayOrigin: {fileID: 4283881757661021897}
@@ -464,7 +467,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 66cd52bbfaeae2a468321fefd48e5a6d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ShelfSlot
-  slotID: 
+  localSlotKey: 07
+  legacySlotID: 
   allowedCategory: 0
   assignedProduct: {fileID: 0}
   displayOrigin: {fileID: 777823893043802607}
@@ -538,7 +542,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 66cd52bbfaeae2a468321fefd48e5a6d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ShelfSlot
-  slotID: 
+  localSlotKey: 03
+  legacySlotID: 
   allowedCategory: 0
   assignedProduct: {fileID: 0}
   displayOrigin: {fileID: 8724420894337435722}
@@ -705,7 +710,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 66cd52bbfaeae2a468321fefd48e5a6d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ShelfSlot
-  slotID: 
+  localSlotKey: 02
+  legacySlotID: 
   allowedCategory: 0
   assignedProduct: {fileID: 0}
   displayOrigin: {fileID: 4210287189654049136}
@@ -975,6 +981,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1090177418780046489}
+  - component: {fileID: 8930667969451341194}
   m_Layer: 0
   m_Name: PF_Shelf
   m_TagString: Untagged
@@ -1010,6 +1017,19 @@ Transform:
   - {fileID: 2895260676985261079}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &8930667969451341194
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5191368394742514984}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: db2493a44af972047a120610e033c971, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ShelfIdentity
+  persistentID: 
 --- !u!1 &6875319657879054714
 GameObject:
   m_ObjectHideFlags: 0
@@ -1078,7 +1098,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 66cd52bbfaeae2a468321fefd48e5a6d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ShelfSlot
-  slotID: 
+  localSlotKey: 05
+  legacySlotID: 
   allowedCategory: 0
   assignedProduct: {fileID: 0}
   displayOrigin: {fileID: 4201983812790628043}
@@ -1357,7 +1378,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 66cd52bbfaeae2a468321fefd48e5a6d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ShelfSlot
-  slotID: 
+  localSlotKey: 04
+  legacySlotID: 
   allowedCategory: 0
   assignedProduct: {fileID: 0}
   displayOrigin: {fileID: 1798204172411353360}
