@@ -84,13 +84,11 @@ public class DeliveryZone : MonoBehaviour
 
         if (quantity <= 0) return false;
 
-        var slotIndex =
-            FindAvailableSlotIndex();
+        var slotIndex = FindAvailableSlotIndex();
 
         if (slotIndex < 0) return false;
 
-        var deliverySlot =
-            deliverySlots[slotIndex];
+        var deliverySlot = deliverySlots[slotIndex];
 
         createdDelivery =
             Instantiate(
@@ -108,8 +106,8 @@ public class DeliveryZone : MonoBehaviour
             quantity
         );
 
-        activeDeliveries[slotIndex] =
-            createdDelivery;
+        activeDeliveries[slotIndex] = createdDelivery;
+        createdDelivery.SetDeliveryZoneOwner(this);
 
         return true;
     }
@@ -167,9 +165,8 @@ public class DeliveryZone : MonoBehaviour
             isOpen
         );
 
-        activeDeliveries[slotIndex] =
-            createdDelivery;
-
+        activeDeliveries[slotIndex] = createdDelivery;
+        createdDelivery.SetDeliveryZoneOwner(this);
         return true;
     }
 
@@ -192,6 +189,25 @@ public class DeliveryZone : MonoBehaviour
             Destroy(
                 delivery.gameObject
             );
+        }
+    }
+    
+    public void ReleaseDelivery(DeliveryBox deliveryBox)
+    {
+        if (deliveryBox == null || activeDeliveries == null)
+        {
+            return;
+        }
+
+        for (int i = 0; i < activeDeliveries.Length; i++)
+        {
+            if (activeDeliveries[i] != deliveryBox)
+            {
+                continue;
+            }
+
+            activeDeliveries[i] = null;
+            return;
         }
     }
 

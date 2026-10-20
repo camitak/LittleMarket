@@ -21,6 +21,8 @@ public class StoreSaveData
     public List<StorageSlotSaveData> storageSlots;
 
     public List<DeliveryBoxSaveData> deliveries;
+    
+    public List<PendingDeliverySaveData> pendingDeliveries = new();
 
     public DailyStatsSaveData dailyStats;
 

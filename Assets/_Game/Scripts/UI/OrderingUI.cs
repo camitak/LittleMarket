@@ -28,6 +28,8 @@ public class OrderingUI : MonoBehaviour
     [SerializeField] private DeliveryBox deliveryBoxPrefab;
 
     [SerializeField] private DeliveryZone deliveryZone;
+    
+    [SerializeField] private SupplierDeliveryQueue supplierDeliveryQueue;
 
     [Header("Store")] [SerializeField] private StoreEconomy storeEconomy;
 
@@ -69,7 +71,10 @@ public class OrderingUI : MonoBehaviour
 
         RebuildCatalogRows();
 
-        statusText.text = "";
+        statusText.text =
+            supplierDeliveryQueue != null
+                ? supplierDeliveryQueue.GetTerminalStatusText()
+                : "";
 
         orderingPanel.SetActive(
             true
@@ -206,119 +211,136 @@ public class OrderingUI : MonoBehaviour
         spawnedRows.Clear();
     }
 
-    private void OrderProduct(
-        ProductData productData
-    )
+    private void OrderProduct(ProductData productData)
     {
         if (productData == null)
         {
-            statusText.text =
-                "Product not configured.";
-
+            statusText.text = "Product not configured.";
             return;
         }
 
         if (storeProgression == null)
         {
-            statusText.text =
-                "Store progression not configured.";
-
+            statusText.text = "Store progression not configured.";
             return;
         }
 
-        if (!storeProgression.IsProductUnlocked(
-                productData
-            ))
+        if (!storeProgression.IsProductUnlocked(productData))
         {
-            statusText.text =
-                "This product is still locked.";
-
+            statusText.text = "This product is still locked.";
             return;
         }
 
         if (deliveryBoxPrefab == null)
         {
-            statusText.text =
-                "Delivery box not configured.";
-
+            statusText.text = "Delivery box not configured.";
             return;
         }
 
         if (deliveryZone == null)
         {
-            statusText.text =
-                "Delivery zone not configured.";
+            statusText.text = "Delivery zone not configured.";
+            return;
+        }
 
+        if (supplierDeliveryQueue == null)
+        {
+            statusText.text = "Supplier delivery schedule not configured.";
             return;
         }
 
         if (storeEconomy == null)
         {
-            statusText.text =
-                "Store economy not configured.";
-
+            statusText.text = "Store economy not configured.";
             return;
         }
 
-        if (!deliveryZone.HasSpace)
+        bool arrivesTomorrow = supplierDeliveryQueue.IsPastCutoff;
+
+        if (!arrivesTomorrow && !deliveryZone.HasSpace)
         {
             statusText.text =
-                "Delivery area full. "
-                + "Remove an empty box.";
+                "Delivery area full. Move a carton out of the receiving area.";
 
             return;
         }
 
-        var orderCost =
-            productData.BuyPrice
-            * quantityPerBox;
+        if (arrivesTomorrow &&
+            !supplierDeliveryQueue.CanQueueTomorrowOrder)
+        {
+            statusText.text =
+                "Tomorrow's delivery queue is full.";
 
-        var purchaseSucceeded =
-            storeEconomy.TrySpend(
-                orderCost
-            );
+            return;
+        }
+
+        float orderCost =
+            productData.BuyPrice * quantityPerBox;
+
+        bool purchaseSucceeded =
+            storeEconomy.TrySpend(orderCost);
 
         if (!purchaseSucceeded)
         {
+            statusText.text = "Not enough money.";
+            return;
+        }
+
+        if (arrivesTomorrow)
+        {
+            bool queued =
+                supplierDeliveryQueue.TryQueueForTomorrow(
+                    productData,
+                    quantityPerBox
+                );
+
+            if (!queued)
+            {
+                storeEconomy.AddMoney(orderCost);
+                statusText.text =
+                    "Could not schedule tomorrow's delivery. Order was refunded.";
+
+                return;
+            }
+
+            if (dailyStats != null)
+            {
+                dailyStats.RecordStockSpending(orderCost);
+            }
+
             statusText.text =
-                "Not enough money.";
+                $"Ordered {quantityPerBox} x {productData.ProductName} for £{orderCost:0.00}.\n" +
+                $"Arrives Day {supplierDeliveryQueue.NextOrderArrivalDay} • " +
+                $"Queue {supplierDeliveryQueue.PendingOrderCount} / {supplierDeliveryQueue.QueueCapacity}";
 
             return;
         }
 
-        var deliveryCreated =
+        bool deliveryCreated =
             deliveryZone.TryCreateDelivery(
                 deliveryBoxPrefab,
                 productData,
                 quantityPerBox,
-                out var newDelivery
+                out _
             );
 
         if (!deliveryCreated)
         {
-            storeEconomy.AddMoney(
-                orderCost
-            );
+            storeEconomy.AddMoney(orderCost);
 
             statusText.text =
-                "Delivery failed. "
-                + "Order was refunded.";
+                "Delivery failed. Order was refunded.";
 
             return;
         }
 
         if (dailyStats != null)
-            dailyStats.RecordStockSpending(
-                orderCost
-            );
+        {
+            dailyStats.RecordStockSpending(orderCost);
+        }
 
         statusText.text =
-            "Ordered "
-            + quantityPerBox
-            + " x "
-            + productData.ProductName
-            + " for £"
-            + orderCost.ToString("0.00")
-            + ".";
+            $"Ordered {quantityPerBox} x {productData.ProductName} for £{orderCost:0.00}. " +
+            "Delivered now.";
     }
 }

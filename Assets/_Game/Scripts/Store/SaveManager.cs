@@ -4,7 +4,7 @@ using UnityEngine;
 
 public class SaveManager : MonoBehaviour
 {
-    private const int CurrentSaveVersion = 15;
+    private const int CurrentSaveVersion = 16;
 
     [Header("Store References")] [SerializeField]
     private StoreClock storeClock;
@@ -31,7 +31,9 @@ public class SaveManager : MonoBehaviour
 
     [SerializeField] private WorldItemRegistry worldItemRegistry;
 
-    [Header("Delivery")] [SerializeField] private DeliveryBox deliveryBoxPrefab;
+    [Header("Delivery")] 
+    [SerializeField] private DeliveryBox deliveryBoxPrefab;
+    [SerializeField] private SupplierDeliveryQueue supplierDeliveryQueue;
 
     [Header("Player")] [SerializeField] private PlayerInteraction playerInteraction;
 
@@ -70,46 +72,33 @@ public class SaveManager : MonoBehaviour
         var saveData =
             new StoreSaveData();
 
-        saveData.saveVersion =
-            CurrentSaveVersion;
+        saveData.saveVersion = CurrentSaveVersion;
 
-        saveData.day =
-            storeClock.CurrentDay;
+        saveData.day = storeClock.CurrentDay;
 
-        saveData.currentMinutes =
-            storeClock.CurrentMinutes;
+        saveData.currentMinutes = storeClock.CurrentMinutes;
 
-        saveData.money =
-            storeEconomy.CurrentMoney;
+        saveData.money = storeEconomy.CurrentMoney;
 
-        saveData.reputation =
-            storeReputation.CurrentReputation;
+        saveData.reputation = storeReputation.CurrentReputation;
 
-        saveData.unlockedProductIDs =
-            storeProgression
-                .GetUnlockedProductIDs();
+        saveData.unlockedProductIDs = storeProgression.GetUnlockedProductIDs();
 
-        saveData.shelfSlots =
-            BuildShelfSlotSaveData();
+        saveData.shelfSlots = BuildShelfSlotSaveData();
 
-        saveData.storageSlots =
-            BuildStorageSlotSaveData();
+        saveData.storageSlots = BuildStorageSlotSaveData();
 
-        saveData.deliveries =
-            BuildDeliverySaveData();
+        saveData.deliveries = BuildDeliverySaveData();
+        
+        saveData.pendingDeliveries = supplierDeliveryQueue.CreateSaveData();
 
-        saveData.dailyStats =
-            dailyStats.CreateSaveData();
+        saveData.dailyStats = dailyStats.CreateSaveData();
 
-        saveData.looseProducts =
-            BuildLooseProductSaveData();
+        saveData.looseProducts = BuildLooseProductSaveData();
 
-        saveData.goalRewards =
-            storeGoals.CreateSaveData();
+        saveData.goalRewards = storeGoals.CreateSaveData();
 
-        saveData.storeLevel =
-            storeLevelProgression
-                .CreateSaveData();
+        saveData.storeLevel = storeLevelProgression.CreateSaveData();
 
         var json =
             JsonUtility.ToJson(
@@ -794,16 +783,11 @@ public class SaveManager : MonoBehaviour
             saveData.reputation
         );
 
-        storeProgression
-            .RestoreUnlockedProducts(
-                saveData.unlockedProductIDs
-            );
+        storeProgression.RestoreUnlockedProducts(saveData.unlockedProductIDs);
 
         if (saveData.saveVersion >= 2)
         {
-            RestoreShelfInventory(
-                saveData.shelfSlots
-            );
+            RestoreShelfInventory(saveData.shelfSlots);
         }
         else
         {
@@ -819,14 +803,11 @@ public class SaveManager : MonoBehaviour
 
         if (saveData.saveVersion >= 3)
         {
-            RestoreDeliveryZone(
-                saveData.deliveries
-            );
+            RestoreDeliveryZone(saveData.deliveries);
         }
         else
         {
-            deliveryZone
-                .ClearAllDeliveriesForLoad();
+            deliveryZone.ClearAllDeliveriesForLoad();
 
             Debug.Log(
                 "Older save loaded. Delivery boxes "
@@ -837,14 +818,11 @@ public class SaveManager : MonoBehaviour
 
         if (saveData.saveVersion >= 6)
         {
-            RestoreLooseProducts(
-                saveData.looseProducts
-            );
+            RestoreLooseProducts(saveData.looseProducts);
         }
         else
         {
-            worldItemRegistry
-                .ClearLooseWorldItemsForLoad();
+            worldItemRegistry.ClearLooseWorldItemsForLoad();
 
             Debug.Log(
                 "Older save loaded. Loose products "
@@ -853,12 +831,9 @@ public class SaveManager : MonoBehaviour
             );
         }
 
-        if (saveData.saveVersion >= 5 &&
-            saveData.dailyStats != null)
+        if (saveData.saveVersion >= 5 && saveData.dailyStats != null)
         {
-            dailyStats.RestoreFromSaveData(
-                saveData.dailyStats
-            );
+            dailyStats.RestoreFromSaveData(saveData.dailyStats);
         }
         else
         {
@@ -871,12 +846,9 @@ public class SaveManager : MonoBehaviour
             );
         }
 
-        if (saveData.saveVersion >= 7 &&
-            saveData.goalRewards != null)
+        if (saveData.saveVersion >= 7 && saveData.goalRewards != null)
         {
-            storeGoals.RestoreFromSaveData(
-                saveData.goalRewards
-            );
+            storeGoals.RestoreFromSaveData(saveData.goalRewards);
         }
         else
         {
@@ -889,20 +861,13 @@ public class SaveManager : MonoBehaviour
             );
         }
 
-        if (saveData.saveVersion >= 8 &&
-            saveData.storeLevel != null)
+        if (saveData.saveVersion >= 8 && saveData.storeLevel != null)
         {
-            storeLevelProgression
-                .RestoreFromSaveData(
-                    saveData.storeLevel
-                );
+            storeLevelProgression.RestoreFromSaveData(saveData.storeLevel);
         }
         else
         {
-            storeLevelProgression
-                .RestoreFromSaveData(
-                    null
-                );
+            storeLevelProgression.RestoreFromSaveData(null);
 
             Debug.Log(
                 "Older save loaded. Store Level "
@@ -922,14 +887,27 @@ public class SaveManager : MonoBehaviour
         }
         else
         {
-            storeClock.LoadDay(
-                saveData.day
-            );
+            storeClock.LoadDay(saveData.day);
 
             Debug.Log(
                 "Older save loaded. Exact clock time "
                 + "was not available, so the day "
                 + "started at the configured start time."
+            );
+        }
+        
+        if (saveData.saveVersion >= 16)
+        {
+            supplierDeliveryQueue.RestoreFromSaveData(
+                saveData.pendingDeliveries
+            );
+        }
+        else
+        {
+            supplierDeliveryQueue.ClearPendingOrders();
+
+            Debug.Log(
+                "Older save loaded. There were no saved pending supplier deliveries."
             );
         }
 
@@ -958,31 +936,23 @@ public class SaveManager : MonoBehaviour
     {
         if (storeClock.HasDayEnded)
         {
-            LastOperationMessage =
-                "Start the next day before saving or loading.";
+            LastOperationMessage = "Start the next day before saving or loading.";
 
-            Debug.LogWarning(
-                LastOperationMessage
-            );
+            Debug.LogWarning(LastOperationMessage);
 
             return false;
         }
 
         if (customerFlow.ActiveCustomerCount > 0)
         {
-            LastOperationMessage =
-                "Wait until all customers have left.";
+            LastOperationMessage = "Wait until all customers have left.";
 
-            Debug.LogWarning(
-                LastOperationMessage
-            );
+            Debug.LogWarning(LastOperationMessage);
 
             return false;
         }
 
-        var heldBasket =
-            playerInteraction
-                .GetHeldRestockBasket();
+        var heldBasket = playerInteraction.GetHeldRestockBasket();
 
         if (heldBasket != null)
         {
@@ -995,9 +965,7 @@ public class SaveManager : MonoBehaviour
                     "Put down the restock basket "
                     + "before saving or loading.";
 
-            Debug.LogWarning(
-                LastOperationMessage
-            );
+            Debug.LogWarning(LastOperationMessage);
 
             return false;
         }
@@ -1008,16 +976,12 @@ public class SaveManager : MonoBehaviour
                 "Empty the restock basket before "
                 + "saving or loading.";
 
-            Debug.LogWarning(
-                LastOperationMessage
-            );
+            Debug.LogWarning(LastOperationMessage);
 
             return false;
         }
 
-        var heldDeliveryBox =
-            playerInteraction
-                .GetHeldDeliveryBox();
+        var heldDeliveryBox = playerInteraction.GetHeldDeliveryBox();
 
         if (heldDeliveryBox != null)
         {
@@ -1025,21 +989,16 @@ public class SaveManager : MonoBehaviour
                 "Put down the delivery box before "
                 + "saving or loading.";
 
-            Debug.LogWarning(
-                LastOperationMessage
-            );
+            Debug.LogWarning(LastOperationMessage);
 
             return false;
         }
 
         if (playerInteraction.GetHeldItem() != null)
         {
-            LastOperationMessage =
-                "Put away the item in your hands first.";
+            LastOperationMessage = "Put away the item in your hands first.";
 
-            Debug.LogWarning(
-                LastOperationMessage
-            );
+            Debug.LogWarning(LastOperationMessage);
 
             return false;
         }
@@ -1047,20 +1006,13 @@ public class SaveManager : MonoBehaviour
         return true;
     }
 
-    private string GetClockDebugText(
-        float totalMinutes
-    )
+    private string GetClockDebugText(float totalMinutes)
     {
-        var wholeMinutes =
-            Mathf.FloorToInt(
-                totalMinutes
-            );
+        var wholeMinutes = Mathf.FloorToInt(totalMinutes);
 
-        var hours =
-            wholeMinutes / 60;
+        var hours = wholeMinutes / 60;
 
-        var minutes =
-            wholeMinutes % 60;
+        var minutes = wholeMinutes % 60;
 
         return hours.ToString("00")
                + ":"
@@ -1088,6 +1040,8 @@ public class SaveManager : MonoBehaviour
         if (shelfRegistry == null) return false;
 
         if (deliveryZone == null) return false;
+        
+        if (supplierDeliveryQueue == null) return false;
 
         if (worldItemRegistry == null) return false;
 

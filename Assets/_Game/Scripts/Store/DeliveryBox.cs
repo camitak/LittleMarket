@@ -18,20 +18,13 @@ public class DeliveryBox :
 
     [SerializeField] private Transform placementAnchor;
 
-    [Header("Held View")] [SerializeField] private Vector3 heldViewOffset =
-        new(
-            0f,
-            -0.62f,
-            1.05f
-        );
+    [Header("Held View")] 
+    [SerializeField] private Vector3 heldViewOffset = new(0f, -0.62f, 1.05f);
 
-    [Header("Drop Placement")] [Min(0.5f)] [SerializeField]
-    private float dropForwardDistance = 1.3f;
-
+    [Header("Drop Placement")] 
+    [Min(0.5f)] [SerializeField] private float dropForwardDistance = 1.3f;
     [Min(0.01f)] [SerializeField] private float dropGroundClearance = 0.02f;
-
     [Min(1f)] [SerializeField] private float dropRayDistance = 3.5f;
-
     [SerializeField] private LayerMask dropSurfaceLayers = ~0;
 
     private bool isOpen;
@@ -41,27 +34,25 @@ public class DeliveryBox :
     private Transform heldView;
 
     private Collider boxCollider;
+    
+    private DeliveryZone deliveryZoneOwner;
 
-    public ProductData ProductData =>
-        productData;
+    public ProductData ProductData => productData;
 
-    public int RemainingQuantity =>
-        quantity;
+    public int RemainingQuantity => quantity;
 
-    public int Capacity =>
-        Mathf.Max(
-            1,
-            boxCapacity
-        );
+    public int Capacity => Mathf.Max(1, boxCapacity);
 
-    public bool IsOpen =>
-        isOpen;
+    public bool IsOpen => isOpen;
 
-    public bool IsFull =>
-        quantity >= Capacity;
+    public bool IsFull => quantity >= Capacity;
 
-    public bool IsEmpty =>
-        quantity <= 0;
+    public bool IsEmpty => quantity <= 0;
+    
+    public void SetDeliveryZoneOwner(DeliveryZone owner)
+    {
+        deliveryZoneOwner = owner;
+    }
 
     private void Awake()
     {
@@ -394,16 +385,11 @@ public class DeliveryBox :
                 sourcePoint.rotation
             );
 
-        var pickupSucceeded =
-            player.TryPickUp(
-                spawnedItem
-            );
+        var pickupSucceeded = player.TryPickUp(spawnedItem);
 
         if (!pickupSucceeded)
         {
-            Destroy(
-                spawnedItem.gameObject
-            );
+            Destroy(spawnedItem.gameObject);
 
             return false;
         }
@@ -416,8 +402,7 @@ public class DeliveryBox :
          *
          * Opening is NOT a player command anymore.
          */
-        isOpen =
-            true;
+        isOpen = true;
 
         return true;
     }
@@ -445,24 +430,18 @@ public class DeliveryBox :
                 sourcePoint.rotation
             );
 
-        var added =
-            basket.TryAddItem(
-                spawnedItem
-            );
+        var added = basket.TryAddItem(spawnedItem);
 
         if (!added)
         {
-            Destroy(
-                spawnedItem.gameObject
-            );
+            Destroy(spawnedItem.gameObject);
 
             return false;
         }
 
         quantity--;
 
-        isOpen =
-            true;
+        isOpen = true;
 
         return true;
     }
@@ -488,12 +467,9 @@ public class DeliveryBox :
 
         quantity++;
 
-        isOpen =
-            true;
+        isOpen = true;
 
-        Destroy(
-            basketItem.gameObject
-        );
+        Destroy(basketItem.gameObject);
 
         return true;
     }
@@ -508,8 +484,7 @@ public class DeliveryBox :
             IsFull)
             return false;
 
-        var heldProduct =
-            heldItem.GetProductData();
+        var heldProduct = heldItem.GetProductData();
 
         if (heldProduct == null ||
             heldProduct != productData)
@@ -519,12 +494,9 @@ public class DeliveryBox :
 
         quantity++;
 
-        isOpen =
-            true;
+        isOpen = true;
 
-        Destroy(
-            heldItem.gameObject
-        );
+        Destroy(heldItem.gameObject);
 
         return true;
     }
@@ -537,8 +509,7 @@ public class DeliveryBox :
         out ProductData takenProduct
     )
     {
-        takenProduct =
-            null;
+        takenProduct = null;
 
         if (quantity <= 0 ||
             productData == null)
@@ -546,11 +517,9 @@ public class DeliveryBox :
 
         quantity--;
 
-        isOpen =
-            true;
+        isOpen = true;
 
-        takenProduct =
-            productData;
+        takenProduct = productData;
 
         return true;
     }
@@ -570,8 +539,7 @@ public class DeliveryBox :
 
         quantity++;
 
-        isOpen =
-            true;
+        isOpen = true;
 
         return true;
     }
@@ -581,24 +549,23 @@ public class DeliveryBox :
         Transform viewTransform
     )
     {
-        if (holdPoint == null ||
-            viewTransform == null)
+        if (holdPoint == null || viewTransform == null)
             return;
+        
+        if (deliveryZoneOwner != null)
+        {
+            deliveryZoneOwner.ReleaseDelivery(this);
+            deliveryZoneOwner = null;
+        }
 
-        heldView =
-            viewTransform;
+        heldView = viewTransform;
 
-        isHeld =
-            true;
+        isHeld = true;
 
         if (boxCollider != null)
-            boxCollider.enabled =
-                false;
+            boxCollider.enabled = false;
 
-        transform.SetParent(
-            holdPoint,
-            true
-        );
+        transform.SetParent( holdPoint, true);
 
         UpdateHeldPose();
     }
@@ -607,13 +574,9 @@ public class DeliveryBox :
     {
         if (!isHeld) return;
 
-        var horizontalForward =
-            GetHorizontalForward(
-                heldView
-            );
+        var horizontalForward = GetHorizontalForward(heldView);
 
-        var targetPosition =
-            transform.position;
+        var targetPosition = transform.position;
 
         var targetRotation =
             Quaternion.LookRotation(
@@ -621,11 +584,9 @@ public class DeliveryBox :
                 Vector3.up
             );
 
-        var foundSurface =
-            false;
+        var foundSurface = false;
 
-        var surfaceY =
-            0f;
+        var surfaceY = 0f;
 
         if (heldView != null)
         {
@@ -647,11 +608,9 @@ public class DeliveryBox :
                     QueryTriggerInteraction.Ignore
                 ))
             {
-                foundSurface =
-                    true;
+                foundSurface = true;
 
-                surfaceY =
-                    hit.point.y;
+                surfaceY = hit.point.y;
 
                 /*
                  * Temporary height.
@@ -660,22 +619,17 @@ public class DeliveryBox :
                  * below, we'll align its real bottom
                  * to this surface.
                  */
-                targetPosition.y =
-                    surfaceY;
+                targetPosition.y = surfaceY;
             }
             else
             {
-                targetPosition.y =
-                    heldView.position.y
-                    - 1f;
+                targetPosition.y = heldView.position.y - 1f;
             }
         }
 
-        isHeld =
-            false;
+        isHeld = false;
 
-        heldView =
-            null;
+        heldView = null;
 
         transform.SetParent(
             null,
@@ -689,8 +643,7 @@ public class DeliveryBox :
 
         if (boxCollider != null)
         {
-            boxCollider.enabled =
-                true;
+            boxCollider.enabled = true;
 
             /*
              * The object pivot is at the CENTRE of
@@ -761,11 +714,9 @@ public class DeliveryBox :
                 ? reference.forward
                 : transform.forward;
 
-        direction.y =
-            0f;
+        direction.y = 0f;
 
-        if (direction.sqrMagnitude
-            < 0.001f)
+        if (direction.sqrMagnitude < 0.001f)
         {
             if (reference != null)
                 direction =
@@ -774,8 +725,7 @@ public class DeliveryBox :
                         Vector3.up
                     );
             else
-                direction =
-                    Vector3.forward;
+                direction = Vector3.forward;
         }
 
         return direction.normalized;
@@ -786,11 +736,9 @@ public class DeliveryBox :
         Quaternion rotation
     )
     {
-        isHeld =
-            false;
+        isHeld = false;
 
-        heldView =
-            null;
+        heldView = null;
 
         transform.SetParent(
             null,
@@ -803,8 +751,7 @@ public class DeliveryBox :
         );
 
         if (boxCollider != null)
-            boxCollider.enabled =
-                true;
+            boxCollider.enabled = true;
     }
 
     public void Configure(
@@ -812,8 +759,7 @@ public class DeliveryBox :
         int newQuantity
     )
     {
-        productData =
-            newProductData;
+        productData = newProductData;
 
         boxCapacity =
             Mathf.Max(
@@ -831,8 +777,7 @@ public class DeliveryBox :
                 boxCapacity
             );
 
-        isOpen =
-            false;
+        isOpen = false;
     }
 
     public void RestoreState(
@@ -842,8 +787,7 @@ public class DeliveryBox :
         bool newIsOpen
     )
     {
-        productData =
-            newProductData;
+        productData = newProductData;
 
         if (newCapacity > 0)
             boxCapacity =
@@ -868,8 +812,7 @@ public class DeliveryBox :
                 boxCapacity
             );
 
-        isOpen =
-            newIsOpen;
+        isOpen = newIsOpen;
     }
 
     public void PlaceAt(

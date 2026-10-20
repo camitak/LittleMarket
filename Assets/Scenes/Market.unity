@@ -470,6 +470,7 @@ GameObject:
   m_Component:
   - component: {fileID: 43201576}
   - component: {fileID: 43201577}
+  - component: {fileID: 43201578}
   m_Layer: 0
   m_Name: DeliveryZone
   m_TagString: Untagged
@@ -515,6 +516,23 @@ MonoBehaviour:
   - {fileID: 484686337}
   - {fileID: 1521080518}
   - {fileID: 1266572565}
+--- !u!114 &43201578
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 43201575}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 545c2eaaf27935041a069e46ae43e6e5, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SupplierDeliveryQueue
+  sameDayCutoffHour: 20
+  sameDayCutoffMinute: 0
+  storeClock: {fileID: 1117834532}
+  storeProgression: {fileID: 1117834535}
+  deliveryBoxPrefab: {fileID: 2451739325236826120, guid: d6fd02bc723a5674ebd36140829485fc, type: 3}
 --- !u!1001 &75906506
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -6135,6 +6153,7 @@ MonoBehaviour:
   quantityPerBox: 4
   deliveryBoxPrefab: {fileID: 2451739325236826120, guid: d6fd02bc723a5674ebd36140829485fc, type: 3}
   deliveryZone: {fileID: 43201577}
+  supplierDeliveryQueue: {fileID: 43201578}
   storeEconomy: {fileID: 1117834528}
   dailyStats: {fileID: 1117834533}
   playerController: {fileID: 1349577614}
@@ -9408,6 +9427,7 @@ MonoBehaviour:
   deliveryZone: {fileID: 43201577}
   worldItemRegistry: {fileID: 1117834537}
   deliveryBoxPrefab: {fileID: 2451739325236826120, guid: d6fd02bc723a5674ebd36140829485fc, type: 3}
+  supplierDeliveryQueue: {fileID: 43201578}
   playerInteraction: {fileID: 1349577615}
   restockBasket: {fileID: 1787645993}
 --- !u!114 &1117834537
@@ -10982,9 +11002,9 @@ RectTransform:
   m_Children: []
   m_Father: {fileID: 960341344}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
-  m_AnchorMin: {x: 0.5, y: 0.5}
-  m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 0, y: -180}
+  m_AnchorMin: {x: 0.5, y: 1}
+  m_AnchorMax: {x: 0.5, y: 1}
+  m_AnchoredPosition: {x: 0, y: -96}
   m_SizeDelta: {x: 200, y: 50}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &1369482167
@@ -13223,11 +13243,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 8485013355144152520, guid: 19ffaa5ccdd7bee4bbfbec22373cf554, type: 3}
       propertyPath: m_LocalPosition.x
-      value: -16.492
+      value: -9.738
       objectReference: {fileID: 0}
     - target: {fileID: 8485013355144152520, guid: 19ffaa5ccdd7bee4bbfbec22373cf554, type: 3}
       propertyPath: m_LocalPosition.y
-      value: 0.128
+      value: 0.172
       objectReference: {fileID: 0}
     - target: {fileID: 8485013355144152520, guid: 19ffaa5ccdd7bee4bbfbec22373cf554, type: 3}
       propertyPath: m_LocalPosition.z
