@@ -16,8 +16,9 @@ public class ShelfSlot :
     [SerializeField, HideInInspector]
     private string legacySlotID = "";
 
-    [Header("Shelf Rules")]
-    [SerializeField] private ProductCategory allowedCategory = ProductCategory.Cereal;
+    [FormerlySerializedAs("allowedCategory")]
+    [SerializeField, HideInInspector]
+    private ProductCategory fallbackAllowedCategory = ProductCategory.Cereal;
 
     [FormerlySerializedAs("acceptedProduct")]
     [SerializeField] private ProductData assignedProduct;
@@ -25,8 +26,9 @@ public class ShelfSlot :
     [Header("Placement")]
     [SerializeField] private Transform displayOrigin;
 
-    [Header("Customer")]
-    [SerializeField] private Transform customerStandPoint;
+    [FormerlySerializedAs("customerStandPoint")]
+    [SerializeField, HideInInspector]
+    private Transform fallbackCustomerStandPoint;
 
     [Header("Access")]
     [SerializeField] private bool customerAccessible = true;
@@ -35,7 +37,8 @@ public class ShelfSlot :
     private ShelfRegistry registeredShelfRegistry;
     private ShelfPriceTag priceTag;
     private ShelfIdentity shelfIdentity;
-
+    private SalesShelf salesShelf;
+    
     public string SlotID
     {
         get
@@ -58,7 +61,6 @@ public class ShelfSlot :
     }
 
     public string LegacySlotID => legacySlotID;
-    public Transform CustomerStandPoint => customerStandPoint;
     public bool CustomerAccessible => customerAccessible;
 
     public bool IsAssigned => assignedProduct != null;
@@ -76,11 +78,30 @@ public class ShelfSlot :
         IsAssigned && StoredItemCount >= Capacity;
 
     public float ManagementHoldDuration => 0.6f;
+    
+    public ProductCategory AllowedCategory =>
+        salesShelf != null
+            ? salesShelf.AllowedCategory
+            : fallbackAllowedCategory;
+
+    public Transform CustomerStandPoint
+    {
+        get
+        {
+            if (salesShelf != null && salesShelf.CustomerStandPoint != null)
+            {
+                return salesShelf.CustomerStandPoint;
+            }
+
+            return fallbackCustomerStandPoint;
+        }
+    }
 
     private void Awake()
     {
         priceTag = GetComponentInChildren<ShelfPriceTag>(true);
         shelfIdentity = GetComponentInParent<ShelfIdentity>();
+        salesShelf = GetComponentInParent<SalesShelf>();
     }
     
     private void Start()
@@ -93,7 +114,7 @@ public class ShelfSlot :
     {
         UnregisterFromCurrentRegistry();
     }
-
+    
     public bool CanAcceptProduct(ProductData productData)
     {
         if (productData == null || !customerAccessible)
@@ -101,7 +122,7 @@ public class ShelfSlot :
             return false;
         }
 
-        if (productData.Category != allowedCategory)
+        if (productData.Category != AllowedCategory)
         {
             return false;
         }
@@ -207,10 +228,10 @@ public class ShelfSlot :
             return false;
         }
 
-        if (productData.Category != allowedCategory)
+        if (productData.Category != AllowedCategory)
         {
             Debug.LogWarning(
-                $"Cannot restore {productData.ProductName} into ShelfSlot '{SlotID}' because the facing only accepts {allowedCategory}.",
+                $"Cannot restore {productData.ProductName} into ShelfSlot '{SlotID}' because the facing only accepts {AllowedCategory}.",
                 this
             );
 
@@ -644,11 +665,11 @@ public class ShelfSlot :
         if (!IsAssigned)
         {
             ProductData candidate =
-                basket.GetFirstProductData(allowedCategory);
+                basket.GetFirstProductData(AllowedCategory);
 
             if (candidate == null)
             {
-                return $"Basket has no {allowedCategory} product";
+                return $"Basket has no {AllowedCategory} product";
             }
 
             return
@@ -715,7 +736,7 @@ public class ShelfSlot :
     {
         if (!IsAssigned)
         {
-            return $"Empty {allowedCategory} facing\nStock a matching product to assign";
+            return $"Empty {AllowedCategory} facing\nStock a matching product to assign";
         }
 
         return $"{assignedProduct.ProductName}  •  0 / {Capacity}";
@@ -730,7 +751,7 @@ public class ShelfSlot :
 
         ProductData targetProduct =
             assignedProduct ??
-            basket.GetFirstProductData(allowedCategory);
+            basket.GetFirstProductData(AllowedCategory);
 
         if (targetProduct == null ||
             !CanAcceptProduct(targetProduct) ||
@@ -918,9 +939,9 @@ public class ShelfSlot :
             return "This item cannot be stocked here";
         }
 
-        if (product.Category != allowedCategory)
+        if (product.Category != AllowedCategory)
         {
-            return $"This shelf is for {allowedCategory}";
+            return $"This shelf is for {AllowedCategory}";
         }
 
         if (assignedProduct != null && assignedProduct != product)

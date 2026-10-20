@@ -119,37 +119,6 @@ NavMeshSettings:
     debug:
       m_Flags: 0
   m_NavMeshData: {fileID: 0}
---- !u!1 &1929899
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 1929900}
-  m_Layer: 0
-  m_Name: CustomerPoint_Bakery
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!4 &1929900
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1929899}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -6.32, y: 0.033, z: 2.752}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 0}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &4946640
 GameObject:
   m_ObjectHideFlags: 0
@@ -532,6 +501,10 @@ PrefabInstance:
       value: slot_bakery_facing_01
       objectReference: {fileID: 0}
     - target: {fileID: 1060167468770235413, guid: b2ab179c58af96d479747fad85aed525, type: 3}
+      propertyPath: legacySlotID
+      value: slot_bakery_facing_01
+      objectReference: {fileID: 0}
+    - target: {fileID: 1060167468770235413, guid: b2ab179c58af96d479747fad85aed525, type: 3}
       propertyPath: acceptedProduct
       value: 
       objectReference: {fileID: 11400000, guid: d8357952f61bf6240ab4f59d74b9d367, type: 2}
@@ -551,6 +524,10 @@ PrefabInstance:
       propertyPath: customerStandPoint
       value: 
       objectReference: {fileID: 75906507}
+    - target: {fileID: 1060167468770235413, guid: b2ab179c58af96d479747fad85aed525, type: 3}
+      propertyPath: fallbackAllowedCategory
+      value: 2
+      objectReference: {fileID: 0}
     - target: {fileID: 1090177418780046489, guid: b2ab179c58af96d479747fad85aed525, type: 3}
       propertyPath: m_LocalPosition.x
       value: -6.16
@@ -596,6 +573,10 @@ PrefabInstance:
       value: slot_bakery_facing_08
       objectReference: {fileID: 0}
     - target: {fileID: 1279697291076289229, guid: b2ab179c58af96d479747fad85aed525, type: 3}
+      propertyPath: legacySlotID
+      value: slot_bakery_facing_08
+      objectReference: {fileID: 0}
+    - target: {fileID: 1279697291076289229, guid: b2ab179c58af96d479747fad85aed525, type: 3}
       propertyPath: allowedCategory
       value: 2
       objectReference: {fileID: 0}
@@ -603,6 +584,10 @@ PrefabInstance:
       propertyPath: customerStandPoint
       value: 
       objectReference: {fileID: 75906507}
+    - target: {fileID: 1279697291076289229, guid: b2ab179c58af96d479747fad85aed525, type: 3}
+      propertyPath: fallbackAllowedCategory
+      value: 2
+      objectReference: {fileID: 0}
     - target: {fileID: 1352348362251811348, guid: b2ab179c58af96d479747fad85aed525, type: 3}
       propertyPath: m_Name
       value: Slot_01
@@ -616,6 +601,10 @@ PrefabInstance:
       value: slot_bakery_facing_07
       objectReference: {fileID: 0}
     - target: {fileID: 1910520044676378309, guid: b2ab179c58af96d479747fad85aed525, type: 3}
+      propertyPath: legacySlotID
+      value: slot_bakery_facing_07
+      objectReference: {fileID: 0}
+    - target: {fileID: 1910520044676378309, guid: b2ab179c58af96d479747fad85aed525, type: 3}
       propertyPath: allowedCategory
       value: 2
       objectReference: {fileID: 0}
@@ -623,8 +612,16 @@ PrefabInstance:
       propertyPath: customerStandPoint
       value: 
       objectReference: {fileID: 75906507}
+    - target: {fileID: 1910520044676378309, guid: b2ab179c58af96d479747fad85aed525, type: 3}
+      propertyPath: fallbackAllowedCategory
+      value: 2
+      objectReference: {fileID: 0}
     - target: {fileID: 2521552372185246625, guid: b2ab179c58af96d479747fad85aed525, type: 3}
       propertyPath: slotID
+      value: slot_bakery_facing_05
+      objectReference: {fileID: 0}
+    - target: {fileID: 2521552372185246625, guid: b2ab179c58af96d479747fad85aed525, type: 3}
+      propertyPath: legacySlotID
       value: slot_bakery_facing_05
       objectReference: {fileID: 0}
     - target: {fileID: 2521552372185246625, guid: b2ab179c58af96d479747fad85aed525, type: 3}
@@ -635,12 +632,20 @@ PrefabInstance:
       propertyPath: customerStandPoint
       value: 
       objectReference: {fileID: 75906507}
+    - target: {fileID: 2521552372185246625, guid: b2ab179c58af96d479747fad85aed525, type: 3}
+      propertyPath: fallbackAllowedCategory
+      value: 2
+      objectReference: {fileID: 0}
     - target: {fileID: 2708226078323526347, guid: b2ab179c58af96d479747fad85aed525, type: 3}
       propertyPath: m_LocalPosition.z
       value: -0.3
       objectReference: {fileID: 0}
     - target: {fileID: 3046213625299195560, guid: b2ab179c58af96d479747fad85aed525, type: 3}
       propertyPath: slotID
+      value: slot_bakery_facing_04
+      objectReference: {fileID: 0}
+    - target: {fileID: 3046213625299195560, guid: b2ab179c58af96d479747fad85aed525, type: 3}
+      propertyPath: legacySlotID
       value: slot_bakery_facing_04
       objectReference: {fileID: 0}
     - target: {fileID: 3046213625299195560, guid: b2ab179c58af96d479747fad85aed525, type: 3}
@@ -659,8 +664,16 @@ PrefabInstance:
       propertyPath: customerStandPoint
       value: 
       objectReference: {fileID: 75906507}
+    - target: {fileID: 3046213625299195560, guid: b2ab179c58af96d479747fad85aed525, type: 3}
+      propertyPath: fallbackAllowedCategory
+      value: 2
+      objectReference: {fileID: 0}
     - target: {fileID: 3066893431586318043, guid: b2ab179c58af96d479747fad85aed525, type: 3}
       propertyPath: slotID
+      value: slot_bakery_facing_06
+      objectReference: {fileID: 0}
+    - target: {fileID: 3066893431586318043, guid: b2ab179c58af96d479747fad85aed525, type: 3}
+      propertyPath: legacySlotID
       value: slot_bakery_facing_06
       objectReference: {fileID: 0}
     - target: {fileID: 3066893431586318043, guid: b2ab179c58af96d479747fad85aed525, type: 3}
@@ -671,6 +684,10 @@ PrefabInstance:
       propertyPath: customerStandPoint
       value: 
       objectReference: {fileID: 75906507}
+    - target: {fileID: 3066893431586318043, guid: b2ab179c58af96d479747fad85aed525, type: 3}
+      propertyPath: fallbackAllowedCategory
+      value: 2
+      objectReference: {fileID: 0}
     - target: {fileID: 3457331461783563248, guid: b2ab179c58af96d479747fad85aed525, type: 3}
       propertyPath: m_Name
       value: Slot_03
@@ -685,6 +702,10 @@ PrefabInstance:
       objectReference: {fileID: 2100000, guid: 5e45ddf10181a5144b03d9b843b86d7e, type: 2}
     - target: {fileID: 3837043004271950274, guid: b2ab179c58af96d479747fad85aed525, type: 3}
       propertyPath: slotID
+      value: slot_bakery_facing_03
+      objectReference: {fileID: 0}
+    - target: {fileID: 3837043004271950274, guid: b2ab179c58af96d479747fad85aed525, type: 3}
+      propertyPath: legacySlotID
       value: slot_bakery_facing_03
       objectReference: {fileID: 0}
     - target: {fileID: 3837043004271950274, guid: b2ab179c58af96d479747fad85aed525, type: 3}
@@ -703,6 +724,10 @@ PrefabInstance:
       propertyPath: customerStandPoint
       value: 
       objectReference: {fileID: 75906507}
+    - target: {fileID: 3837043004271950274, guid: b2ab179c58af96d479747fad85aed525, type: 3}
+      propertyPath: fallbackAllowedCategory
+      value: 2
+      objectReference: {fileID: 0}
     - target: {fileID: 4661067243534627180, guid: b2ab179c58af96d479747fad85aed525, type: 3}
       propertyPath: m_Name
       value: Slot_02
@@ -713,6 +738,10 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 5491406873839152957, guid: b2ab179c58af96d479747fad85aed525, type: 3}
       propertyPath: slotID
+      value: slot_bakery_facing_02
+      objectReference: {fileID: 0}
+    - target: {fileID: 5491406873839152957, guid: b2ab179c58af96d479747fad85aed525, type: 3}
+      propertyPath: legacySlotID
       value: slot_bakery_facing_02
       objectReference: {fileID: 0}
     - target: {fileID: 5491406873839152957, guid: b2ab179c58af96d479747fad85aed525, type: 3}
@@ -731,6 +760,10 @@ PrefabInstance:
       propertyPath: customerStandPoint
       value: 
       objectReference: {fileID: 75906507}
+    - target: {fileID: 5491406873839152957, guid: b2ab179c58af96d479747fad85aed525, type: 3}
+      propertyPath: fallbackAllowedCategory
+      value: 2
+      objectReference: {fileID: 0}
     - target: {fileID: 5825871848133253286, guid: b2ab179c58af96d479747fad85aed525, type: 3}
       propertyPath: m_LocalPosition.y
       value: 1.044
@@ -802,6 +835,14 @@ PrefabInstance:
     - target: {fileID: 8549030928161687386, guid: b2ab179c58af96d479747fad85aed525, type: 3}
       propertyPath: m_Name
       value: Slot_04
+      objectReference: {fileID: 0}
+    - target: {fileID: 8678131342160231080, guid: b2ab179c58af96d479747fad85aed525, type: 3}
+      propertyPath: allowedCategory
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 8930667969451341194, guid: b2ab179c58af96d479747fad85aed525, type: 3}
+      propertyPath: persistentID
+      value: 5ee56f1fb311441dbe836fa143444ea3
       objectReference: {fileID: 0}
     - target: {fileID: 8948756267523962495, guid: b2ab179c58af96d479747fad85aed525, type: 3}
       propertyPath: m_LocalPosition.y
@@ -4236,6 +4277,10 @@ PrefabInstance:
       value: slot_dairy_facing_01
       objectReference: {fileID: 0}
     - target: {fileID: 1060167468770235413, guid: b2ab179c58af96d479747fad85aed525, type: 3}
+      propertyPath: legacySlotID
+      value: slot_dairy_facing_01
+      objectReference: {fileID: 0}
+    - target: {fileID: 1060167468770235413, guid: b2ab179c58af96d479747fad85aed525, type: 3}
       propertyPath: acceptedProduct
       value: 
       objectReference: {fileID: 11400000, guid: f032e810ae9f3c343abd0ecbb972b50b, type: 2}
@@ -4255,6 +4300,10 @@ PrefabInstance:
       propertyPath: customerStandPoint
       value: 
       objectReference: {fileID: 504022907}
+    - target: {fileID: 1060167468770235413, guid: b2ab179c58af96d479747fad85aed525, type: 3}
+      propertyPath: fallbackAllowedCategory
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 1090177418780046489, guid: b2ab179c58af96d479747fad85aed525, type: 3}
       propertyPath: m_LocalPosition.x
       value: -3
@@ -4300,6 +4349,10 @@ PrefabInstance:
       value: slot_dairy_facing_08
       objectReference: {fileID: 0}
     - target: {fileID: 1279697291076289229, guid: b2ab179c58af96d479747fad85aed525, type: 3}
+      propertyPath: legacySlotID
+      value: slot_dairy_facing_08
+      objectReference: {fileID: 0}
+    - target: {fileID: 1279697291076289229, guid: b2ab179c58af96d479747fad85aed525, type: 3}
       propertyPath: allowedCategory
       value: 1
       objectReference: {fileID: 0}
@@ -4307,6 +4360,10 @@ PrefabInstance:
       propertyPath: customerStandPoint
       value: 
       objectReference: {fileID: 504022907}
+    - target: {fileID: 1279697291076289229, guid: b2ab179c58af96d479747fad85aed525, type: 3}
+      propertyPath: fallbackAllowedCategory
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 1352348362251811348, guid: b2ab179c58af96d479747fad85aed525, type: 3}
       propertyPath: m_Name
       value: Slot_01
@@ -4320,6 +4377,10 @@ PrefabInstance:
       value: slot_dairy_facing_07
       objectReference: {fileID: 0}
     - target: {fileID: 1910520044676378309, guid: b2ab179c58af96d479747fad85aed525, type: 3}
+      propertyPath: legacySlotID
+      value: slot_dairy_facing_07
+      objectReference: {fileID: 0}
+    - target: {fileID: 1910520044676378309, guid: b2ab179c58af96d479747fad85aed525, type: 3}
       propertyPath: allowedCategory
       value: 1
       objectReference: {fileID: 0}
@@ -4327,8 +4388,16 @@ PrefabInstance:
       propertyPath: customerStandPoint
       value: 
       objectReference: {fileID: 504022907}
+    - target: {fileID: 1910520044676378309, guid: b2ab179c58af96d479747fad85aed525, type: 3}
+      propertyPath: fallbackAllowedCategory
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 2521552372185246625, guid: b2ab179c58af96d479747fad85aed525, type: 3}
       propertyPath: slotID
+      value: slot_dairy_facing_05
+      objectReference: {fileID: 0}
+    - target: {fileID: 2521552372185246625, guid: b2ab179c58af96d479747fad85aed525, type: 3}
+      propertyPath: legacySlotID
       value: slot_dairy_facing_05
       objectReference: {fileID: 0}
     - target: {fileID: 2521552372185246625, guid: b2ab179c58af96d479747fad85aed525, type: 3}
@@ -4339,12 +4408,20 @@ PrefabInstance:
       propertyPath: customerStandPoint
       value: 
       objectReference: {fileID: 504022907}
+    - target: {fileID: 2521552372185246625, guid: b2ab179c58af96d479747fad85aed525, type: 3}
+      propertyPath: fallbackAllowedCategory
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 2708226078323526347, guid: b2ab179c58af96d479747fad85aed525, type: 3}
       propertyPath: m_LocalPosition.z
       value: -0.3
       objectReference: {fileID: 0}
     - target: {fileID: 3046213625299195560, guid: b2ab179c58af96d479747fad85aed525, type: 3}
       propertyPath: slotID
+      value: slot_dairy_facing_04
+      objectReference: {fileID: 0}
+    - target: {fileID: 3046213625299195560, guid: b2ab179c58af96d479747fad85aed525, type: 3}
+      propertyPath: legacySlotID
       value: slot_dairy_facing_04
       objectReference: {fileID: 0}
     - target: {fileID: 3046213625299195560, guid: b2ab179c58af96d479747fad85aed525, type: 3}
@@ -4363,8 +4440,16 @@ PrefabInstance:
       propertyPath: customerStandPoint
       value: 
       objectReference: {fileID: 504022907}
+    - target: {fileID: 3046213625299195560, guid: b2ab179c58af96d479747fad85aed525, type: 3}
+      propertyPath: fallbackAllowedCategory
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 3066893431586318043, guid: b2ab179c58af96d479747fad85aed525, type: 3}
       propertyPath: slotID
+      value: slot_dairy_facing_06
+      objectReference: {fileID: 0}
+    - target: {fileID: 3066893431586318043, guid: b2ab179c58af96d479747fad85aed525, type: 3}
+      propertyPath: legacySlotID
       value: slot_dairy_facing_06
       objectReference: {fileID: 0}
     - target: {fileID: 3066893431586318043, guid: b2ab179c58af96d479747fad85aed525, type: 3}
@@ -4375,6 +4460,10 @@ PrefabInstance:
       propertyPath: customerStandPoint
       value: 
       objectReference: {fileID: 504022907}
+    - target: {fileID: 3066893431586318043, guid: b2ab179c58af96d479747fad85aed525, type: 3}
+      propertyPath: fallbackAllowedCategory
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 3457331461783563248, guid: b2ab179c58af96d479747fad85aed525, type: 3}
       propertyPath: m_Name
       value: Slot_03
@@ -4389,6 +4478,10 @@ PrefabInstance:
       objectReference: {fileID: 2100000, guid: 5e45ddf10181a5144b03d9b843b86d7e, type: 2}
     - target: {fileID: 3837043004271950274, guid: b2ab179c58af96d479747fad85aed525, type: 3}
       propertyPath: slotID
+      value: slot_dairy_facing_03
+      objectReference: {fileID: 0}
+    - target: {fileID: 3837043004271950274, guid: b2ab179c58af96d479747fad85aed525, type: 3}
+      propertyPath: legacySlotID
       value: slot_dairy_facing_03
       objectReference: {fileID: 0}
     - target: {fileID: 3837043004271950274, guid: b2ab179c58af96d479747fad85aed525, type: 3}
@@ -4407,6 +4500,10 @@ PrefabInstance:
       propertyPath: customerStandPoint
       value: 
       objectReference: {fileID: 504022907}
+    - target: {fileID: 3837043004271950274, guid: b2ab179c58af96d479747fad85aed525, type: 3}
+      propertyPath: fallbackAllowedCategory
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 4661067243534627180, guid: b2ab179c58af96d479747fad85aed525, type: 3}
       propertyPath: m_Name
       value: Slot_02
@@ -4417,6 +4514,10 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 5491406873839152957, guid: b2ab179c58af96d479747fad85aed525, type: 3}
       propertyPath: slotID
+      value: slot_dairy_facing_02
+      objectReference: {fileID: 0}
+    - target: {fileID: 5491406873839152957, guid: b2ab179c58af96d479747fad85aed525, type: 3}
+      propertyPath: legacySlotID
       value: slot_dairy_facing_02
       objectReference: {fileID: 0}
     - target: {fileID: 5491406873839152957, guid: b2ab179c58af96d479747fad85aed525, type: 3}
@@ -4435,6 +4536,10 @@ PrefabInstance:
       propertyPath: customerStandPoint
       value: 
       objectReference: {fileID: 504022907}
+    - target: {fileID: 5491406873839152957, guid: b2ab179c58af96d479747fad85aed525, type: 3}
+      propertyPath: fallbackAllowedCategory
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 5825871848133253286, guid: b2ab179c58af96d479747fad85aed525, type: 3}
       propertyPath: m_LocalPosition.y
       value: 1.044
@@ -4506,6 +4611,14 @@ PrefabInstance:
     - target: {fileID: 8549030928161687386, guid: b2ab179c58af96d479747fad85aed525, type: 3}
       propertyPath: m_Name
       value: Slot_04
+      objectReference: {fileID: 0}
+    - target: {fileID: 8678131342160231080, guid: b2ab179c58af96d479747fad85aed525, type: 3}
+      propertyPath: allowedCategory
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 8930667969451341194, guid: b2ab179c58af96d479747fad85aed525, type: 3}
+      propertyPath: persistentID
+      value: 04a7290d9e214a6e8463433175f1a326
       objectReference: {fileID: 0}
     - target: {fileID: 8948756267523962495, guid: b2ab179c58af96d479747fad85aed525, type: 3}
       propertyPath: m_LocalPosition.y
@@ -9923,37 +10036,6 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1160617225}
   m_CullTransparentMesh: 1
---- !u!1 &1166928112
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 1166928113}
-  m_Layer: 0
-  m_Name: CustomerPoint_Milk
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!4 &1166928113
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1166928112}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -3.144, y: 0.033, z: 2.752}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 0}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1171053827
 GameObject:
   m_ObjectHideFlags: 0
@@ -12707,37 +12789,6 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1590295524}
   m_CullTransparentMesh: 1
---- !u!1 &1634093709
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 1634093710}
-  m_Layer: 0
-  m_Name: CustomerPoint_Ceeal
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!4 &1634093710
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1634093709}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -0.046, y: 0.033, z: 2.752}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 0}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1641586006
 GameObject:
   m_ObjectHideFlags: 0
@@ -14908,6 +14959,10 @@ PrefabInstance:
       value: slot_cereal_facing_01
       objectReference: {fileID: 0}
     - target: {fileID: 1060167468770235413, guid: b2ab179c58af96d479747fad85aed525, type: 3}
+      propertyPath: legacySlotID
+      value: slot_cereal_facing_01
+      objectReference: {fileID: 0}
+    - target: {fileID: 1060167468770235413, guid: b2ab179c58af96d479747fad85aed525, type: 3}
       propertyPath: acceptedProduct
       value: 
       objectReference: {fileID: 11400000, guid: e2d539f48d3851d43aff9653666653a3, type: 2}
@@ -14968,6 +15023,10 @@ PrefabInstance:
       value: slot_cereal_facing_08
       objectReference: {fileID: 0}
     - target: {fileID: 1279697291076289229, guid: b2ab179c58af96d479747fad85aed525, type: 3}
+      propertyPath: legacySlotID
+      value: slot_cereal_facing_08
+      objectReference: {fileID: 0}
+    - target: {fileID: 1279697291076289229, guid: b2ab179c58af96d479747fad85aed525, type: 3}
       propertyPath: customerStandPoint
       value: 
       objectReference: {fileID: 579178314505797684}
@@ -14984,6 +15043,10 @@ PrefabInstance:
       value: slot_cereal_facing_07
       objectReference: {fileID: 0}
     - target: {fileID: 1910520044676378309, guid: b2ab179c58af96d479747fad85aed525, type: 3}
+      propertyPath: legacySlotID
+      value: slot_cereal_facing_07
+      objectReference: {fileID: 0}
+    - target: {fileID: 1910520044676378309, guid: b2ab179c58af96d479747fad85aed525, type: 3}
       propertyPath: customerStandPoint
       value: 
       objectReference: {fileID: 579178314505797684}
@@ -14992,11 +15055,19 @@ PrefabInstance:
       value: slot_cereal_facing_05
       objectReference: {fileID: 0}
     - target: {fileID: 2521552372185246625, guid: b2ab179c58af96d479747fad85aed525, type: 3}
+      propertyPath: legacySlotID
+      value: slot_cereal_facing_05
+      objectReference: {fileID: 0}
+    - target: {fileID: 2521552372185246625, guid: b2ab179c58af96d479747fad85aed525, type: 3}
       propertyPath: customerStandPoint
       value: 
       objectReference: {fileID: 579178314505797684}
     - target: {fileID: 3046213625299195560, guid: b2ab179c58af96d479747fad85aed525, type: 3}
       propertyPath: slotID
+      value: slot_cereal_facing_04
+      objectReference: {fileID: 0}
+    - target: {fileID: 3046213625299195560, guid: b2ab179c58af96d479747fad85aed525, type: 3}
+      propertyPath: legacySlotID
       value: slot_cereal_facing_04
       objectReference: {fileID: 0}
     - target: {fileID: 3046213625299195560, guid: b2ab179c58af96d479747fad85aed525, type: 3}
@@ -15013,6 +15084,10 @@ PrefabInstance:
       objectReference: {fileID: 579178314505797684}
     - target: {fileID: 3066893431586318043, guid: b2ab179c58af96d479747fad85aed525, type: 3}
       propertyPath: slotID
+      value: slot_cereal_facing_06
+      objectReference: {fileID: 0}
+    - target: {fileID: 3066893431586318043, guid: b2ab179c58af96d479747fad85aed525, type: 3}
+      propertyPath: legacySlotID
       value: slot_cereal_facing_06
       objectReference: {fileID: 0}
     - target: {fileID: 3066893431586318043, guid: b2ab179c58af96d479747fad85aed525, type: 3}
@@ -15033,6 +15108,10 @@ PrefabInstance:
       objectReference: {fileID: 2100000, guid: 5e45ddf10181a5144b03d9b843b86d7e, type: 2}
     - target: {fileID: 3837043004271950274, guid: b2ab179c58af96d479747fad85aed525, type: 3}
       propertyPath: slotID
+      value: slot_cereal_facing_03
+      objectReference: {fileID: 0}
+    - target: {fileID: 3837043004271950274, guid: b2ab179c58af96d479747fad85aed525, type: 3}
+      propertyPath: legacySlotID
       value: slot_cereal_facing_03
       objectReference: {fileID: 0}
     - target: {fileID: 3837043004271950274, guid: b2ab179c58af96d479747fad85aed525, type: 3}
@@ -15057,6 +15136,10 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 5491406873839152957, guid: b2ab179c58af96d479747fad85aed525, type: 3}
       propertyPath: slotID
+      value: slot_cereal_facing_02
+      objectReference: {fileID: 0}
+    - target: {fileID: 5491406873839152957, guid: b2ab179c58af96d479747fad85aed525, type: 3}
+      propertyPath: legacySlotID
       value: slot_cereal_facing_02
       objectReference: {fileID: 0}
     - target: {fileID: 5491406873839152957, guid: b2ab179c58af96d479747fad85aed525, type: 3}
@@ -15123,6 +15206,10 @@ PrefabInstance:
       propertyPath: m_Name
       value: Slot_04
       objectReference: {fileID: 0}
+    - target: {fileID: 8930667969451341194, guid: b2ab179c58af96d479747fad85aed525, type: 3}
+      propertyPath: persistentID
+      value: 7c1d9f7dca1a49a286e87323238c7e15
+      objectReference: {fileID: 0}
     - target: {fileID: 8948756267523962495, guid: b2ab179c58af96d479747fad85aed525, type: 3}
       propertyPath: m_LocalPosition.y
       value: 1.044
@@ -15167,9 +15254,6 @@ SceneRoots:
   - {fileID: 43201576}
   - {fileID: 766562197}
   - {fileID: 436418471}
-  - {fileID: 1634093710}
-  - {fileID: 1166928113}
-  - {fileID: 1929900}
   - {fileID: 2017232665}
   - {fileID: 771365055}
   - {fileID: 450375789}
