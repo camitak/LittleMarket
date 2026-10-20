@@ -17,11 +17,14 @@ public class StoreClock : MonoBehaviour
     [Range(0, 59)] [SerializeField] private int openingMinute = 0;
 
     [Range(0, 23)] [SerializeField] private int closingHour = 21;
-
     [Range(0, 59)] [SerializeField] private int closingMinute = 0;
 
-    [Range(0, 23)] [SerializeField] private int dayEndHour = 22;
+    [Header("Supplier Schedule")]
+    [Range(0, 23)] [SerializeField] private int supplierCutoffHour = 20;
+    [Range(0, 59)] [SerializeField] private int supplierCutoffMinute = 0;
 
+    [Header("Day End")]
+    [Range(0, 23)] [SerializeField] private int dayEndHour = 22;
     [Range(0, 59)] [SerializeField] private int dayEndMinute = 0;
 
     [Header("Time Speed")] [Min(0.1f)] [SerializeField]
@@ -98,6 +101,12 @@ public class StoreClock : MonoBehaviour
     public int CurrentDay => currentDay;
 
     public float CurrentMinutes => currentMinutes;
+    
+    public bool IsPastSupplierCutoff =>
+        currentMinutes >= SupplierCutoffTimeMinutes;
+
+    public string SupplierCutoffTimeText =>
+        FormatTime(SupplierCutoffTimeMinutes);
 
     private float OpeningTimeMinutes =>
         openingHour * 60f
@@ -110,6 +119,9 @@ public class StoreClock : MonoBehaviour
     private float DayEndTimeMinutes =>
         dayEndHour * 60f
         + dayEndMinute;
+    
+    private float SupplierCutoffTimeMinutes =>
+        supplierCutoffHour * 60f + supplierCutoffMinute;
 
     private void Awake()
     {

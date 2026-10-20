@@ -22,13 +22,6 @@ public class SupplierDeliveryQueue : MonoBehaviour
         }
     }
 
-    [Header("Supplier Schedule")]
-    [Range(0, 23)]
-    [SerializeField] private int sameDayCutoffHour = 20;
-
-    [Range(0, 59)]
-    [SerializeField] private int sameDayCutoffMinute = 0;
-
     [Header("References")]
     [SerializeField] private StoreClock storeClock;
     [SerializeField] private StoreProgression storeProgression;
@@ -40,7 +33,7 @@ public class SupplierDeliveryQueue : MonoBehaviour
 
     public bool IsPastCutoff =>
         storeClock != null &&
-        storeClock.CurrentMinutes >= CutoffMinutes;
+        storeClock.IsPastSupplierCutoff;
 
     public int PendingOrderCount => pendingOrders.Count;
 
@@ -57,9 +50,6 @@ public class SupplierDeliveryQueue : MonoBehaviour
     public bool CanQueueTomorrowOrder =>
         QueueCapacity > 0 &&
         pendingOrders.Count < QueueCapacity;
-
-    private float CutoffMinutes =>
-        sameDayCutoffHour * 60f + sameDayCutoffMinute;
 
     private void Awake()
     {
@@ -121,7 +111,7 @@ public class SupplierDeliveryQueue : MonoBehaviour
                 $"Tomorrow's delivery {PendingOrderCount} / {QueueCapacity}";
         }
 
-        return $"Same-day delivery until {FormatCutoffTime()}";
+        return $"Same-day delivery until {storeClock.SupplierCutoffTimeText}";
     }
 
     public List<PendingDeliverySaveData> CreateSaveData()
@@ -272,10 +262,5 @@ public class SupplierDeliveryQueue : MonoBehaviour
         }
 
         return count;
-    }
-
-    private string FormatCutoffTime()
-    {
-        return $"{sameDayCutoffHour:00}:{sameDayCutoffMinute:00}";
     }
 }
