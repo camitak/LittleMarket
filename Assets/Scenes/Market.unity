@@ -8435,6 +8435,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::OrderingTerminal
   orderingUI: {fileID: 766562199}
+  storeClock: {fileID: 1117834532}
+  customerFlow: {fileID: 1117834531}
 --- !u!1 &1041879643
 GameObject:
   m_ObjectHideFlags: 0

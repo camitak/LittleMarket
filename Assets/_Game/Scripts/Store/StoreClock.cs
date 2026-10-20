@@ -85,14 +85,19 @@ public class StoreClock : MonoBehaviour
         }
     }
 
-    public bool HasDayEnded =>
-        hasDayEnded;
+    public bool HasDayEnded => hasDayEnded;
 
-    public int CurrentDay =>
-        currentDay;
+    public bool IsPastClosingTime =>
+        !hasDayEnded && currentMinutes >= ClosingTimeMinutes;
 
-    public float CurrentMinutes =>
-        currentMinutes;
+    public bool IsClosingPeriod =>
+        !hasDayEnded &&
+        currentMinutes >= ClosingTimeMinutes &&
+        currentMinutes < DayEndTimeMinutes;
+
+    public int CurrentDay => currentDay;
+
+    public float CurrentMinutes => currentMinutes;
 
     private float OpeningTimeMinutes =>
         openingHour * 60f
@@ -135,6 +140,17 @@ public class StoreClock : MonoBehaviour
                 true;
         }
 
+        UpdateClockUI();
+    }
+    
+    public void EndDayNow()
+    {
+        if (hasDayEnded)
+        {
+            return;
+        }
+
+        hasDayEnded = true;
         UpdateClockUI();
     }
 
