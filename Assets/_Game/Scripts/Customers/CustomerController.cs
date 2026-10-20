@@ -6,9 +6,9 @@ using UnityEngine.AI;
 [RequireComponent(typeof(NavMeshAgent))]
 public class CustomerController : MonoBehaviour
 {
-    [Header("References")] [SerializeField]
-    private Transform[] carrySlots;
-
+    [Header("References")]
+    [SerializeField] private Transform[] carrySlots;
+    [SerializeField] private Transform checkoutBagCarryPoint;
     [SerializeField] private Transform visual;
 
     private NavMeshAgent agent;
@@ -465,47 +465,69 @@ public class CustomerController : MonoBehaviour
 
     public bool CompleteCheckout()
     {
-        if (!IsReadyForCheckout()) return false;
+        return CompleteCheckout(null);
+    }
 
-        if (carriedItems.Count == 0) return false;
+    public bool CompleteCheckout(ShoppingBag shoppingBag)
+    {
+        if (!IsReadyForCheckout())
+        {
+            return false;
+        }
+
+        if (carriedItems.Count == 0)
+        {
+            return false;
+        }
 
         if (checkoutQueue != null)
         {
-            var previousQueue =
-                checkoutQueue;
-
+            CheckoutQueue previousQueue = checkoutQueue;
             checkoutQueue = null;
 
-            previousQueue.LeaveQueue(
-                this
-            );
+            previousQueue.LeaveQueue(this);
         }
 
-        for (var i = 0;
-             i < carriedItems.Count;
-             i++)
+        for (int i = 0; i < carriedItems.Count; i++)
         {
-            var item =
-                carriedItems[i];
+            PickupItem item = carriedItems[i];
 
-            if (item == null) continue;
-
-            Destroy(
-                item.gameObject
-            );
+            if (item != null)
+            {
+                Destroy(item.gameObject);
+            }
         }
 
         carriedItems.Clear();
-
         assignedQueuePoint = null;
-
         completedPurchase = true;
 
-        PlayHappyReaction();
+        if (shoppingBag != null)
+        {
+            shoppingBag.AttachToCustomer(GetCheckoutBagCarryPoint());
+        }
 
+        PlayHappyReaction();
         BeginLeaving();
 
         return true;
+    }
+    
+    private Transform GetCheckoutBagCarryPoint()
+    {
+        if (checkoutBagCarryPoint != null)
+        {
+            return checkoutBagCarryPoint;
+        }
+
+        if (carrySlots != null &&
+            carrySlots.Length > 0 &&
+            carrySlots[0] != null)
+        {
+            return carrySlots[0];
+        }
+
+        return transform;
     }
 
     private void BeginLeaving()

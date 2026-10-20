@@ -73,7 +73,39 @@ MonoBehaviour:
   - {fileID: 4973599823610241728}
   - {fileID: 1489653522273927299}
   - {fileID: 4722431156524707507}
+  checkoutBagCarryPoint: {fileID: 1367684792306715245}
   visual: {fileID: 6794779590699774044}
+--- !u!1 &3331872740172664456
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1367684792306715245}
+  m_Layer: 0
+  m_Name: CheckoutBagCarryPoint
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1367684792306715245
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3331872740172664456}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 1, z: 0, w: 0}
+  m_LocalPosition: {x: -0.3, y: 0.52, z: 0.42}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 3777568232606516069}
+  m_LocalEulerAnglesHint: {x: 0, y: 180, z: 0}
 --- !u!1 &4229995962522709613
 GameObject:
   m_ObjectHideFlags: 0
@@ -289,5 +321,6 @@ Transform:
   - {fileID: 4973599823610241728}
   - {fileID: 1489653522273927299}
   - {fileID: 4722431156524707507}
+  - {fileID: 1367684792306715245}
   m_Father: {fileID: 4252622438262801614}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
