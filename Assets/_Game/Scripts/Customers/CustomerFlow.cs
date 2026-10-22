@@ -3,46 +3,38 @@ using UnityEngine;
 
 public class CustomerFlow : MonoBehaviour
 {
-    [Header("Customer")] [SerializeField] private CustomerController customerPrefab;
+    [Header("Customer")] 
+    [SerializeField] private CustomerController customerPrefab;
 
-    [Header("Spawn Timing")] [Min(0f)] [SerializeField]
-    private float initialSpawnDelay = 3f;
-
+    [Header("Spawn Timing")] 
+    [Min(0f)] [SerializeField] private float initialSpawnDelay = 3f;
     [Min(0.5f)] [SerializeField] private float minSpawnInterval = 6f;
-
     [Min(0.5f)] [SerializeField] private float maxSpawnInterval = 10f;
 
-    [Header("Store Capacity")] [Min(1)] [SerializeField]
-    private int maxCustomersInStore = 3;
+    [Header("Store Capacity")] 
+    [Min(1)] [SerializeField] private int maxCustomersInStore = 3;
 
-    [Header("Shopping List")] [Range(1, 3)] [SerializeField]
-    private int minItemsPerCustomer = 1;
-
+    [Header("Shopping List")] 
+    [Range(1, 3)] [SerializeField] private int minItemsPerCustomer = 1;
     [Range(1, 3)] [SerializeField] private int maxItemsPerCustomer = 2;
 
-    [Header("Store References")] [SerializeField]
-    private StoreClock storeClock;
-
+    [Header("Store References")] 
+    [SerializeField] private StoreClock storeClock;
     [SerializeField] private DailyStats dailyStats;
-
     [SerializeField] private StoreReputation storeReputation;
-
     [SerializeField] private StoreProgression storeProgression;
-
     [SerializeField] private ShelfRegistry shelfRegistry;
-
     [SerializeField] private CheckoutQueue checkoutQueue;
-
     [SerializeField] private Transform customerSpawnPoint;
-
+    [SerializeField] private Transform customerEntranceInsidePoint;
+    [SerializeField] private Transform customerExitInsidePoint;
     [SerializeField] private Transform customerExitPoint;
 
     private List<CustomerController> activeCustomers = new();
 
     private float spawnTimer;
 
-    public int ActiveCustomerCount =>
-        activeCustomers.Count;
+    public int ActiveCustomerCount => activeCustomers.Count;
 
     private void Start()
     {
@@ -74,14 +66,12 @@ public class CustomerFlow : MonoBehaviour
     public void ResetForNewDay()
     {
         RemoveDestroyedCustomers();
-
         ResetSpawnTimerForNewDay();
     }
 
     private void SpawnCustomer()
     {
-        var shoppingList =
-            CreateShoppingList();
+        var shoppingList = CreateShoppingList();
 
         if (shoppingList == null) return;
 
@@ -98,6 +88,8 @@ public class CustomerFlow : MonoBehaviour
             shoppingList,
             shelfRegistry,
             checkoutQueue,
+            customerEntranceInsidePoint,
+            customerExitInsidePoint,
             customerExitPoint,
             dailyStats
         );
@@ -129,20 +121,15 @@ public class CustomerFlow : MonoBehaviour
                 maximumItems + 1
             );
 
-        var shoppingList =
-            new ProductData[itemCount];
+        var shoppingList = new ProductData[itemCount];
 
-        for (var i = 0;
-             i < shoppingList.Length;
-             i++)
+        for (var i = 0; i < shoppingList.Length; i++)
         {
-            var product =
-                GetRandomUnlockedProduct();
+            var product = GetRandomUnlockedProduct();
 
             if (product == null) return null;
 
-            shoppingList[i] =
-                product;
+            shoppingList[i] = product;
         }
 
         return shoppingList;
@@ -171,8 +158,7 @@ public class CustomerFlow : MonoBehaviour
 
     private void RemoveDestroyedCustomers()
     {
-        for (var i =
-                 activeCustomers.Count - 1;
+        for (var i = activeCustomers.Count - 1;
              i >= 0;
              i--)
         {
@@ -205,15 +191,11 @@ public class CustomerFlow : MonoBehaviour
                 maxSpawnInterval
             );
 
-        var reputationMultiplier =
-            storeReputation
-                .CustomerArrivalIntervalMultiplier;
+        var reputationMultiplier = storeReputation.CustomerArrivalIntervalMultiplier;
 
-        minimumInterval *=
-            reputationMultiplier;
+        minimumInterval *= reputationMultiplier;
 
-        maximumInterval *=
-            reputationMultiplier;
+        maximumInterval *= reputationMultiplier;
 
         spawnTimer =
             Random.Range(
@@ -234,15 +216,17 @@ public class CustomerFlow : MonoBehaviour
 
         if (storeProgression == null) return false;
 
-        if (storeProgression
-                .UnlockedProductCount <= 0)
-            return false;
+        if (storeProgression.UnlockedProductCount <= 0) return false;
 
         if (shelfRegistry == null) return false;
 
         if (checkoutQueue == null) return false;
 
         if (customerSpawnPoint == null) return false;
+
+        if (customerEntranceInsidePoint == null) return false;
+
+        if (customerExitInsidePoint == null) return false;
 
         if (customerExitPoint == null) return false;
 

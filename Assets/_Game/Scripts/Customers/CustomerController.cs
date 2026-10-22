@@ -19,6 +19,8 @@ public class CustomerController : MonoBehaviour
 
     private CheckoutQueue checkoutQueue;
 
+    private Transform entranceInsidePoint;
+    private Transform exitInsidePoint;
     private Transform exitPoint;
 
     private DailyStats dailyStats;
@@ -74,6 +76,10 @@ public class CustomerController : MonoBehaviour
 
         switch (currentState)
         {
+            case CustomerState.WalkingIntoStore:
+                UpdateWalkingIntoStore();
+                break;
+
             case CustomerState.SearchingForProduct:
                 break;
 
@@ -98,6 +104,10 @@ public class CustomerController : MonoBehaviour
                 UpdateCheckoutWaiting();
                 break;
 
+            case CustomerState.WalkingToExitApproach:
+                UpdateWalkingToExitApproach();
+                break;
+
             case CustomerState.WalkingToExit:
                 UpdateWalkingToExit();
                 break;
@@ -111,24 +121,24 @@ public class CustomerController : MonoBehaviour
         ProductData[] newShoppingList,
         ShelfRegistry newShelfRegistry,
         CheckoutQueue newCheckoutQueue,
+        Transform newEntranceInsidePoint,
+        Transform newExitInsidePoint,
         Transform newExitPoint,
         DailyStats newDailyStats
     )
     {
-        shoppingList =
-            newShoppingList;
+        shoppingList = newShoppingList;
 
-        shelfRegistry =
-            newShelfRegistry;
+        shelfRegistry = newShelfRegistry;
 
-        checkoutQueue =
-            newCheckoutQueue;
+        checkoutQueue = newCheckoutQueue;
+        
+        entranceInsidePoint = newEntranceInsidePoint;
+        exitInsidePoint = newExitInsidePoint;
 
-        exitPoint =
-            newExitPoint;
+        exitPoint = newExitPoint;
 
-        dailyStats =
-            newDailyStats;
+        dailyStats = newDailyStats;
 
         currentShoppingIndex = 0;
 
@@ -144,9 +154,38 @@ public class CustomerController : MonoBehaviour
 
         isConfigured = true;
 
-        SearchForNextProduct();
+        BeginEnteringStore();
     }
 
+    private void BeginEnteringStore()
+    {
+        if (entranceInsidePoint == null)
+        {
+            SearchForNextProduct();
+            return;
+        }
+
+        currentState = CustomerState.WalkingIntoStore;
+
+        bool destinationAccepted =
+            agent.SetDestination(entranceInsidePoint.position);
+
+        if (!destinationAccepted)
+        {
+            SearchForNextProduct();
+        }
+    }
+
+    private void UpdateWalkingIntoStore()
+    {
+        if (!HasReachedDestination())
+        {
+            return;
+        }
+
+        SearchForNextProduct();
+    }
+    
     private void SearchForNextProduct()
     {
         currentState =
@@ -532,8 +571,35 @@ public class CustomerController : MonoBehaviour
 
     private void BeginLeaving()
     {
-        currentState =
-            CustomerState.WalkingToExit;
+        if (exitInsidePoint != null)
+        {
+            currentState = CustomerState.WalkingToExitApproach;
+
+            bool destinationAccepted =
+                agent.SetDestination(exitInsidePoint.position);
+
+            if (destinationAccepted)
+            {
+                return;
+            }
+        }
+
+        BeginWalkingOutside();
+    }
+
+    private void UpdateWalkingToExitApproach()
+    {
+        if (!HasReachedDestination())
+        {
+            return;
+        }
+
+        BeginWalkingOutside();
+    }
+
+    private void BeginWalkingOutside()
+    {
+        currentState = CustomerState.WalkingToExit;
 
         if (exitPoint == null)
         {
@@ -541,12 +607,13 @@ public class CustomerController : MonoBehaviour
             return;
         }
 
-        var destinationAccepted =
-            agent.SetDestination(
-                exitPoint.position
-            );
+        bool destinationAccepted =
+            agent.SetDestination(exitPoint.position);
 
-        if (!destinationAccepted) FinishVisit();
+        if (!destinationAccepted)
+        {
+            FinishVisit();
+        }
     }
 
     private void UpdateWalkingToExit()
