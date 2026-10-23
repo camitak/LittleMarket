@@ -1,3 +1,4 @@
+
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.UI;
@@ -8,9 +9,11 @@ public class ManagerBookUI : MonoBehaviour
     [SerializeField] private GameObject managerBookOverlay;
     [SerializeField] private GameObject todayPage;
     [SerializeField] private GameObject stockPage;
+    [SerializeField] private GameObject cataloguePage;
 
     [SerializeField] private Button todayButton;
     [SerializeField] private Button stockButton;
+    [SerializeField] private Button catalogueButton;
     [SerializeField] private Button closeButton;
 
     [Header("Other UI")]
@@ -31,39 +34,30 @@ public class ManagerBookUI : MonoBehaviour
     private void Awake()
     {
         if (todayButton != null)
-        {
             todayButton.onClick.AddListener(ShowTodayPage);
-        }
 
         if (stockButton != null)
-        {
             stockButton.onClick.AddListener(ShowStockPage);
-        }
+
+        if (catalogueButton != null)
+            catalogueButton.onClick.AddListener(ShowCataloguePage);
 
         if (closeButton != null)
-        {
             closeButton.onClick.AddListener(Close);
-        }
 
         ShowTodayPage();
 
         if (managerBookOverlay != null)
-        {
             managerBookOverlay.SetActive(false);
-        }
     }
 
     private void Update()
     {
         if (Keyboard.current == null)
-        {
             return;
-        }
 
         if (!Keyboard.current.mKey.wasPressedThisFrame)
-        {
             return;
-        }
 
         if (isOpen)
         {
@@ -77,29 +71,16 @@ public class ManagerBookUI : MonoBehaviour
     public void Open()
     {
         if (isOpen || managerBookOverlay == null)
-        {
             return;
-        }
 
         if (orderingUI != null && orderingUI.IsOpen)
-        {
             return;
-        }
-
-        if (productCatalogueUI != null && productCatalogueUI.IsOpen)
-        {
-            return;
-        }
 
         if (pauseMenuUI != null && pauseMenuUI.IsOpen)
-        {
             return;
-        }
 
         if (endOfDayUI != null && endOfDayUI.IsOpen)
-        {
             return;
-        }
 
         isOpen = true;
 
@@ -109,19 +90,13 @@ public class ManagerBookUI : MonoBehaviour
         managerBookOverlay.transform.SetAsLastSibling();
 
         if (interactionUI != null)
-        {
             interactionUI.HidePrompt();
-        }
 
         if (playerController != null)
-        {
             playerController.enabled = false;
-        }
 
         if (playerInteraction != null)
-        {
             playerInteraction.enabled = false;
-        }
 
         Cursor.lockState = CursorLockMode.None;
         Cursor.visible = true;
@@ -132,28 +107,20 @@ public class ManagerBookUI : MonoBehaviour
     public void Close()
     {
         if (!isOpen)
-        {
             return;
-        }
 
         isOpen = false;
 
         if (managerBookOverlay != null)
-        {
             managerBookOverlay.SetActive(false);
-        }
 
         Time.timeScale = 1f;
 
         if (playerController != null)
-        {
             playerController.enabled = true;
-        }
 
         if (playerInteraction != null)
-        {
             playerInteraction.enabled = true;
-        }
 
         Cursor.lockState = CursorLockMode.Locked;
         Cursor.visible = false;
@@ -161,28 +128,35 @@ public class ManagerBookUI : MonoBehaviour
 
     public void ShowTodayPage()
     {
-        if (todayPage != null)
-        {
-            todayPage.SetActive(true);
-        }
-
-        if (stockPage != null)
-        {
-            stockPage.SetActive(false);
-        }
+        ShowPage(todayPage);
     }
 
     public void ShowStockPage()
     {
+        ShowPage(stockPage);
+    }
+
+    public void ShowCataloguePage()
+    {
+        if (cataloguePage == null)
+            return;
+
+        ShowPage(cataloguePage);
+
+        if (productCatalogueUI != null)
+            productCatalogueUI.RefreshPage();
+    }
+
+    private void ShowPage(GameObject page)
+    {
         if (todayPage != null)
-        {
-            todayPage.SetActive(false);
-        }
+            todayPage.SetActive(todayPage == page);
 
         if (stockPage != null)
-        {
-            stockPage.SetActive(true);
-        }
+            stockPage.SetActive(stockPage == page);
+
+        if (cataloguePage != null)
+            cataloguePage.SetActive(cataloguePage == page);
     }
 
     private void OnDestroy()

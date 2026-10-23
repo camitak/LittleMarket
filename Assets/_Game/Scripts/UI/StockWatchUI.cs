@@ -17,7 +17,7 @@ public class StockWatchUI : MonoBehaviour
     [SerializeField] private StoreStockOverview stockOverview;
 
     [Header("Other UI")] [SerializeField] private OrderingUI orderingUI;
-    [SerializeField] private ProductCatalogueUI productCatalogueUI;
+    [SerializeField] private ManagerBookUI managerBookUI;
     [SerializeField] private PauseMenuUI pauseMenuUI;
     [SerializeField] private EndOfDayUI endOfDayUI;
 
@@ -134,20 +134,16 @@ public class StockWatchUI : MonoBehaviour
 
     private bool IsAnotherModalUIOpen()
     {
-        if (orderingUI != null &&
-            orderingUI.IsOpen)
+        if (orderingUI != null && orderingUI.IsOpen)
             return true;
 
-        if (productCatalogueUI != null &&
-            productCatalogueUI.IsOpen)
+        if (managerBookUI != null && managerBookUI.IsOpen)
             return true;
 
-        if (pauseMenuUI != null &&
-            pauseMenuUI.IsOpen)
+        if (pauseMenuUI != null && pauseMenuUI.IsOpen)
             return true;
 
-        if (endOfDayUI != null &&
-            endOfDayUI.IsOpen)
+        if (endOfDayUI != null && endOfDayUI.IsOpen)
             return true;
 
         return false;

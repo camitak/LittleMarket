@@ -20,8 +20,6 @@ public class PauseMenuUI : MonoBehaviour
     [SerializeField] private OrderingUI orderingUI;
 
     [SerializeField] private EndOfDayUI endOfDayUI;
-
-    [SerializeField] private ProductCatalogueUI productCatalogueUI;
     
     [SerializeField] private ManagerBookUI managerBookUI;
 
@@ -87,13 +85,6 @@ public class PauseMenuUI : MonoBehaviour
             return;
         }
 
-        if (productCatalogueUI != null && productCatalogueUI.IsOpen)
-        {
-            productCatalogueUI.Close();
-
-            return;
-        }
-
         if (orderingUI != null && orderingUI.IsOpen)
         {
             orderingUI.Close();
@@ -121,9 +112,6 @@ public class PauseMenuUI : MonoBehaviour
         if (managerBookUI != null && managerBookUI.IsOpen)
             return;
         
-        if (productCatalogueUI != null && productCatalogueUI.IsOpen)
-            return;
-
         isOpen = true;
 
         saveStatusText.text = "";
