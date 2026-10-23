@@ -6,41 +6,33 @@ using UnityEngine.UI;
 
 public class ProductCatalogueUI : MonoBehaviour
 {
-    [Header("UI")] [SerializeField] private GameObject catalogueOverlay;
-
+    [Header("UI")] 
+    [SerializeField] private GameObject catalogueOverlay;
     [SerializeField] private TMP_Text progressionSummaryText;
-
     [SerializeField] private Transform catalogueListContent;
-
     [SerializeField] private ProductCatalogueRow catalogueRowPrefab;
-
     [SerializeField] private Button closeButton;
 
-    [Header("Progression")] [SerializeField]
-    private StoreProgression storeProgression;
+    [Header("Progression")] 
+    [SerializeField] private StoreProgression storeProgression;
+    [SerializeField] private StoreLevelProgression storeLevelProgression;
 
-    [SerializeField] private StoreLevelProgression
-        storeLevelProgression;
-
-    [Header("Other UI")] [SerializeField] private OrderingUI orderingUI;
-
+    [Header("Other UI")] 
+    [SerializeField] private OrderingUI orderingUI;
     [SerializeField] private PauseMenuUI pauseMenuUI;
-
     [SerializeField] private EndOfDayUI endOfDayUI;
-
+    [SerializeField] private ManagerBookUI managerBookUI;
     [SerializeField] private InteractionUI interactionUI;
 
-    [Header("Player")] [SerializeField] private PlayerController playerController;
-
+    [Header("Player")] 
+    [SerializeField] private PlayerController playerController;
     [SerializeField] private PlayerInteraction playerInteraction;
 
-    private readonly List<ProductCatalogueRow>
-        spawnedRows = new();
+    private readonly List<ProductCatalogueRow> spawnedRows = new();
 
     private bool isOpen;
 
-    public bool IsOpen =>
-        isOpen;
+    public bool IsOpen => isOpen;
 
     private void Awake()
     {
@@ -75,79 +67,63 @@ public class ProductCatalogueUI : MonoBehaviour
     {
         if (isOpen) return;
 
-        if (orderingUI != null &&
-            orderingUI.IsOpen)
+        if (orderingUI != null && orderingUI.IsOpen)
             return;
 
-        if (pauseMenuUI != null &&
-            pauseMenuUI.IsOpen)
+        if (pauseMenuUI != null && pauseMenuUI.IsOpen)
             return;
 
-        if (endOfDayUI != null &&
-            endOfDayUI.IsOpen)
+        if (endOfDayUI != null && endOfDayUI.IsOpen)
             return;
+        
+        if (managerBookUI != null && managerBookUI.IsOpen)
+            return;
+        
 
-        isOpen =
-            true;
+        isOpen = true;
 
         BuildRows();
 
         RefreshProgressionSummary();
 
-        catalogueOverlay.SetActive(
-            true
-        );
+        catalogueOverlay.SetActive(true);
 
-        catalogueOverlay.transform
-            .SetAsLastSibling();
+        catalogueOverlay.transform.SetAsLastSibling();
 
         if (interactionUI != null) interactionUI.HidePrompt();
 
         if (playerController != null)
-            playerController.enabled =
-                false;
+            playerController.enabled = false;
 
         if (playerInteraction != null)
-            playerInteraction.enabled =
-                false;
+            playerInteraction.enabled = false;
 
-        Cursor.lockState =
-            CursorLockMode.None;
+        Cursor.lockState = CursorLockMode.None;
 
-        Cursor.visible =
-            true;
+        Cursor.visible = true;
 
-        Time.timeScale =
-            0f;
+        Time.timeScale = 0f;
     }
 
     public void Close()
     {
         if (!isOpen) return;
 
-        isOpen =
-            false;
+        isOpen = false;
 
-        catalogueOverlay.SetActive(
-            false
-        );
+        catalogueOverlay.SetActive(false);
 
-        Time.timeScale =
-            1f;
+        Time.timeScale = 1f;
 
         if (playerController != null)
-            playerController.enabled =
-                true;
+            playerController.enabled = true;
 
         if (playerInteraction != null)
-            playerInteraction.enabled =
-                true;
+            playerInteraction.enabled = true;
 
-        Cursor.lockState =
-            CursorLockMode.Locked;
+        Cursor.lockState = CursorLockMode.Locked;
 
-        Cursor.visible =
-            false;
+        Cursor.visible = false;
     }
 
     private void BuildRows()
@@ -161,15 +137,10 @@ public class ProductCatalogueUI : MonoBehaviour
         if (catalogueRowPrefab == null) return;
 
         for (var i = 0;
-             i < storeProgression
-                 .CatalogProductCount;
+             i < storeProgression.CatalogProductCount;
              i++)
         {
-            var product =
-                storeProgression
-                    .GetCatalogProduct(
-                        i
-                    );
+            var product = storeProgression.GetCatalogProduct(i);
 
             if (product == null) continue;
 

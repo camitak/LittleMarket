@@ -22,6 +22,8 @@ public class PauseMenuUI : MonoBehaviour
     [SerializeField] private EndOfDayUI endOfDayUI;
 
     [SerializeField] private ProductCatalogueUI productCatalogueUI;
+    
+    [SerializeField] private ManagerBookUI managerBookUI;
 
     [SerializeField] private InteractionUI interactionUI;
 
@@ -55,52 +57,44 @@ public class PauseMenuUI : MonoBehaviour
             255
         );
 
-    public bool IsOpen =>
-        isOpen;
+    public bool IsOpen => isOpen;
 
     private void Awake()
     {
-        resumeButton.onClick.AddListener(
-            Close
-        );
+        resumeButton.onClick.AddListener(Close);
 
-        saveGameButton.onClick.AddListener(
-            SaveGame
-        );
+        saveGameButton.onClick.AddListener(SaveGame);
 
-        loadGameButton.onClick.AddListener(
-            LoadGame
-        );
+        loadGameButton.onClick.AddListener(LoadGame);
 
         saveStatusText.text = "";
 
-        pauseOverlay.SetActive(
-            false
-        );
+        pauseOverlay.SetActive(false);
     }
 
     private void Update()
     {
         if (Keyboard.current == null) return;
 
-        if (!Keyboard.current.escapeKey
-                .wasPressedThisFrame)
-            return;
+        if (!Keyboard.current.escapeKey.wasPressedThisFrame) return;
 
-        if (endOfDayUI != null &&
-            endOfDayUI.IsOpen)
+        if (endOfDayUI != null && endOfDayUI.IsOpen)
             return;
+        
+        if (managerBookUI != null && managerBookUI.IsOpen)
+        {
+            managerBookUI.Close();
+            return;
+        }
 
-        if (productCatalogueUI != null &&
-            productCatalogueUI.IsOpen)
+        if (productCatalogueUI != null && productCatalogueUI.IsOpen)
         {
             productCatalogueUI.Close();
 
             return;
         }
 
-        if (orderingUI != null &&
-            orderingUI.IsOpen)
+        if (orderingUI != null && orderingUI.IsOpen)
         {
             orderingUI.Close();
 
@@ -121,75 +115,57 @@ public class PauseMenuUI : MonoBehaviour
     {
         if (isOpen) return;
 
-        if (endOfDayUI != null &&
-            endOfDayUI.IsOpen)
+        if (endOfDayUI != null && endOfDayUI.IsOpen)
+            return;
+        
+        if (managerBookUI != null && managerBookUI.IsOpen)
+            return;
+        
+        if (productCatalogueUI != null && productCatalogueUI.IsOpen)
             return;
 
-        if (productCatalogueUI != null &&
-            productCatalogueUI.IsOpen)
-            return;
+        isOpen = true;
 
-        isOpen =
-            true;
+        saveStatusText.text = "";
 
-        saveStatusText.text =
-            "";
-
-        saveStatusText.color =
-            NeutralColor;
+        saveStatusText.color = NeutralColor;
 
         RefreshLoadButton();
 
-        pauseOverlay.SetActive(
-            true
-        );
+        pauseOverlay.SetActive(true);
 
-        pauseOverlay.transform
-            .SetAsLastSibling();
+        pauseOverlay.transform.SetAsLastSibling();
 
         if (interactionUI != null) interactionUI.HidePrompt();
 
-        playerController.enabled =
-            false;
+        playerController.enabled = false;
 
-        playerInteraction.enabled =
-            false;
+        playerInteraction.enabled = false;
 
-        Cursor.lockState =
-            CursorLockMode.None;
+        Cursor.lockState = CursorLockMode.None;
 
-        Cursor.visible =
-            true;
+        Cursor.visible = true;
 
-        Time.timeScale =
-            0f;
+        Time.timeScale = 0f;
     }
 
     public void Close()
     {
         if (!isOpen) return;
 
-        isOpen =
-            false;
+        isOpen = false;
 
-        pauseOverlay.SetActive(
-            false
-        );
+        pauseOverlay.SetActive(false);
 
-        Time.timeScale =
-            1f;
+        Time.timeScale = 1f;
 
-        playerController.enabled =
-            true;
+        playerController.enabled = true;
 
-        playerInteraction.enabled =
-            true;
+        playerInteraction.enabled = true;
 
-        Cursor.lockState =
-            CursorLockMode.Locked;
+        Cursor.lockState = CursorLockMode.Locked;
 
-        Cursor.visible =
-            false;
+        Cursor.visible = false;
     }
 
     private void SaveGame()
@@ -204,8 +180,7 @@ public class PauseMenuUI : MonoBehaviour
             return;
         }
 
-        var succeeded =
-            saveManager.SaveGame();
+        var succeeded = saveManager.SaveGame();
 
         ShowStatus(
             saveManager.LastOperationMessage,
@@ -227,8 +202,7 @@ public class PauseMenuUI : MonoBehaviour
             return;
         }
 
-        var succeeded =
-            saveManager.LoadGame();
+        var succeeded = saveManager.LoadGame();
 
         ShowStatus(
             saveManager.LastOperationMessage,
@@ -243,8 +217,7 @@ public class PauseMenuUI : MonoBehaviour
         bool success
     )
     {
-        saveStatusText.text =
-            message;
+        saveStatusText.text = message;
 
         saveStatusText.color =
             success
@@ -256,19 +229,15 @@ public class PauseMenuUI : MonoBehaviour
     {
         if (saveManager == null)
         {
-            loadGameButton.interactable =
-                false;
+            loadGameButton.interactable = false;
 
             return;
         }
-
-        loadGameButton.interactable =
-            saveManager.HasSaveFile;
+        loadGameButton.interactable = saveManager.HasSaveFile;
     }
 
     private void OnDestroy()
     {
-        Time.timeScale =
-            1f;
+        Time.timeScale = 1f;
     }
 }

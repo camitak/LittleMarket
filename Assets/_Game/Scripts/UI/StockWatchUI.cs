@@ -6,37 +6,30 @@ using UnityEngine.UI;
 
 public class StockWatchUI : MonoBehaviour
 {
-    [Header("UI")] [SerializeField] private Transform stockAlertContent;
-
+    [Header("UI")] 
+    [SerializeField] private Transform stockAlertContent;
     [SerializeField] private StockAlertRow stockAlertRowPrefab;
-
     [SerializeField] private TMP_Text allStockedText;
-
     [SerializeField] private ScrollRect stockScrollRect;
 
-    [Header("Store")] [SerializeField] private StoreProgression storeProgression;
-
+    [Header("Store")] 
+    [SerializeField] private StoreProgression storeProgression;
     [SerializeField] private StoreStockOverview stockOverview;
 
     [Header("Other UI")] [SerializeField] private OrderingUI orderingUI;
-
     [SerializeField] private ProductCatalogueUI productCatalogueUI;
-
     [SerializeField] private PauseMenuUI pauseMenuUI;
-
     [SerializeField] private EndOfDayUI endOfDayUI;
 
-    [Header("Refresh")] [Min(0.05f)] [SerializeField]
-    private float refreshInterval = 0.25f;
+    [Header("Refresh")] 
+    [Min(0.05f)] [SerializeField] private float refreshInterval = 0.25f;
 
-    [Header("Gameplay Scrolling")] [Range(0.05f, 0.5f)] [SerializeField]
-    private float mouseWheelStep = 0.18f;
+    [Header("Gameplay Scrolling")] 
+    [Range(0.05f, 0.5f)] [SerializeField] private float mouseWheelStep = 0.18f;
 
-    private readonly List<StockAlertRow>
-        spawnedRows = new();
+    private readonly List<StockAlertRow> spawnedRows = new();
 
-    private int builtUnlockedProductCount =
-        -1;
+    private int builtUnlockedProductCount = -1;
 
     private float refreshTimer;
 
@@ -72,11 +65,20 @@ public class StockWatchUI : MonoBehaviour
 
     private void HandleGameplayMouseWheel()
     {
-        if (IsAnotherModalUIOpen()) return;
+        if (IsAnotherModalUIOpen())
+        {
+            return;
+        }
 
-        if (Mouse.current == null) return;
+        if (Mouse.current == null || stockScrollRect == null)
+        {
+            return;
+        }
 
-        if (stockScrollRect == null) return;
+        if (!stockScrollRect.gameObject.activeInHierarchy)
+        {
+            return;
+        }
 
         if (stockScrollRect.content == null ||
             stockScrollRect.viewport == null)

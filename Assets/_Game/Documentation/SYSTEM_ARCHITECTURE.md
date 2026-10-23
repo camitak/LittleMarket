@@ -44,19 +44,52 @@ Examples:
 - Ordering/supplier systems ask whether the supplier cutoff has passed.
 - OrderingTerminal asks whether closing time has passed.
 
-## GameUI
-
-Scene GameObject: `GameUI`
-
-Owns screen-space UI controllers:
+Owns screen-space UI controllers including:
 
 - `InteractionUI`
 - `OrderingUI`
 - `EndOfDayUI`
+- `PauseMenuUI`
+- `ProductCatalogueUI`
+- `ManagerBookUI`
+- `StockWatchUI`
+- `StoreGoalsUI`
+- `StoreLevelUI`
+- `StorageCapacityUI`
+- `BasketContentsHUD`
 - `BasketLocatorUI`
 
-UI should display and request actions.
-It should not become the authoritative owner of store rules.
+### HUD information rule
+
+Normal gameplay HUD should stay minimal.
+
+Permanent information should be limited to things the player needs continuously,
+such as:
+
+- money
+- current day/time/store status
+- interaction feedback
+
+Contextual information may appear only while relevant, for example:
+
+- basket contents while carrying the restock basket
+- basket locator after requesting it
+- money gain feedback
+
+Management information should live inside `ManagerBookUI` rather than remain
+permanently visible.
+
+Current Manager Book pages:
+
+- Today
+- Stock
+
+Future candidates include:
+
+- Catalogue
+- Reports
+- Orders
+- Store progression/upgrades
 
 ## OrderingTerminal
 
