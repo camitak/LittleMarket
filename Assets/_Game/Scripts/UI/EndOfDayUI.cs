@@ -4,69 +4,51 @@ using UnityEngine.UI;
 
 public class EndOfDayUI : MonoBehaviour
 {
-    [Header("Panel")] [SerializeField] private GameObject endOfDayPanel;
+    [Header("Panel")] 
+    [SerializeField] private GameObject endOfDayPanel;
 
-    [Header("Financial Summary")] [SerializeField]
-    private TMP_Text dayCompleteText;
-
+    [Header("Financial Summary")] 
+    [SerializeField] private TMP_Text dayCompleteText;
     [SerializeField] private TMP_Text revenueText;
-
     [SerializeField] private TMP_Text stockSpendingText;
-
     [SerializeField] private TMP_Text netCashFlowText;
 
-    [Header("Customer Summary")] [SerializeField]
-    private TMP_Text averageSatisfactionText;
-
+    [Header("Customer Summary")] 
+    [SerializeField] private TMP_Text averageSatisfactionText;
     [SerializeField] private TMP_Text reputationResultText;
-
     [SerializeField] private TMP_Text unlockText;
-
     [SerializeField] private TMP_Text goalResultsText;
-
     [SerializeField] private TMP_Text storeLevelResultText;
-
     [SerializeField] private TMP_Text missedProductsText;
-
     [SerializeField] private TMP_Text emptyHandedText;
-
     [SerializeField] private TMP_Text itemsSoldText;
-
     [SerializeField] private TMP_Text customersServedText;
-
     [SerializeField] private TMP_Text endingCashText;
 
-    [Header("Buttons")] [SerializeField] private Button startNextDayButton;
+    [Header("Buttons")] 
+    [SerializeField] private Button startNextDayButton;
 
-    [Header("Store")] [SerializeField] private StoreClock storeClock;
-
+    [Header("Store")] 
+    [SerializeField] private StoreDayLifecycle storeDayLifecycle;
+    [SerializeField] private StoreClock storeClock;
     [SerializeField] private DailyStats dailyStats;
-
     [SerializeField] private StoreEconomy storeEconomy;
-
     [SerializeField] private StoreReputation storeReputation;
-
     [SerializeField] private StoreProgression storeProgression;
-
     [SerializeField] private StoreGoals storeGoals;
-
-    [SerializeField] private StoreLevelProgression
-        storeLevelProgression;
-
-    [SerializeField] private CustomerFlow customerFlow;
-
-    [Header("Other UI")] [SerializeField] private OrderingUI orderingUI;
-
+    [SerializeField] private StoreLevelProgression storeLevelProgression;
+   
+    [Header("Other UI")] 
+    [SerializeField] private OrderingUI orderingUI;
     [SerializeField] private InteractionUI interactionUI;
 
-    [Header("Player")] [SerializeField] private PlayerController playerController;
-
+    [Header("Player")] 
+    [SerializeField] private PlayerController playerController;
     [SerializeField] private PlayerInteraction playerInteraction;
 
     private bool summaryShown;
 
-    public bool IsOpen =>
-        summaryShown;
+    public bool IsOpen => summaryShown;
 
     private static readonly Color32 PositiveColor =
         new(
@@ -119,89 +101,43 @@ public class EndOfDayUI : MonoBehaviour
         );
     }
 
+    
     private void Update()
     {
-        if (summaryShown) return;
+        if (summaryShown)
+            return;
 
-        if (storeClock == null) return;
-
-        if (!storeClock.HasDayEnded) return;
-
-        if (customerFlow != null &&
-            customerFlow.ActiveCustomerCount > 0)
+        if (storeDayLifecycle == null || !storeDayLifecycle.IsDayComplete)
             return;
 
         ShowSummary();
     }
-
     private void ShowSummary()
     {
-        summaryShown =
-            true;
+        summaryShown = true;
 
-        if (orderingUI != null &&
-            orderingUI.IsOpen)
+        if (orderingUI != null && orderingUI.IsOpen)
             orderingUI.Close();
-
-        if (storeReputation != null &&
-            dailyStats != null)
-            storeReputation.ApplyDailySatisfaction(
-                dailyStats.AverageSatisfaction,
-                dailyStats.CustomersVisited
-            );
-
-        var completedGoals =
-            0;
-
-        var allGoalsCompleted =
-            false;
-
-        if (storeGoals != null)
-        {
-            completedGoals =
-                storeGoals.CompletedGoalCount;
-
-            allGoalsCompleted =
-                storeGoals.AllGoalsCompleted;
-
-            storeGoals
-                .ClaimEndOfDayRewards();
-        }
-
-        if (storeLevelProgression != null)
-            storeLevelProgression
-                .ApplyEndOfDayProgression(
-                    storeClock.CurrentDay,
-                    completedGoals,
-                    allGoalsCompleted
-                );
-
-        if (storeProgression != null) storeProgression.RefreshUnlocks();
 
         UpdateSummaryText();
 
-        endOfDayPanel.SetActive(
-            true
-        );
+        endOfDayPanel.SetActive(true);
 
-        interactionUI.HidePrompt();
+        if (interactionUI != null)
+            interactionUI.HidePrompt();
 
-        playerController.enabled =
-            false;
+        if (playerController != null)
+            playerController.enabled = false;
 
-        playerInteraction.enabled =
-            false;
+        if (playerInteraction != null)
+            playerInteraction.enabled = false;
 
-        Cursor.lockState =
-            CursorLockMode.None;
+        Cursor.lockState = CursorLockMode.None;
+        Cursor.visible = true;
 
-        Cursor.visible =
-            true;
-
-        Time.timeScale =
-            0f;
+        Time.timeScale = 0f;
     }
-
+    
     private void UpdateSummaryText()
     {
         var day =
@@ -541,40 +477,27 @@ public class EndOfDayUI : MonoBehaviour
                 ? PositiveColor
                 : UnlockColor;
     }
-
+    
     private void StartNextDay()
     {
-        Time.timeScale =
-            1f;
+        if (storeDayLifecycle == null || !storeDayLifecycle.StartNextDay())
+            return;
 
-        dailyStats.ResetForNewDay();
+        Time.timeScale = 1f;
 
-        if (storeGoals != null) storeGoals.ResetForNewDay();
+        endOfDayPanel.SetActive(false);
 
-        storeClock.StartNextDay();
+        if (playerController != null)
+            playerController.enabled = true;
 
-        if (customerFlow != null) customerFlow.ResetForNewDay();
+        if (playerInteraction != null)
+            playerInteraction.enabled = true;
 
-        endOfDayPanel.SetActive(
-            false
-        );
+        Cursor.lockState = CursorLockMode.Locked;
+        Cursor.visible = false;
 
-        playerController.enabled =
-            true;
-
-        playerInteraction.enabled =
-            true;
-
-        Cursor.lockState =
-            CursorLockMode.Locked;
-
-        Cursor.visible =
-            false;
-
-        summaryShown =
-            false;
+        summaryShown = false;
     }
-
     private void OnDestroy()
     {
         Time.timeScale =

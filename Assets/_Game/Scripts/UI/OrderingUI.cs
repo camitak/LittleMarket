@@ -7,46 +7,37 @@ using UnityEngine.EventSystems;
 
 public class OrderingUI : MonoBehaviour
 {
-    [Header("UI")] [SerializeField] private GameObject orderingPanel;
-
+    [Header("UI")] 
+    [SerializeField] private GameObject orderingPanel;
     [SerializeField] private TMP_Text statusText;
-
     [SerializeField] private Button closeButton;
-
     [SerializeField] private Transform productListContent;
-
     [SerializeField] private OrderingProductRow productRowPrefab;
 
-    [Header("Progression")] [SerializeField]
-    private StoreProgression storeProgression;
-
+    [Header("Progression")] 
+    [SerializeField] private StoreProgression storeProgression;
     [SerializeField] private StoreStockOverview storeStockOverview;
 
-    [Header("Order")] [Min(1)] [SerializeField]
-    private int quantityPerBox = 4;
-
+    [Header("Order")] 
+    [Min(1)] [SerializeField] private int quantityPerBox = 4;
     [SerializeField] private DeliveryBox deliveryBoxPrefab;
-
     [SerializeField] private DeliveryZone deliveryZone;
-    
     [SerializeField] private SupplierDeliveryQueue supplierDeliveryQueue;
 
-    [Header("Store")] [SerializeField] private StoreEconomy storeEconomy;
-
+    [Header("Store")] 
+    [SerializeField] private StoreEconomy storeEconomy;
     [SerializeField] private DailyStats dailyStats;
 
-    [Header("Player")] [SerializeField] private PlayerController playerController;
-
+    [Header("Player")] 
+    [SerializeField] private PlayerController playerController;
     [SerializeField] private PlayerInteraction playerInteraction;
-
     [SerializeField] private InteractionUI interactionUI;
 
     private List<OrderingProductRow> spawnedRows = new();
 
     private bool isOpen;
 
-    public bool IsOpen =>
-        isOpen;
+    public bool IsOpen => isOpen;
 
     private void Awake()
     {
@@ -131,7 +122,8 @@ public class OrderingUI : MonoBehaviour
                     null
                 );
 
-        if (playerController != null) playerController.CaptureCursor();
+        if (playerController != null && playerController.enabled)
+            playerController.CaptureCursor();
     }
 
     private void RebuildCatalogRows()

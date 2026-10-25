@@ -23,6 +23,7 @@ Owns store-wide state and rules:
 - `StoreLevelProgression`
 - `StoreStockOverview`
 - `WorldItemRegistry`
+- `StoreDayLifecycle`
 
 ### StoreClock
 
@@ -44,6 +45,10 @@ Examples:
 - Ordering/supplier systems ask whether the supplier cutoff has passed.
 - OrderingTerminal asks whether closing time has passed.
 
+## GameUI
+
+Scene GameObject: `GameUI`
+
 Owns screen-space UI controllers including:
 
 - `InteractionUI`
@@ -58,6 +63,41 @@ Owns screen-space UI controllers including:
 - `StorageCapacityUI`
 - `BasketContentsHUD`
 - `BasketLocatorUI`
+
+
+### StoreDayLifecycle
+
+Scene GameObject: `StoreSystems`
+
+Component: `StoreDayLifecycle`
+
+Coordinates the transition between store days.
+
+Responsibilities:
+
+- Wait until StoreClock reports that the day has ended.
+- Wait until CustomerFlow reports no active customers.
+- Process end-of-day gameplay exactly once per day.
+- Apply daily satisfaction through StoreReputation.
+- Claim completed goal rewards through StoreGoals.
+- Apply daily XP through StoreLevelProgression.
+- Refresh product unlocks through StoreProgression.
+- Coordinate starting the next day and resetting daily state.
+
+StoreDayLifecycle does not define opening or closing times.
+StoreClock remains authoritative for all schedule rules.
+
+EndOfDayUI is responsible for presentation only.
+It observes StoreDayLifecycle.IsDayComplete to know when
+the end-of-day screen can appear.
+
+The Start Next Day button requests the transition through
+StoreDayLifecycle.StartNextDay().
+
+The end-of-day presentation can therefore be redesigned
+without transferring gameplay progression responsibilities
+back into the UI.
+
 
 ### HUD information rule
 
@@ -83,13 +123,18 @@ Current Manager Book pages:
 
 - Today
 - Stock
+- Catalogue
+
+ManagerBookUI owns book navigation and modal behavior.
+ProductCatalogueUI handles catalogue content and rendering,
+not a separate fullscreen modal.
 
 Future candidates include:
 
-- Catalogue
 - Reports
 - Orders
 - Store progression/upgrades
+
 
 ## OrderingTerminal
 

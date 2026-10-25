@@ -6834,6 +6834,7 @@ MonoBehaviour:
   customersServedText: {fileID: 1047411130}
   endingCashText: {fileID: 657252252}
   startNextDayButton: {fileID: 1335869874}
+  storeDayLifecycle: {fileID: 1117834542}
   storeClock: {fileID: 1117834532}
   dailyStats: {fileID: 1117834533}
   storeEconomy: {fileID: 1117834528}
@@ -6841,7 +6842,6 @@ MonoBehaviour:
   storeProgression: {fileID: 1117834535}
   storeGoals: {fileID: 1117834538}
   storeLevelProgression: {fileID: 1117834539}
-  customerFlow: {fileID: 1117834531}
   orderingUI: {fileID: 766562199}
   interactionUI: {fileID: 766562198}
   playerController: {fileID: 1349577614}
@@ -10243,6 +10243,7 @@ GameObject:
   - component: {fileID: 1117834539}
   - component: {fileID: 1117834540}
   - component: {fileID: 1117834541}
+  - component: {fileID: 1117834542}
   m_Layer: 0
   m_Name: StoreSystems
   m_TagString: Untagged
@@ -10487,6 +10488,25 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 2df96e06f32267a40a2d187542df6694, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::StorageRegistry
+--- !u!114 &1117834542
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1117834526}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c2e88844487805b45b60ffd124fb8ebb, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::StoreDayLifecycle
+  storeClock: {fileID: 1117834532}
+  customerFlow: {fileID: 1117834531}
+  dailyStats: {fileID: 1117834533}
+  storeReputation: {fileID: 1117834534}
+  storeGoals: {fileID: 1117834538}
+  storeLevelProgression: {fileID: 1117834539}
+  storeProgression: {fileID: 1117834535}
 --- !u!1 &1126133432
 GameObject:
   m_ObjectHideFlags: 0
