@@ -274,7 +274,9 @@ Historical reports should not become a compulsory gameplay screen.
 
 Scene GameObject: `OrderingTerminal`
 
-Component: `OrderingTerminal`
+Component:
+
+- `OrderingTerminal`
 
 Physical interaction point for:
 
@@ -387,6 +389,32 @@ checkout logic, queue positions, or save data.
 The configurable browse duration, turn speed, and lean angle are local
 customer presentation values, not global shop-schedule rules.
 
+## Customer walking and idle animation
+
+Prefab: `Assets/_Game/Prefabs/Characters/PF_CustomerPrototype.prefab`
+
+New component on prefab root: `CustomerWalkVisual`.
+Script: `Assets/_Game/Scripts/Customers/CustomerWalkVisual.cs`.
+
+Lesson 93 adds movement-responsive presentation without modifying customer AI.
+
+- Reads the existing `NavMeshAgent.velocity` to determine whether the customer
+  is actually walking. Does not create its own movement state machine.
+- Moves only the child `Visual.localPosition` for a soft vertical walking
+  bounce and small horizontal sway, blending into subtle idle breathing.
+- Uses a velocity threshold and blend speed so motion fades smoothly.
+- Preserves the original local position and restores it when disabled.
+- Does not modify `Visual.localRotation` (owned by CustomerController's shelf
+  browsing) or `Visual.localScale` (used by its happy checkout reaction).
+- Does not move the customer prefab root, NavMeshAgent, queue points,
+  carry slots, or any product objects.
+- The `Eye_left` and `Eye_right` children created for the prototype remain
+  parented to `Visual` and therefore follow the motion automatically.
+- `PatienceText` remains outside `Visual` and is unaffected by the walk bounce.
+
+`CustomerWalkVisual` is presentation-only. It must not make navigation,
+stock selection, transaction, happiness or persistence decisions.
+
 ## BasketStation
 
 Scene GameObject: `BasketStation`
@@ -460,6 +488,9 @@ CustomerController properties. No additional save fields are required.
 
 Lesson 92 adds an in-memory shopping animation and delay in CustomerController.
 No new persistence fields or save-version changes are required.
+
+Lesson 93 introduces customer walking/idle visuals that only move the child
+Visual transform. It adds no new save fields and does not change save version 17.
 
 ## Ownership rule
 

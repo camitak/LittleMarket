@@ -124,6 +124,7 @@ GameObject:
   - component: {fileID: 3879813911637444965}
   - component: {fileID: 6094999287884776231}
   - component: {fileID: 7286726194657894436}
+  - component: {fileID: 2142928466922106264}
   m_Layer: 0
   m_Name: PF_CustomerPrototype
   m_TagString: Untagged
@@ -211,6 +212,27 @@ MonoBehaviour:
   bobSpeed: 3
   warningColor: {r: 0.9647059, g: 0.84313726, b: 0.47843137, a: 1}
   criticalColor: {r: 0.76862746, g: 0.41960785, b: 0.41960785, a: 1}
+--- !u!114 &2142928466922106264
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2599349677635650199}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ddd1221664a49a84997ca3cdad922dd9, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CustomerWalkVisual
+  agent: {fileID: 3879813911637444965}
+  visual: {fileID: 6794779590699774044}
+  walkBounceHeight: 0.035
+  walkSideSway: 0.025
+  walkCycleSpeed: 8
+  movingSpeedThreshold: 0.15
+  blendSpeed: 7
+  idleBreathHeight: 0.03
+  idleBreathSpeed: 1.5
 --- !u!1 &3331872740172664456
 GameObject:
   m_ObjectHideFlags: 0

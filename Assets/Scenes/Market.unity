@@ -1338,7 +1338,7 @@ Transform:
   m_GameObject: {fileID: 145050475}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 0.296, y: -0, z: 0.868}
+  m_LocalPosition: {x: 0.296, y: -0, z: 0.959}
   m_LocalScale: {x: 0.4, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -9616,7 +9616,7 @@ MonoBehaviour:
   supplierCutoffMinute: 0
   dayEndHour: 22
   dayEndMinute: 0
-  gameMinutesPerRealSecond: 2
+  gameMinutesPerRealSecond: 10
   dayText: {fileID: 741771842}
   timeText: {fileID: 1557549108}
   statusText: {fileID: 249437617}
@@ -13730,7 +13730,7 @@ Transform:
   m_GameObject: {fileID: 1744377838}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 1.711}
+  m_LocalPosition: {x: 0, y: 0, z: 1.92}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -14588,7 +14588,7 @@ Transform:
   m_GameObject: {fileID: 1898022732}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: 0.7071068, w: 0.7071068}
-  m_LocalPosition: {x: 14.03873, y: 2.46, z: -6.414}
+  m_LocalPosition: {x: 14.03873, y: 2.46, z: -6.766}
   m_LocalScale: {x: 5, y: 0.5, z: 4}
   m_ConstrainProportionsScale: 0
   m_Children:
