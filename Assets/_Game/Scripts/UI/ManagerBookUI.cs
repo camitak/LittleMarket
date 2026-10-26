@@ -10,15 +10,18 @@ public class ManagerBookUI : MonoBehaviour
     [SerializeField] private GameObject todayPage;
     [SerializeField] private GameObject stockPage;
     [SerializeField] private GameObject cataloguePage;
+    [SerializeField] private GameObject reportsPage;
 
     [SerializeField] private Button todayButton;
     [SerializeField] private Button stockButton;
     [SerializeField] private Button catalogueButton;
+    [SerializeField] private Button reportsButton;
     [SerializeField] private Button closeButton;
 
     [Header("Other UI")]
     [SerializeField] private OrderingUI orderingUI;
     [SerializeField] private ProductCatalogueUI productCatalogueUI;
+    [SerializeField] private ReportsUI reportsUI;
     [SerializeField] private PauseMenuUI pauseMenuUI;
     [SerializeField] private EndOfDayUI endOfDayUI;
     [SerializeField] private InteractionUI interactionUI;
@@ -41,6 +44,9 @@ public class ManagerBookUI : MonoBehaviour
 
         if (catalogueButton != null)
             catalogueButton.onClick.AddListener(ShowCataloguePage);
+
+        if (reportsButton != null)
+            reportsButton.onClick.AddListener(ShowReportsPage);
 
         if (closeButton != null)
             closeButton.onClick.AddListener(Close);
@@ -147,6 +153,17 @@ public class ManagerBookUI : MonoBehaviour
             productCatalogueUI.RefreshPage();
     }
 
+    public void ShowReportsPage()
+    {
+        if (reportsPage == null)
+            return;
+
+        ShowPage(reportsPage);
+
+        if (reportsUI != null)
+            reportsUI.ShowLatestReport();
+    }
+
     private void ShowPage(GameObject page)
     {
         if (todayPage != null)
@@ -157,6 +174,9 @@ public class ManagerBookUI : MonoBehaviour
 
         if (cataloguePage != null)
             cataloguePage.SetActive(cataloguePage == page);
+
+        if (reportsPage != null)
+            reportsPage.SetActive(reportsPage == page);
     }
 
     private void OnDestroy()

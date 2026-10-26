@@ -157,21 +157,25 @@ Contextual information may appear only while relevant, for example:
 Management information should live inside `ManagerBookUI` rather than remain
 permanently visible.
 
+
 Current Manager Book pages:
 
 - Today
 - Stock
 - Catalogue
+- Reports
 
 ManagerBookUI owns book navigation and modal behavior.
-ProductCatalogueUI handles catalogue content and rendering,
-not a separate fullscreen modal.
+
+- ProductCatalogueUI handles catalogue content and rendering.
+- ReportsUI handles historical report presentation and navigation.
+
+Individual book pages do not own player controls, cursor locking,
+time scale, or their own independent modal state.
 
 Future candidates include:
 
-- Reports
 - Orders
-- Store progression/upgrades
 - Store progression/upgrades
 
 
@@ -210,24 +214,77 @@ The detailed report is optional. Players should not be forced
 to read financial and operational statistics to continue playing.
 
 
-### Future Reports Direction
+### ReportsUI
 
-Completed-day report retention is implemented through
-StoreReportHistory and DailyReportData.
+Scene GameObject: `GameUI`
 
-The next step is adding a Reports page to ManagerBookUI.
+Component: `ReportsUI`
 
-The page should:
+Owns the presentation of completed-day history in the Manager Book.
 
-- Show available completed-day reports.
-- Allow the player to choose a previous day.
-- Display financial and operational information on demand.
-- Read saved historical snapshots instead of live DailyStats.
-- Avoid duplicate gameplay calculations or counters.
+Current behavior:
 
-EndOfDayUI should remain a compact transition presentation.
+- Reads historical reports from StoreReportHistory.
+- Shows an empty state when no completed reports exist.
+- Displays the most recently completed day when Reports is opened.
+- Allows navigation between previous and next completed days.
+- Disables navigation buttons at the history boundaries.
+- Displays financial, customer, goal, reputation, and progression results.
+- Resolves saved ProductIDs into product names through StoreProgression.
 
-Detailed financial reports should not be compulsory screens.
+ReportsUI is a presentation-only component.
+
+It does not:
+
+- Track live sales or customer statistics.
+- Award goal rewards or store experience.
+- Change store reputation.
+- Record or modify completed-day reports.
+- Save or load game data.
+- Own the Manager Book's input or modal behavior.
+
+ManagerBookUI activates ReportsPage and calls
+ReportsUI.ShowLatestReport().
+
+StoreReportHistory remains the authoritative owner of completed-day
+historical snapshots.
+
+The Reports page is available only through the Manager Book.
+No additional permanent gameplay HUD is introduced.
+
+
+### Reports Direction
+
+ManagerBookUI now includes a Reports page.
+
+Completed-day history is retained by StoreReportHistory and
+persisted through SaveManager.
+
+ReportsUI provides read-only access to previous days.
+
+Current POC features:
+
+- Latest completed-day report by default.
+- Previous/Next day navigation.
+- Financial and customer statistics.
+- Goal rewards, reputation changes, XP, and Store Level.
+- Names of newly unlocked products.
+- A safe empty state for players without historical reports.
+
+The end-of-day transition remains compact, with its existing
+optional detailed view.
+
+A future lesson may remove the detailed end-of-day view once
+the Reports page has been sufficiently playtested.
+
+Future reporting improvements may include:
+
+- Better visual hierarchy and formatting.
+- Simple comparison between completed days.
+- Small, useful trend indicators.
+- More detailed records where gameplay justifies them.
+
+Historical reports should not become a compulsory gameplay screen.
 
 
 ## OrderingTerminal
