@@ -4,56 +4,30 @@ using UnityEngine.UI;
 
 public class EndOfDayUI : MonoBehaviour
 {
-    [Header("Panel")] 
+    [Header("Panel")]
     [SerializeField] private GameObject endOfDayPanel;
-    
+
     [Header("Compact Summary")]
-    [SerializeField] private RectTransform summaryCard;
-    [SerializeField] private GameObject detailsGroup;
-    [SerializeField] private TMP_Text highlightsText;
-    [SerializeField] private Button detailsButton;
-    [SerializeField] private TMP_Text detailsButtonText;
-    [SerializeField] private Vector2 compactCardSize = new(620f, 360f);
-    [SerializeField] private Vector2 expandedCardSize = new(620f, 970f);
-
-    private bool detailsVisible;
-
-    [Header("Financial Summary")] 
     [SerializeField] private TMP_Text dayCompleteText;
-    [SerializeField] private TMP_Text revenueText;
-    [SerializeField] private TMP_Text stockSpendingText;
-    [SerializeField] private TMP_Text netCashFlowText;
+    [SerializeField] private TMP_Text highlightsText;
+    [SerializeField] private TMP_Text achievementText;
 
-    [Header("Customer Summary")] 
-    [SerializeField] private TMP_Text averageSatisfactionText;
-    [SerializeField] private TMP_Text reputationResultText;
-    [SerializeField] private TMP_Text unlockText;
-    [SerializeField] private TMP_Text goalResultsText;
-    [SerializeField] private TMP_Text storeLevelResultText;
-    [SerializeField] private TMP_Text missedProductsText;
-    [SerializeField] private TMP_Text emptyHandedText;
-    [SerializeField] private TMP_Text itemsSoldText;
-    [SerializeField] private TMP_Text customersServedText;
-    [SerializeField] private TMP_Text endingCashText;
-
-    [Header("Buttons")] 
+    [Header("Buttons")]
     [SerializeField] private Button startNextDayButton;
 
-    [Header("Store")] 
+    [Header("Store")]
     [SerializeField] private StoreDayLifecycle storeDayLifecycle;
     [SerializeField] private StoreClock storeClock;
     [SerializeField] private DailyStats dailyStats;
-    [SerializeField] private StoreEconomy storeEconomy;
-    [SerializeField] private StoreReputation storeReputation;
-    [SerializeField] private StoreProgression storeProgression;
     [SerializeField] private StoreGoals storeGoals;
     [SerializeField] private StoreLevelProgression storeLevelProgression;
-   
-    [Header("Other UI")] 
+    [SerializeField] private StoreProgression storeProgression;
+
+    [Header("Other UI")]
     [SerializeField] private OrderingUI orderingUI;
     [SerializeField] private InteractionUI interactionUI;
 
-    [Header("Player")] 
+    [Header("Player")]
     [SerializeField] private PlayerController playerController;
     [SerializeField] private PlayerInteraction playerInteraction;
 
@@ -61,57 +35,13 @@ public class EndOfDayUI : MonoBehaviour
 
     public bool IsOpen => summaryShown;
 
-    private static readonly Color32 PositiveColor =
-        new(
-            111,
-            207,
-            151,
-            255
-        );
-
-    private static readonly Color32 MediumColor =
-        new(
-            246,
-            215,
-            122,
-            255
-        );
-
-    private static readonly Color32 NegativeColor =
-        new(
-            196,
-            107,
-            107,
-            255
-        );
-
-    private static readonly Color32 NeutralColor =
-        new(
-            122,
-            104,
-            96,
-            255
-        );
-
-    private static readonly Color32 UnlockColor =
-        new(
-            143,
-            197,
-            232,
-            255
-        );
-
-    
     private void Awake()
     {
-        startNextDayButton.onClick.AddListener(StartNextDay);
+        if (startNextDayButton != null)
+            startNextDayButton.onClick.AddListener(StartNextDay);
 
-        if (detailsButton != null)
-            detailsButton.onClick.AddListener(ToggleDetails);
-
-        SetDetailsVisible(false);
-
-        endOfDayPanel.SetActive(false);
+        if (endOfDayPanel != null)
+            endOfDayPanel.SetActive(false);
     }
 
     private void Update()
@@ -124,18 +54,18 @@ public class EndOfDayUI : MonoBehaviour
 
         ShowSummary();
     }
+
     private void ShowSummary()
     {
         summaryShown = true;
 
         if (orderingUI != null && orderingUI.IsOpen)
             orderingUI.Close();
-        
+
         UpdateSummaryText();
-        UpdateHighlights();
-        SetDetailsVisible(false);
 
         endOfDayPanel.SetActive(true);
+        endOfDayPanel.transform.SetAsLastSibling();
 
         if (interactionUI != null)
             interactionUI.HidePrompt();
@@ -151,394 +81,60 @@ public class EndOfDayUI : MonoBehaviour
 
         Time.timeScale = 0f;
     }
-    
-    private void UpdateHighlights()
-    {
-        if (highlightsText == null || dailyStats == null)
-            return;
 
+    private void UpdateSummaryText()
+    {
+        int day = storeClock.CurrentDay;
         int served = dailyStats.CustomersServed;
         string customerWord = served == 1 ? "customer" : "customers";
+
+        dayCompleteText.text = $"DAY {day} COMPLETE!";
 
         highlightsText.text =
             $"Sales £{dailyStats.Revenue:0.00}   •   " +
             $"{served} {customerWord} served";
+
+        if (achievementText != null)
+            achievementText.text = GetAchievementMessage();
+
+        if (startNextDayButton != null)
+        {
+            TMP_Text buttonText =
+                startNextDayButton.GetComponentInChildren<TMP_Text>();
+
+            if (buttonText != null)
+                buttonText.text = $"START DAY {day + 1}";
+        }
     }
 
-    private void ToggleDetails()
+    private string GetAchievementMessage()
     {
-        if (!summaryShown)
-            return;
+        if (storeLevelProgression != null &&
+            storeLevelProgression.LeveledUpLastProcessing)
+        {
+            return $"Store level {storeLevelProgression.CurrentLevel} reached!";
+        }
 
-        SetDetailsVisible(!detailsVisible);
+        if (storeProgression != null &&
+            storeProgression.LastNewUnlockCount > 0)
+        {
+            int count = storeProgression.LastNewUnlockCount;
+            string productWord = count == 1 ? "product" : "products";
+            return $"{count} new {productWord} unlocked!";
+        }
+
+        if (storeGoals != null && storeGoals.AllGoalsCompleted)
+            return "All today's goals complete!";
+
+        return "Tomorrow brings a fresh start.";
     }
 
-    private void SetDetailsVisible(bool visible)
-    {
-        detailsVisible = visible;
-
-        if (summaryCard != null)
-            summaryCard.sizeDelta = visible ? expandedCardSize : compactCardSize;
-
-        if (detailsGroup != null)
-            detailsGroup.SetActive(visible);
-
-        if (highlightsText != null)
-            highlightsText.gameObject.SetActive(!visible);
-
-        if (detailsButtonText != null)
-            detailsButtonText.text = visible ? "HIDE DETAILS" : "VIEW DETAILS";
-    }
-
-    
-    private void UpdateSummaryText()
-    {
-        var day =
-            storeClock.CurrentDay;
-
-        dayCompleteText.text =
-            "DAY "
-            + day
-            + " COMPLETE";
-
-        UpdateFinancialText();
-
-        UpdateCustomerText();
-
-        UpdateReputationText();
-
-        UpdateUnlockText();
-
-        UpdateGoalResultsText();
-
-        UpdateStoreLevelText();
-
-        endingCashText.text =
-            "Ending Cash     £"
-            + storeEconomy.CurrentMoney
-                .ToString("0.00");
-
-        var buttonText =
-            startNextDayButton
-                .GetComponentInChildren<
-                    TMP_Text
-                >();
-
-        if (buttonText != null)
-            buttonText.text =
-                "START DAY "
-                + (day + 1);
-    }
-
-    private void UpdateFinancialText()
-    {
-        var revenue =
-            dailyStats.Revenue;
-
-        var stockSpending =
-            dailyStats.StockSpending;
-
-        var netCashFlow =
-            dailyStats.NetCashFlow;
-
-        revenueText.text =
-            "Revenue     +£"
-            + revenue.ToString("0.00");
-
-        stockSpendingText.text =
-            "Stock Orders     -£"
-            + stockSpending.ToString("0.00");
-
-        string netPrefix;
-
-        if (netCashFlow > 0f)
-        {
-            netPrefix =
-                "+£";
-
-            netCashFlowText.color =
-                PositiveColor;
-        }
-        else if (netCashFlow < 0f)
-        {
-            netPrefix =
-                "-£";
-
-            netCashFlowText.color =
-                NegativeColor;
-        }
-        else
-        {
-            netPrefix =
-                "£";
-
-            netCashFlowText.color =
-                NeutralColor;
-        }
-
-        netCashFlowText.text =
-            "Net Cash Flow     "
-            + netPrefix
-            + Mathf.Abs(
-                netCashFlow
-            ).ToString("0.00");
-    }
-
-    private void UpdateCustomerText()
-    {
-        if (dailyStats.CustomersVisited <= 0)
-        {
-            averageSatisfactionText.text =
-                "Average Satisfaction     N/A";
-
-            averageSatisfactionText.color =
-                NeutralColor;
-        }
-        else
-        {
-            var satisfaction =
-                dailyStats.AverageSatisfaction;
-
-            averageSatisfactionText.text =
-                "Average Satisfaction     "
-                + satisfaction.ToString("0")
-                + "%";
-
-            if (satisfaction >= 80f)
-                averageSatisfactionText.color =
-                    PositiveColor;
-            else if (satisfaction >= 50f)
-                averageSatisfactionText.color =
-                    MediumColor;
-            else
-                averageSatisfactionText.color =
-                    NegativeColor;
-        }
-
-        missedProductsText.text =
-            "Products Missed     "
-            + dailyStats.MissedProducts;
-
-        emptyHandedText.text =
-            "Left Empty-Handed     "
-            + dailyStats
-                .CustomersLeftWithoutBuying;
-
-        itemsSoldText.text =
-            "Items Sold     "
-            + dailyStats.ItemsSold;
-
-        customersServedText.text =
-            "Customers Served     "
-            + dailyStats.CustomersServed;
-    }
-
-    private void UpdateReputationText()
-    {
-        if (storeReputation == null)
-        {
-            reputationResultText.text =
-                "Reputation     Not configured";
-
-            reputationResultText.color =
-                NeutralColor;
-
-            return;
-        }
-
-        var reputation =
-            storeReputation.CurrentReputation;
-
-        var change =
-            storeReputation.LastDailyChange;
-
-        string changeText;
-
-        if (change > 0f)
-        {
-            changeText =
-                "+"
-                + change.ToString("0.0");
-
-            reputationResultText.color =
-                PositiveColor;
-        }
-        else if (change < 0f)
-        {
-            changeText =
-                change.ToString("0.0");
-
-            reputationResultText.color =
-                NegativeColor;
-        }
-        else
-        {
-            changeText =
-                "0.0";
-
-            reputationResultText.color =
-                NeutralColor;
-        }
-
-        reputationResultText.text =
-            "Reputation     "
-            + reputation.ToString("0.0")
-            + " / 100 ("
-            + changeText
-            + ")";
-    }
-
-    private void UpdateUnlockText()
-    {
-        if (storeProgression == null)
-        {
-            unlockText.text =
-                "New Unlocks     Not configured";
-
-            unlockText.color =
-                NeutralColor;
-
-            return;
-        }
-
-        if (storeProgression.LastNewUnlockCount <= 0)
-        {
-            unlockText.text =
-                "New Unlocks     None";
-
-            unlockText.color =
-                UnlockColor;
-
-            return;
-        }
-
-        var unlockedNames =
-            "";
-
-        for (var i = 0;
-             i < storeProgression.LastNewUnlockCount;
-             i++)
-        {
-            var product =
-                storeProgression
-                    .GetLastNewUnlock(
-                        i
-                    );
-
-            if (product == null) continue;
-
-            if (!string.IsNullOrEmpty(
-                    unlockedNames
-                ))
-                unlockedNames +=
-                    ", ";
-
-            unlockedNames +=
-                product.ProductName;
-        }
-
-        if (storeProgression.LastNewUnlockCount == 1)
-            unlockText.text =
-                "NEW PRODUCT UNLOCKED     "
-                + unlockedNames;
-        else
-            unlockText.text =
-                "NEW PRODUCTS UNLOCKED     "
-                + unlockedNames;
-
-        unlockText.color =
-            PositiveColor;
-    }
-
-    private void UpdateGoalResultsText()
-    {
-        if (storeGoals == null)
-        {
-            goalResultsText.text =
-                "Daily Goals     Not configured";
-
-            goalResultsText.color =
-                NeutralColor;
-
-            return;
-        }
-
-        var completed =
-            storeGoals.CompletedGoalCount;
-
-        var total =
-            storeGoals.GoalCount;
-
-        var bonusSuffix =
-            "";
-
-        if (storeGoals.AllGoalsBonusClaimed)
-            bonusSuffix =
-                "  •  ALL GOALS BONUS!";
-
-        goalResultsText.text =
-            "Daily Goals     "
-            + completed
-            + " / "
-            + total
-            + "\nGoal Rewards     +£"
-            + storeGoals
-                .TotalRewardsPaidToday
-                .ToString("0.00")
-            + bonusSuffix;
-
-        goalResultsText.color =
-            storeGoals.AllGoalsCompleted
-                ? PositiveColor
-                : NeutralColor;
-    }
-
-    private void UpdateStoreLevelText()
-    {
-        if (storeLevelProgression == null)
-        {
-            storeLevelResultText.text =
-                "Store Level     Not configured";
-
-            storeLevelResultText.color =
-                NeutralColor;
-
-            return;
-        }
-
-        var levelUpSuffix =
-            "";
-
-        if (storeLevelProgression
-            .LeveledUpLastProcessing)
-            levelUpSuffix =
-                "  •  LEVEL UP!";
-
-        storeLevelResultText.text =
-            "Store Level     "
-            + storeLevelProgression
-                .CurrentLevel
-            + "  •  +"
-            + storeLevelProgression
-                .LastExperienceGained
-            + " XP"
-            + levelUpSuffix;
-
-        storeLevelResultText.color =
-            storeLevelProgression
-                .LeveledUpLastProcessing
-                ? PositiveColor
-                : UnlockColor;
-    }
-    
     private void StartNextDay()
     {
         if (storeDayLifecycle == null || !storeDayLifecycle.StartNextDay())
             return;
 
         Time.timeScale = 1f;
-
-        SetDetailsVisible(false);
         endOfDayPanel.SetActive(false);
 
         if (playerController != null)
@@ -552,9 +148,9 @@ public class EndOfDayUI : MonoBehaviour
 
         summaryShown = false;
     }
+
     private void OnDestroy()
     {
-        Time.timeScale =
-            1f;
+        Time.timeScale = 1f;
     }
 }

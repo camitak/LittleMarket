@@ -46,26 +46,6 @@ Examples:
 - Ordering/supplier systems ask whether the supplier cutoff has passed.
 - OrderingTerminal asks whether closing time has passed.
 
-## GameUI
-
-Scene GameObject: `GameUI`
-
-Owns screen-space UI controllers including:
-
-- `InteractionUI`
-- `OrderingUI`
-- `EndOfDayUI`
-- `PauseMenuUI`
-- `ProductCatalogueUI`
-- `ManagerBookUI`
-- `StockWatchUI`
-- `StoreGoalsUI`
-- `StoreLevelUI`
-- `StorageCapacityUI`
-- `BasketContentsHUD`
-- `BasketLocatorUI`
-
-
 ### StoreDayLifecycle
 
 Scene GameObject: `StoreSystems`
@@ -83,6 +63,7 @@ Responsibilities:
 - Claim completed goal rewards through StoreGoals.
 - Apply daily XP through StoreLevelProgression.
 - Refresh product unlocks through StoreProgression.
+- Request a completed-day snapshot from StoreReportHistory.
 - Coordinate starting the next day and resetting daily state.
 
 StoreDayLifecycle does not define opening or closing times.
@@ -113,7 +94,7 @@ Responsibilities:
 - Keep one historical record per completed day.
 - Preserve financial, customer, reputation, goal, and level results.
 - Record newly unlocked products using stable ProductIDs.
-- Provide read-only historical data for future reporting UI.
+- Provide historical data for reporting UI.
 - Export and restore report history through SaveManager.
 
 StoreDayLifecycle requests report capture after:
@@ -133,9 +114,28 @@ DailyReportData is a serializable data class, not a MonoBehaviour.
 The current implementation keeps completed-day reports in a list,
 ordered by day. It does not impose an arbitrary history limit.
 
-Future Manager Book Reports pages should query StoreReportHistory
-rather than reconstructing previous days from current gameplay state.
+Manager Book Reports reads this history rather than reconstructing
+previous days from current gameplay state.
 
+## GameUI
+
+Scene GameObject: `GameUI`
+
+Owns screen-space UI controllers including:
+
+- `InteractionUI`
+- `OrderingUI`
+- `EndOfDayUI`
+- `PauseMenuUI`
+- `ProductCatalogueUI`
+- `ManagerBookUI`
+- `ReportsUI`
+- `StockWatchUI`
+- `StoreGoalsUI`
+- `StoreLevelUI`
+- `StorageCapacityUI`
+- `BasketContentsHUD`
+- `BasketLocatorUI`
 
 ### HUD information rule
 
@@ -157,6 +157,7 @@ Contextual information may appear only while relevant, for example:
 Management information should live inside `ManagerBookUI` rather than remain
 permanently visible.
 
+### ManagerBookUI
 
 Current Manager Book pages:
 
@@ -178,7 +179,6 @@ Future candidates include:
 - Orders
 - Store progression/upgrades
 
-
 ### EndOfDayUI
 
 Scene GameObject: `GameUI`
@@ -187,32 +187,27 @@ Component: `EndOfDayUI`
 
 Presentation-only controller for the end-of-day transition.
 
-Current behavior:
+Lesson 90 behavior:
 
 - Observes `StoreDayLifecycle.IsDayComplete`.
-- Opens the end-of-day screen when processing is finished.
-- Displays a compact Day Complete summary by default.
-- Shows sales revenue and customers served as quick highlights.
-- Allows the player to expand the existing detailed statistics
-  through the View Details button.
-- Allows the player to return to the compact presentation.
+- Opens one compact Day Complete screen when day processing is finished.
+- Displays the completed day, sales revenue, and customers served.
+- Shows one short achievement message, prioritizing a store level-up,
+  then new product unlocks, then completion of all daily goals.
+- Shows a neutral message if no such achievement occurred.
 - Starts the next day through `StoreDayLifecycle.StartNextDay()`.
+- Handles the transition screen's cursor, player controls, and time pause.
 
-The detailed presentation currently includes:
+The former expanded end-of-day report and View Details button
+are removed in Lesson 90. Detailed reports are available in
+Manager Book -> Reports during normal gameplay.
 
-- revenue, supplier spending, and net cash flow
-- customer satisfaction and reputation changes
-- goal results and money rewards
-- store level, XP, and product unlocks
-- products missed and customers leaving without buying
-- items sold, customers served, and ending cash
+EndOfDayUI reads existing gameplay data for presentation.
+It does not award rewards, change reputation, grant XP, unlock products,
+or write report history.
 
-The detailed values are read from the existing authoritative
-systems. EndOfDayUI does not calculate or award gameplay rewards.
-
-The detailed report is optional. Players should not be forced
-to read financial and operational statistics to continue playing.
-
+The end-of-day screen is intentionally brief and pleasant.
+Financial and operational reports are not compulsory screens.
 
 ### ReportsUI
 
@@ -252,15 +247,10 @@ historical snapshots.
 The Reports page is available only through the Manager Book.
 No additional permanent gameplay HUD is introduced.
 
-
-### Reports Direction
-
-ManagerBookUI now includes a Reports page.
+### Reports direction
 
 Completed-day history is retained by StoreReportHistory and
 persisted through SaveManager.
-
-ReportsUI provides read-only access to previous days.
 
 Current POC features:
 
@@ -271,12 +261,6 @@ Current POC features:
 - Names of newly unlocked products.
 - A safe empty state for players without historical reports.
 
-The end-of-day transition remains compact, with its existing
-optional detailed view.
-
-A future lesson may remove the detailed end-of-day view once
-the Reports page has been sufficiently playtested.
-
 Future reporting improvements may include:
 
 - Better visual hierarchy and formatting.
@@ -286,14 +270,11 @@ Future reporting improvements may include:
 
 Historical reports should not become a compulsory gameplay screen.
 
-
 ## OrderingTerminal
 
 Scene GameObject: `OrderingTerminal`
 
-Component:
-
-- `OrderingTerminal`
+Component: `OrderingTerminal`
 
 Physical interaction point for:
 
@@ -342,9 +323,7 @@ Owns the active manual checkout transaction and physical scanner/bag flow.
 
 Scene GameObject: `BasketStation`
 
-Component:
-
-- `BasketStation`
+Component: `BasketStation`
 
 Owns the restock basket's home/recovery interaction.
 
@@ -385,7 +364,6 @@ not to per-category shelf transforms.
 
 SaveManager coordinates persistence but should not become the owner of gameplay rules.
 
-
 Current save version: 17.
 
 Version 17 introduces persistent completed-day reports.
@@ -406,7 +384,6 @@ reconstructed reliably and are not backfilled with invented data.
 Historical reports survive daily-stat resets and save/load cycles.
 
 The existing save restrictions remain unchanged in this version.
-
 
 ## Ownership rule
 
