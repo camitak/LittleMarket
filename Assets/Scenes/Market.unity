@@ -10703,6 +10703,7 @@ GameObject:
   - component: {fileID: 1117834540}
   - component: {fileID: 1117834541}
   - component: {fileID: 1117834542}
+  - component: {fileID: 1117834543}
   m_Layer: 0
   m_Name: StoreSystems
   m_TagString: Untagged
@@ -10872,6 +10873,7 @@ MonoBehaviour:
   storageRegistry: {fileID: 1117834541}
   deliveryZone: {fileID: 43201577}
   worldItemRegistry: {fileID: 1117834537}
+  storeReportHistory: {fileID: 1117834543}
   deliveryBoxPrefab: {fileID: 2451739325236826120, guid: d6fd02bc723a5674ebd36140829485fc, type: 3}
   supplierDeliveryQueue: {fileID: 43201578}
   playerInteraction: {fileID: 1349577615}
@@ -10962,6 +10964,25 @@ MonoBehaviour:
   storeClock: {fileID: 1117834532}
   customerFlow: {fileID: 1117834531}
   dailyStats: {fileID: 1117834533}
+  storeReputation: {fileID: 1117834534}
+  storeGoals: {fileID: 1117834538}
+  storeLevelProgression: {fileID: 1117834539}
+  storeProgression: {fileID: 1117834535}
+  storeReportHistory: {fileID: 1117834543}
+--- !u!114 &1117834543
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1117834526}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c1b2de180676f7b49a26faa28423f8c4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::StoreReportHistory
+  dailyStats: {fileID: 1117834533}
+  storeEconomy: {fileID: 1117834528}
   storeReputation: {fileID: 1117834534}
   storeGoals: {fileID: 1117834538}
   storeLevelProgression: {fileID: 1117834539}

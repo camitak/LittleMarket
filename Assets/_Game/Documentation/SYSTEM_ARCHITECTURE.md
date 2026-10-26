@@ -24,6 +24,7 @@ Owns store-wide state and rules:
 - `StoreStockOverview`
 - `WorldItemRegistry`
 - `StoreDayLifecycle`
+- `StoreReportHistory`
 
 ### StoreClock
 
@@ -98,6 +99,43 @@ The end-of-day presentation can therefore be redesigned
 without transferring gameplay progression responsibilities
 back into the UI.
 
+### StoreReportHistory
+
+Scene GameObject: `StoreSystems`
+
+Component: `StoreReportHistory`
+
+Owns historical reports for completed store days.
+
+Responsibilities:
+
+- Capture a snapshot after end-of-day progression is processed.
+- Keep one historical record per completed day.
+- Preserve financial, customer, reputation, goal, and level results.
+- Record newly unlocked products using stable ProductIDs.
+- Provide read-only historical data for future reporting UI.
+- Export and restore report history through SaveManager.
+
+StoreDayLifecycle requests report capture after:
+
+1. Daily reputation has been processed.
+2. Goal rewards have been claimed.
+3. Store Level XP has been applied.
+4. Product unlocks have been refreshed.
+
+DailyStats remains authoritative for the current day's statistics.
+
+StoreReportHistory does not maintain independent live counters.
+Historical records are snapshots of completed-day results.
+
+DailyReportData is a serializable data class, not a MonoBehaviour.
+
+The current implementation keeps completed-day reports in a list,
+ordered by day. It does not impose an arbitrary history limit.
+
+Future Manager Book Reports pages should query StoreReportHistory
+rather than reconstructing previous days from current gameplay state.
+
 
 ### HUD information rule
 
@@ -171,24 +209,25 @@ systems. EndOfDayUI does not calculate or award gameplay rewards.
 The detailed report is optional. Players should not be forced
 to read financial and operational statistics to continue playing.
 
+
 ### Future Reports Direction
 
-Detailed reporting should eventually move to
-`ManagerBookUI → Reports`.
+Completed-day report retention is implemented through
+StoreReportHistory and DailyReportData.
 
-This future page should make statistics available on demand,
-including information from completed days where appropriate.
+The next step is adding a Reports page to ManagerBookUI.
 
-The current DailyStats values are reset when a new day begins.
-Historical reporting therefore requires an explicit data-retention
-design before removing the detailed end-of-day view entirely.
+The page should:
 
-Do not introduce duplicate gameplay counters just for reporting.
-Prefer capturing completed-day results from existing authoritative
-systems.
+- Show available completed-day reports.
+- Allow the player to choose a previous day.
+- Display financial and operational information on demand.
+- Read saved historical snapshots instead of live DailyStats.
+- Avoid duplicate gameplay calculations or counters.
 
-The end-of-day transition should remain small, pleasant,
-and focused on continuing the supermarket gameplay loop.
+EndOfDayUI should remain a compact transition presentation.
+
+Detailed financial reports should not be compulsory screens.
 
 
 ## OrderingTerminal
@@ -289,7 +328,28 @@ not to per-category shelf transforms.
 
 SaveManager coordinates persistence but should not become the owner of gameplay rules.
 
-Current save version: 16.
+
+Current save version: 17.
+
+Version 17 introduces persistent completed-day reports.
+
+StoreSaveData includes a list of DailyReportData entries.
+
+SaveManager:
+
+- Saves the report history alongside existing store data.
+- Restores historical reports when loading version 17 saves.
+- Initializes empty report history when loading older saves.
+
+Older saves remain compatible with the existing loading process.
+
+Completed days from saves created before version 17 cannot be
+reconstructed reliably and are not backfilled with invented data.
+
+Historical reports survive daily-stat resets and save/load cycles.
+
+The existing save restrictions remain unchanged in this version.
+
 
 ## Ownership rule
 

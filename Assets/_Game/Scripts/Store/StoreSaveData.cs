@@ -31,4 +31,6 @@ public class StoreSaveData
     public StoreGoalsSaveData goalRewards;
 
     public StoreLevelSaveData storeLevel;
+    
+    public List<DailyReportData> dailyReports = new();
 }

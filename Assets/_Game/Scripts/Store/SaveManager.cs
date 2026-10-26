@@ -4,39 +4,29 @@ using UnityEngine;
 
 public class SaveManager : MonoBehaviour
 {
-    private const int CurrentSaveVersion = 16;
+    private const int CurrentSaveVersion = 17;
 
-    [Header("Store References")] [SerializeField]
-    private StoreClock storeClock;
-
+    [Header("Store References")] 
+    [SerializeField] private StoreClock storeClock;
     [SerializeField] private StoreEconomy storeEconomy;
-
     [SerializeField] private StoreReputation storeReputation;
-
     [SerializeField] private StoreProgression storeProgression;
-
     [SerializeField] private DailyStats dailyStats;
-
     [SerializeField] private StoreGoals storeGoals;
-
     [SerializeField] private StoreLevelProgression storeLevelProgression;
-
     [SerializeField] private CustomerFlow customerFlow;
-
     [SerializeField] private ShelfRegistry shelfRegistry;
-
     [SerializeField] private StorageRegistry storageRegistry;
-
     [SerializeField] private DeliveryZone deliveryZone;
-
     [SerializeField] private WorldItemRegistry worldItemRegistry;
+    [SerializeField] private StoreReportHistory storeReportHistory;
 
     [Header("Delivery")] 
     [SerializeField] private DeliveryBox deliveryBoxPrefab;
     [SerializeField] private SupplierDeliveryQueue supplierDeliveryQueue;
 
-    [Header("Player")] [SerializeField] private PlayerInteraction playerInteraction;
-
+    [Header("Player")] 
+    [SerializeField] private PlayerInteraction playerInteraction;
     [SerializeField] private RestockBasket restockBasket;
 
     public string LastOperationMessage { get; private set; } = "";
@@ -69,8 +59,7 @@ public class SaveManager : MonoBehaviour
 
         if (!CanUseSaveSystemNow()) return false;
 
-        var saveData =
-            new StoreSaveData();
+        var saveData = new StoreSaveData();
 
         saveData.saveVersion = CurrentSaveVersion;
 
@@ -99,6 +88,8 @@ public class SaveManager : MonoBehaviour
         saveData.goalRewards = storeGoals.CreateSaveData();
 
         saveData.storeLevel = storeLevelProgression.CreateSaveData();
+        
+        saveData.dailyReports = storeReportHistory.CreateSaveData();
 
         var json =
             JsonUtility.ToJson(
@@ -928,6 +919,20 @@ public class SaveManager : MonoBehaviour
                 + "storage persistence."
             );
         }
+        
+        
+        if (saveData.saveVersion >= 17)
+        {
+            storeReportHistory.RestoreFromSaveData(saveData.dailyReports);
+        }
+        else
+        {
+            storeReportHistory.RestoreFromSaveData(null);
+
+            Debug.Log(
+                "Older save loaded. Historical day reports begin with version 17."
+            );
+        }
 
         customerFlow.ResetForNewDay();
     }
@@ -1052,6 +1057,8 @@ public class SaveManager : MonoBehaviour
         if (storageRegistry == null) return false;
 
         if (restockBasket == null) return false;
+        
+        if (storeReportHistory == null) return false;
 
         return true;
     }

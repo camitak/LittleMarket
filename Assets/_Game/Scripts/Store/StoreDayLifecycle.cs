@@ -11,6 +11,7 @@ public class StoreDayLifecycle : MonoBehaviour
     [SerializeField] private StoreGoals storeGoals;
     [SerializeField] private StoreLevelProgression storeLevelProgression;
     [SerializeField] private StoreProgression storeProgression;
+    [SerializeField] private StoreReportHistory storeReportHistory;
 
     private int completedDay = -1;
 
@@ -59,9 +60,13 @@ public class StoreDayLifecycle : MonoBehaviour
             allGoalsCompleted
         );
 
+        
         storeProgression.RefreshUnlocks();
 
+        storeReportHistory.CaptureCompletedDay(completedDay);
+
         Debug.Log($"Little Market: Day {completedDay} completed.");
+
     }
 
     public bool StartNextDay()
@@ -88,6 +93,7 @@ public class StoreDayLifecycle : MonoBehaviour
                storeReputation != null &&
                storeGoals != null &&
                storeLevelProgression != null &&
-               storeProgression != null;
+               storeProgression != null &&
+               storeReportHistory != null;
     }
 }
