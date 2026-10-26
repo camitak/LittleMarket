@@ -6,6 +6,17 @@ public class EndOfDayUI : MonoBehaviour
 {
     [Header("Panel")] 
     [SerializeField] private GameObject endOfDayPanel;
+    
+    [Header("Compact Summary")]
+    [SerializeField] private RectTransform summaryCard;
+    [SerializeField] private GameObject detailsGroup;
+    [SerializeField] private TMP_Text highlightsText;
+    [SerializeField] private Button detailsButton;
+    [SerializeField] private TMP_Text detailsButtonText;
+    [SerializeField] private Vector2 compactCardSize = new(620f, 360f);
+    [SerializeField] private Vector2 expandedCardSize = new(620f, 970f);
+
+    private bool detailsVisible;
 
     [Header("Financial Summary")] 
     [SerializeField] private TMP_Text dayCompleteText;
@@ -90,18 +101,19 @@ public class EndOfDayUI : MonoBehaviour
             255
         );
 
+    
     private void Awake()
     {
-        startNextDayButton.onClick.AddListener(
-            StartNextDay
-        );
+        startNextDayButton.onClick.AddListener(StartNextDay);
 
-        endOfDayPanel.SetActive(
-            false
-        );
+        if (detailsButton != null)
+            detailsButton.onClick.AddListener(ToggleDetails);
+
+        SetDetailsVisible(false);
+
+        endOfDayPanel.SetActive(false);
     }
 
-    
     private void Update()
     {
         if (summaryShown)
@@ -118,8 +130,10 @@ public class EndOfDayUI : MonoBehaviour
 
         if (orderingUI != null && orderingUI.IsOpen)
             orderingUI.Close();
-
+        
         UpdateSummaryText();
+        UpdateHighlights();
+        SetDetailsVisible(false);
 
         endOfDayPanel.SetActive(true);
 
@@ -137,6 +151,45 @@ public class EndOfDayUI : MonoBehaviour
 
         Time.timeScale = 0f;
     }
+    
+    private void UpdateHighlights()
+    {
+        if (highlightsText == null || dailyStats == null)
+            return;
+
+        int served = dailyStats.CustomersServed;
+        string customerWord = served == 1 ? "customer" : "customers";
+
+        highlightsText.text =
+            $"Sales £{dailyStats.Revenue:0.00}   •   " +
+            $"{served} {customerWord} served";
+    }
+
+    private void ToggleDetails()
+    {
+        if (!summaryShown)
+            return;
+
+        SetDetailsVisible(!detailsVisible);
+    }
+
+    private void SetDetailsVisible(bool visible)
+    {
+        detailsVisible = visible;
+
+        if (summaryCard != null)
+            summaryCard.sizeDelta = visible ? expandedCardSize : compactCardSize;
+
+        if (detailsGroup != null)
+            detailsGroup.SetActive(visible);
+
+        if (highlightsText != null)
+            highlightsText.gameObject.SetActive(!visible);
+
+        if (detailsButtonText != null)
+            detailsButtonText.text = visible ? "HIDE DETAILS" : "VIEW DETAILS";
+    }
+
     
     private void UpdateSummaryText()
     {
@@ -485,6 +538,7 @@ public class EndOfDayUI : MonoBehaviour
 
         Time.timeScale = 1f;
 
+        SetDetailsVisible(false);
         endOfDayPanel.SetActive(false);
 
         if (playerController != null)

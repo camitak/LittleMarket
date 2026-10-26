@@ -134,6 +134,61 @@ Future candidates include:
 - Reports
 - Orders
 - Store progression/upgrades
+- Store progression/upgrades
+
+
+### EndOfDayUI
+
+Scene GameObject: `GameUI`
+
+Component: `EndOfDayUI`
+
+Presentation-only controller for the end-of-day transition.
+
+Current behavior:
+
+- Observes `StoreDayLifecycle.IsDayComplete`.
+- Opens the end-of-day screen when processing is finished.
+- Displays a compact Day Complete summary by default.
+- Shows sales revenue and customers served as quick highlights.
+- Allows the player to expand the existing detailed statistics
+  through the View Details button.
+- Allows the player to return to the compact presentation.
+- Starts the next day through `StoreDayLifecycle.StartNextDay()`.
+
+The detailed presentation currently includes:
+
+- revenue, supplier spending, and net cash flow
+- customer satisfaction and reputation changes
+- goal results and money rewards
+- store level, XP, and product unlocks
+- products missed and customers leaving without buying
+- items sold, customers served, and ending cash
+
+The detailed values are read from the existing authoritative
+systems. EndOfDayUI does not calculate or award gameplay rewards.
+
+The detailed report is optional. Players should not be forced
+to read financial and operational statistics to continue playing.
+
+### Future Reports Direction
+
+Detailed reporting should eventually move to
+`ManagerBookUI → Reports`.
+
+This future page should make statistics available on demand,
+including information from completed days where appropriate.
+
+The current DailyStats values are reset when a new day begins.
+Historical reporting therefore requires an explicit data-retention
+design before removing the detailed end-of-day view entirely.
+
+Do not introduce duplicate gameplay counters just for reporting.
+Prefer capturing completed-day results from existing authoritative
+systems.
+
+The end-of-day transition should remain small, pleasant,
+and focused on continuing the supermarket gameplay loop.
 
 
 ## OrderingTerminal
