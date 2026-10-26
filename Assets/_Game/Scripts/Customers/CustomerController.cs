@@ -11,6 +11,11 @@ public class CustomerController : MonoBehaviour
     [SerializeField] private Transform checkoutBagCarryPoint;
     [SerializeField] private Transform visual;
 
+    [Header("Shelf Browsing")]
+    [Min(0.05f)] [SerializeField] private float shelfBrowseDuration = 0.85f;
+    [Min(0f)] [SerializeField] private float shelfTurnDegreesPerSecond = 360f;
+    [Range(0f, 20f)] [SerializeField] private float shelfLeanDegrees = 10f;
+
     private NavMeshAgent agent;
     private ProductData[] shoppingList;
     private ShelfRegistry shelfRegistry;
@@ -26,6 +31,8 @@ public class CustomerController : MonoBehaviour
     private Transform assignedQueuePoint;
     private bool isConfigured;
     private Vector3 visualBaseScale;
+    private Quaternion visualBaseLocalRotation;
+    private float shelfBrowseElapsed;
     private Coroutine happyReactionRoutine;
 
     // Satisfaction
@@ -48,12 +55,14 @@ public class CustomerController : MonoBehaviour
     
     private void Awake()
     {
-        agent =
-            GetComponent<NavMeshAgent>();
-
+        agent = GetComponent<NavMeshAgent>();
+        
         if (visual != null)
-            visualBaseScale =
-                visual.localScale;
+        {
+            visualBaseScale = visual.localScale;
+            visualBaseLocalRotation = visual.localRotation;
+        }
+
     }
 
     private void Update()
@@ -74,7 +83,7 @@ public class CustomerController : MonoBehaviour
                 break;
 
             case CustomerState.TakingProduct:
-                TakeProduct();
+                UpdateShelfBrowsing();
                 break;
 
             case CustomerState.WaitingForCheckoutSpace:
@@ -153,8 +162,7 @@ public class CustomerController : MonoBehaviour
 
         currentState = CustomerState.WalkingIntoStore;
 
-        bool destinationAccepted =
-            agent.SetDestination(entranceInsidePoint.position);
+        bool destinationAccepted = agent.SetDestination(entranceInsidePoint.position);
 
         if (!destinationAccepted)
         {
@@ -174,8 +182,7 @@ public class CustomerController : MonoBehaviour
     
     private void SearchForNextProduct()
     {
-        currentState =
-            CustomerState.SearchingForProduct;
+        currentState = CustomerState.SearchingForProduct;
 
         if (shoppingList == null)
         {
@@ -189,8 +196,7 @@ public class CustomerController : MonoBehaviour
             return;
         }
 
-        if (currentShoppingIndex
-            >= shoppingList.Length)
+        if (currentShoppingIndex >= shoppingList.Length)
         {
             BeginCheckout();
             return;
@@ -233,11 +239,9 @@ public class CustomerController : MonoBehaviour
             return;
         }
 
-        targetShelfSlot =
-            foundSlot;
+        targetShelfSlot = foundSlot;
 
-        var shoppingPoint =
-            targetShelfSlot.CustomerStandPoint;
+        var shoppingPoint = targetShelfSlot.CustomerStandPoint;
 
         if (shoppingPoint == null)
         {
@@ -259,12 +263,79 @@ public class CustomerController : MonoBehaviour
         if (!destinationAccepted) BeginLeaving();
     }
 
+    
     private void UpdateWalkingToProduct()
     {
-        if (!HasReachedDestination()) return;
+        if (!HasReachedDestination())
+            return;
 
-        currentState =
-            CustomerState.TakingProduct;
+        agent.ResetPath();
+        agent.updateRotation = false;
+
+        shelfBrowseElapsed = 0f;
+
+        currentState = CustomerState.TakingProduct;
+    }
+
+    private void UpdateShelfBrowsing()
+    {
+        if (targetShelfSlot == null)
+        {
+            FinishShelfBrowsing();
+            return;
+        }
+
+        shelfBrowseElapsed += Time.deltaTime;
+
+        // Turn toward the selected shelf slot.
+        Vector3 shelfDirection =
+            targetShelfSlot.transform.position - transform.position;
+
+        shelfDirection.y = 0f;
+
+        if (shelfDirection.sqrMagnitude > 0.001f)
+        {
+            Quaternion targetRotation =
+                Quaternion.LookRotation(shelfDirection);
+
+            transform.rotation = Quaternion.RotateTowards(
+                transform.rotation,
+                targetRotation,
+                shelfTurnDegreesPerSecond * Time.deltaTime
+            );
+        }
+
+        // Animate a small forward lean and return.
+        float duration = Mathf.Max(0.05f, shelfBrowseDuration);
+
+        float progress = Mathf.Clamp01(
+            shelfBrowseElapsed / duration
+        );
+
+        if (visual != null)
+        {
+            float leanAngle =
+                Mathf.Sin(progress * Mathf.PI) * shelfLeanDegrees;
+
+            visual.localRotation =
+                visualBaseLocalRotation *
+                Quaternion.Euler(leanAngle, 0f, 0f);
+        }
+
+        if (shelfBrowseElapsed < duration)
+            return;
+
+        FinishShelfBrowsing();
+    }
+
+    private void FinishShelfBrowsing()
+    {
+        if (visual != null)
+            visual.localRotation = visualBaseLocalRotation;
+
+        agent.updateRotation = true;
+
+        TakeProduct();
     }
 
     private void TakeProduct()

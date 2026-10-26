@@ -352,6 +352,41 @@ Changing the marker's colors or bob animation must not change gameplay rules.
 The checkout satisfaction grace period and penalty remain owned by
 `CustomerController`.
 
+The `PatienceText` prefab uses 3D TextMeshPro, with font size 20 confirmed
+readable in the current prototype. Its color and size are presentation settings.
+
+## Customer shelf browsing
+
+Prefab: `Assets/_Game/Prefabs/Characters/PF_CustomerPrototype.prefab`
+
+Component: `CustomerController` on the prefab root.
+
+Lesson 92 introduces a short, physical shelf-browsing moment before the
+customer takes a stocked product.
+
+Behavior:
+
+- `ShelfRegistry` and `ShelfSlot` still decide what stock is available.
+- `SalesShelf.CustomerStandPoint` remains the destination for a shopper.
+- Upon reaching the stand point, the existing `TakingProduct` state is used
+  for a brief, configurable browse duration rather than taking immediately.
+- While browsing, the NavMeshAgent stops moving and its automatic rotation is
+  temporarily disabled so the customer's root can face the targeted shelf slot.
+- The child `Visual` makes a small forward-lean animation and returns to its
+  original local rotation before the interaction finishes.
+- The agent's automatic rotation is restored before the customer proceeds.
+- `ShelfSlot.TryTakeItemForCustomer()` remains the only authority for actually
+  removing stock and transferring the product into the customer carry slot.
+- If another customer takes the last item while someone is browsing, the
+  existing retry/search behavior is preserved.
+
+The browsing animation is presentation and pacing. It does not change
+product prices, the shopping list, inventory accounting, customer satisfaction,
+checkout logic, queue positions, or save data.
+
+The configurable browse duration, turn speed, and lean angle are local
+customer presentation values, not global shop-schedule rules.
+
 ## BasketStation
 
 Scene GameObject: `BasketStation`
@@ -422,6 +457,9 @@ The existing save restrictions remain unchanged in this version.
 
 Lesson 91 introduces prefab-only checkout patience visuals and two read-only
 CustomerController properties. No additional save fields are required.
+
+Lesson 92 adds an in-memory shopping animation and delay in CustomerController.
+No new persistence fields or save-version changes are required.
 
 ## Ownership rule
 
