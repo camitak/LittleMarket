@@ -319,11 +319,46 @@ Components:
 
 Owns the active manual checkout transaction and physical scanner/bag flow.
 
+## Customer checkout feedback
+
+Prefab: `Assets/_Game/Prefabs/Characters/PF_CustomerPrototype.prefab`
+
+Components on prefab root:
+
+- `CustomerController`: authoritative customer behavior, checkout state,
+  accumulated waiting time and satisfaction penalties.
+- `CustomerQueuePatienceVisual`: presentation-only feedback when a customer
+  is currently waiting and checkout delay is costing satisfaction.
+
+Visual child: `PatienceText`, a small 3D TextMeshPro label above the customer.
+
+Lesson 91 behavior:
+
+- `CustomerController.IsWaitingAtCheckout` reports whether the customer is
+  in `WaitingForCheckoutSpace` or `WaitingInCheckoutQueue`.
+- `CustomerController.CurrentCheckoutWaitPenalty` exposes the existing
+  satisfaction penalty calculation without adding duplicate timing rules.
+- The patience visual is hidden before the existing checkout grace period
+  is exhausted, and while the customer is shopping, walking or leaving.
+- An amber `!` appears once the current waiting penalty becomes positive.
+- A coral `!!` appears when the existing penalty reaches the visual's
+  configurable `criticalPenalty` presentation threshold (default: 15).
+- The label gently bobs and faces the player's camera. It is not a HUD.
+
+`CustomerQueuePatienceVisual` must not change customer state, queue positions,
+checkout transactions, the accumulated wait, or any satisfaction values.
+
+Changing the marker's colors or bob animation must not change gameplay rules.
+The checkout satisfaction grace period and penalty remain owned by
+`CustomerController`.
+
 ## BasketStation
 
 Scene GameObject: `BasketStation`
 
-Component: `BasketStation`
+Component:
+
+- `BasketStation`
 
 Owns the restock basket's home/recovery interaction.
 
@@ -384,6 +419,9 @@ reconstructed reliably and are not backfilled with invented data.
 Historical reports survive daily-stat resets and save/load cycles.
 
 The existing save restrictions remain unchanged in this version.
+
+Lesson 91 introduces prefab-only checkout patience visuals and two read-only
+CustomerController properties. No additional save fields are required.
 
 ## Ownership rule
 

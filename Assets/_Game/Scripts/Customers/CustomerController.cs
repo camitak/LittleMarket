@@ -12,54 +12,40 @@ public class CustomerController : MonoBehaviour
     [SerializeField] private Transform visual;
 
     private NavMeshAgent agent;
-
     private ProductData[] shoppingList;
-
     private ShelfRegistry shelfRegistry;
-
     private CheckoutQueue checkoutQueue;
-
     private Transform entranceInsidePoint;
     private Transform exitInsidePoint;
     private Transform exitPoint;
-
     private DailyStats dailyStats;
-
     private ShelfSlot targetShelfSlot;
-
     private CustomerState currentState;
-
     private List<PickupItem> carriedItems = new();
-
     private int currentShoppingIndex;
-
     private Transform assignedQueuePoint;
-
     private bool isConfigured;
-
     private Vector3 visualBaseScale;
-
     private Coroutine happyReactionRoutine;
 
     // Satisfaction
     private float satisfactionScore = 100f;
-
     private int missedProductCount;
-
     private float checkoutWaitSeconds;
-
     private bool completedPurchase;
-
     private bool visitReported;
-
     private const float MissingProductPenalty = 20f;
-
     private const float CheckoutGraceSeconds = 5f;
-
     private const float CheckoutPenaltyPerSecond = 2f;
-
     private const float MaxCheckoutWaitPenalty = 30f;
+    
+    public bool IsWaitingAtCheckout =>
+        isConfigured &&
+        (currentState == CustomerState.WaitingForCheckoutSpace ||
+         currentState == CustomerState.WaitingInCheckoutQueue);
 
+    public float CurrentCheckoutWaitPenalty => CalculateCheckoutWaitPenalty();
+    
     private void Awake()
     {
         agent =
