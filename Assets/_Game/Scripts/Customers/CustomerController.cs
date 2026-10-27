@@ -10,6 +10,7 @@ public class CustomerController : MonoBehaviour
     [SerializeField] private Transform[] carrySlots;
     [SerializeField] private Transform checkoutBagCarryPoint;
     [SerializeField] private Transform visual;
+    [SerializeField] private CustomerShoppingBasket customerShoppingBasket;
 
     [Header("Shelf Browsing")]
     [Min(0.05f)] [SerializeField] private float shelfBrowseDuration = 0.85f;
@@ -146,10 +147,20 @@ public class CustomerController : MonoBehaviour
         completedPurchase = false;
 
         visitReported = false;
-
+        
         isConfigured = true;
 
+        if (customerShoppingBasket != null)
+        {
+            int requestedItems = shoppingList != null
+                ? shoppingList.Length
+                : 0;
+
+            customerShoppingBasket.ConfigureForShoppingList(requestedItems);
+        }
+
         BeginEnteringStore();
+
     }
 
     private void BeginEnteringStore()
@@ -346,8 +357,7 @@ public class CustomerController : MonoBehaviour
             return;
         }
 
-        var carrySlot =
-            GetNextCarrySlot();
+        var carrySlot = GetNextCarrySlot();
 
         if (carrySlot == null)
         {
@@ -396,19 +406,29 @@ public class CustomerController : MonoBehaviour
             );
     }
 
+    
     private Transform GetNextCarrySlot()
     {
-        if (carrySlots == null) return null;
+        if (customerShoppingBasket != null &&
+            customerShoppingBasket.UsesBasket)
+        {
+            return customerShoppingBasket.GetCarryPoint(
+                carriedItems.Count
+            );
+        }
 
-        var nextIndex =
-            carriedItems.Count;
+        // Preserve the existing handheld behavior.
+        if (carrySlots == null)
+            return null;
 
-        if (nextIndex
-            >= carrySlots.Length)
+        int nextIndex = carriedItems.Count;
+
+        if (nextIndex >= carrySlots.Length)
             return null;
 
         return carrySlots[nextIndex];
     }
+
 
     private void BeginCheckout()
     {
@@ -559,11 +579,6 @@ public class CustomerController : MonoBehaviour
         return total;
     }
 
-    public bool CompleteCheckout()
-    {
-        return CompleteCheckout(null);
-    }
-
     public bool CompleteCheckout(ShoppingBag shoppingBag)
     {
         if (!IsReadyForCheckout())
@@ -597,6 +612,9 @@ public class CustomerController : MonoBehaviour
         carriedItems.Clear();
         assignedQueuePoint = null;
         completedPurchase = true;
+        
+        if (customerShoppingBasket != null)
+            customerShoppingBasket.HideAfterCheckout();
 
         if (shoppingBag != null)
         {

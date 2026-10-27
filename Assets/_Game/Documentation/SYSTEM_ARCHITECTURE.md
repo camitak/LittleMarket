@@ -415,6 +415,57 @@ Lesson 93 adds movement-responsive presentation without modifying customer AI.
 `CustomerWalkVisual` is presentation-only. It must not make navigation,
 stock selection, transaction, happiness or persistence decisions.
 
+## Customer shopping baskets (Lesson 94)
+
+Prefab: `Assets/_Game/Prefabs/Characters/PF_CustomerPrototype.prefab`.
+
+Component on the customer prefab root: `CustomerShoppingBasket`.
+Script: `Assets/_Game/Scripts/Customers/CustomerShoppingBasket.cs`.
+
+Visual hierarchy:
+
+- `ShoppingBasket` is a child of the customer root, separate from `Visual`.
+- `ShoppingBasket/BasketVisual` holds the non-colliding mesh pieces.
+- `ShoppingBasket/ItemSlotsRoot` holds runtime product carry points.
+
+Customer basket rules:
+
+- `CustomerFlow` still owns random shopping-list generation. Its Inspector
+  minimum and maximum are configurable; the previous hardcoded three-item
+  shopping-list clamp is removed. Initial playtest values are 1–4 items.
+- `CustomerShoppingBasket` chooses a basket for shopping lists containing
+  at least three items by default. Shorter lists keep the existing handheld
+  carry slots for natural small purchases.
+- When basket mode is active, `CustomerController.GetNextCarrySlot()`
+  requests a carry point from `CustomerShoppingBasket` instead of using the
+  fixed three-element `carrySlots` array.
+- `CustomerShoppingBasket.GetCarryPoint(index)` creates a child Transform on
+  demand, arranging positions in two columns, three rows, and as many layers
+  as requested. There is no hard three-item slot limit for basket customers.
+- `CustomerController.carriedItems` remains the authoritative list of acquired
+  `PickupItem` objects. The basket does not maintain another inventory list.
+- `ShelfSlot.TryTakeItemForCustomer()` remains responsible for transferring
+  stock. `PickupItem.PickUpForCustomer()` parents the real product to the
+  provided basket carry point and disables product colliders.
+- `CheckoutRegister` scans the existing customer item list using
+  `GetCarriedItemCount()` / `GetCarriedItem()`; no changes to scanner,
+  payment, bagging, or sales accounting are required.
+- After successful payment, `CustomerController` hides the shopping basket,
+  and the existing `ShoppingBag` is attached to the customer's own bag
+  carry point for the exit walk.
+
+The customer shopping basket is distinct from the player's `RestockBasket`
+(found at `BasketStation`) and from the checkout `ShoppingBag`. Their
+existing gameplay responsibilities must not be merged.
+
+Basket capacity is not artificially fixed to three items. Shopping-list size
+is still deliberately bounded by the designer's current `CustomerFlow`
+settings to preserve sensible playtest pacing and restocking pressure.
+
+A customer shopping basket and its dynamically generated item anchors are
+runtime-only objects. Active customer shopping trips are not saved, and this
+feature adds no persistence fields or save-version migration.
+
 ## BasketStation
 
 Scene GameObject: `BasketStation`
@@ -491,6 +542,10 @@ No new persistence fields or save-version changes are required.
 
 Lesson 93 introduces customer walking/idle visuals that only move the child
 Visual transform. It adds no new save fields and does not change save version 17.
+
+Lesson 94 adds runtime shopping-basket carry points and configurable larger
+shopping lists. It preserves the authoritative customer carriedItems list,
+checkout accounting, and save version 17.
 
 ## Ownership rule
 

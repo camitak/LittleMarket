@@ -9582,7 +9582,7 @@ MonoBehaviour:
   maxSpawnInterval: 10
   maxCustomersInStore: 5
   minItemsPerCustomer: 1
-  maxItemsPerCustomer: 2
+  maxItemsPerCustomer: 4
   storeClock: {fileID: 1117834532}
   dailyStats: {fileID: 1117834533}
   storeReputation: {fileID: 1117834534}

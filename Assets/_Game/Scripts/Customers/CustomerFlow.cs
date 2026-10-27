@@ -15,8 +15,8 @@ public class CustomerFlow : MonoBehaviour
     [Min(1)] [SerializeField] private int maxCustomersInStore = 3;
 
     [Header("Shopping List")] 
-    [Range(1, 3)] [SerializeField] private int minItemsPerCustomer = 1;
-    [Range(1, 3)] [SerializeField] private int maxItemsPerCustomer = 2;
+    [Min(1)] [SerializeField] private int minItemsPerCustomer = 1;
+    [Min(1)] [SerializeField] private int maxItemsPerCustomer = 4;
 
     [Header("Store References")] 
     [SerializeField] private StoreClock storeClock;
@@ -101,25 +101,12 @@ public class CustomerFlow : MonoBehaviour
 
     private ProductData[] CreateShoppingList()
     {
-        var minimumItems =
-            Mathf.Clamp(
-                minItemsPerCustomer,
-                1,
-                3
-            );
+        
+        var minimumItems = Mathf.Max(1, minItemsPerCustomer);
 
-        var maximumItems =
-            Mathf.Clamp(
-                maxItemsPerCustomer,
-                minimumItems,
-                3
-            );
-
-        var itemCount =
-            Random.Range(
-                minimumItems,
-                maximumItems + 1
-            );
+        var maximumItems = Mathf.Max(minimumItems, maxItemsPerCustomer);
+        
+        var itemCount = Random.Range(minimumItems, maximumItems + 1);
 
         var shoppingList = new ProductData[itemCount];
 
