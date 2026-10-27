@@ -415,114 +415,101 @@ Lesson 93 adds movement-responsive presentation without modifying customer AI.
 `CustomerWalkVisual` is presentation-only. It must not make navigation,
 stock selection, transaction, happiness or persistence decisions.
 
-## Customer shopping baskets (Lesson 94)
+## Customer shopping baskets (Lessons 94–96)
 
-Prefab: `Assets/_Game/Prefabs/Characters/PF_CustomerPrototype.prefab`.
+Customer prefab: `Assets/_Game/Prefabs/Characters/PF_CustomerPrototype.prefab`.
 
-Component on the customer prefab root: `CustomerShoppingBasket`.
-Script: `Assets/_Game/Scripts/Customers/CustomerShoppingBasket.cs`.
+Reusable basket prefab: `Assets/_Game/Prefabs/Store/PF_CustomerBasket.prefab`.
 
-Visual hierarchy:
+Customer root components:
 
-- `ShoppingBasket` is a child of the customer root, separate from `Visual`.
-- `ShoppingBasket/BasketVisual` holds the non-colliding mesh pieces.
-- `ShoppingBasket/ItemSlotsRoot` holds runtime product carry points.
+- `CustomerController`: owns the shopping list, authoritative `carriedItems`,
+  customer navigation, checkout state, and visit cleanup.
+- `CustomerShoppingBasket`: controls whether a basket is needed, requests one
+  from the station, maintains dynamic carry-point Transforms, and destroys the
+  active basket when the customer pays or abandons shopping.
 
-Customer basket rules:
+Customer prefab has a single `BasketCarryPoint` child directly beneath its
+root. It no longer contains the basket mesh or an `ItemSlotsRoot` child.
 
-- `CustomerFlow` still owns random shopping-list generation. Its Inspector
-  minimum and maximum are configurable; the previous hardcoded three-item
-  shopping-list clamp is removed. Initial playtest values are 1–4 items.
-- `CustomerShoppingBasket` chooses a basket for shopping lists containing
-  at least three items by default. Shorter lists keep the existing handheld
-  carry slots for natural small purchases.
-- When basket mode is active, `CustomerController.GetNextCarrySlot()`
-  requests a carry point from `CustomerShoppingBasket` instead of using the
-  fixed three-element `carrySlots` array.
-- `CustomerShoppingBasket.GetCarryPoint(index)` creates a child Transform on
-  demand, arranging positions in two columns, three rows, and as many layers
-  as requested. There is no hard three-item slot limit for basket customers.
-- `CustomerController.carriedItems` remains the authoritative list of acquired
-  `PickupItem` objects. The basket does not maintain another inventory list.
-- `ShelfSlot.TryTakeItemForCustomer()` remains responsible for transferring
-  stock. `PickupItem.PickUpForCustomer()` parents the real product to the
-  provided basket carry point and disables product colliders.
-- `CheckoutRegister` scans the existing customer item list using
-  `GetCarriedItemCount()` / `GetCarriedItem()`; no changes to scanner,
-  payment, bagging, or sales accounting are required.
-- Lesson 95 replaces the simple basket hide with a short visible basket
-  return at checkout; the existing `ShoppingBag` still accompanies the
-  customer toward the exit.
+The customer basket is a separate prefab:
 
-The customer shopping basket is distinct from the player's `RestockBasket`
-(found at `BasketStation`) and from the checkout `ShoppingBag`. Their
-existing gameplay responsibilities must not be merged.
+- Root: `PF_CustomerBasket`, with local position/rotation zero and scale one.
+- Child `BasketVisual`: five non-colliding mesh pieces (rose/cream materials).
+- Child `ItemSlotsRoot`: parent for dynamically generated product carry points.
+- No customer AI, checkout payment, NavMeshAgent, Rigidbody, or duplicate
+  list of owned products lives in this basket prefab.
 
-Basket capacity is not artificially fixed to three items. Shopping-list size
-is still deliberately bounded by the designer's current `CustomerFlow`
-settings to preserve sensible playtest pacing and restocking pressure.
+The customer uses a basket when the requested shopping list is at least
+three products (configurable on `CustomerShoppingBasket`). One- and two-item
+shoppers still use the existing handheld `CarrySlots` on the customer.
 
-A customer shopping basket and its dynamically generated item anchors are
-runtime-only objects. Active customer shopping trips are not saved, and this
-feature adds no persistence fields or save-version migration.
+`CustomerFlow` generates configurable shopping lists (currently 1–4 items)
+and keeps customer traffic and capacity authority.
 
-## Customer basket pickup and checkout return (Lesson 95)
+At the entrance, a customer needing a basket uses the existing
+`WalkingToBasketStation` and `TakingBasket` states. At the pickup point,
+`CustomerShoppingBasket.TakeBasket(station)` asks the station to instantiate
+`PF_CustomerBasket` under the customer's `BasketCarryPoint`. The basket
+appears **only after collection**, not during customer spawn.
 
-Scene GameObject: `CustomerBasketStation`, placed near the customer entrance.
+The current user's chosen attachment position is front-facing, local
+`(0.127, 0.78, 0.597)` on the customer root. This may be tuned visually without
+changing gameplay or the reusable basket asset itself.
+
+`CustomerShoppingBasket.GetCarryPoint(index)` creates new anchors beneath the
+spawned basket's `ItemSlotsRoot` on demand: two columns, three rows, then
+additional layers. There is no hardcoded three-item carry limit for a shopper
+who has successfully collected a basket.
+
+`ShelfSlot.TryTakeItemForCustomer()` remains authoritative for removing
+stock from the shelf. `PickupItem.PickUpForCustomer()` transfers the actual
+item to a dynamic anchor and disables its collisions and physical simulation.
+`CustomerController.carriedItems` remains the **only** collection of acquired
+items used by checkout. The basket component does not copy or count purchases.
+
+`CheckoutRegister` scans and charges the unchanged `carriedItems` list.
+Purchased items are destroyed on successful payment, then
+`CustomerShoppingBasket.ClearAfterCheckout()` destroys the basket instance
+immediately; no floating returned basket is displayed. The customer exits
+with the separate checkout `ShoppingBag` as before.
+
+If a customer abandons shopping, the basket instance is discarded during
+existing cleanup; no new stock, money or penalty rule applies. If the basket
+station is missing or unreachable, the customer continues without a basket
+using existing handheld behavior and logs a warning instead of producing a
+basket from nowhere. Broken basket-station setup must be corrected before
+normal 4-item basket playtests.
+
+This basket is distinct from the player's `RestockBasket` at `BasketStation`
+and the checkout `ShoppingBag`. These systems must not be merged.
+
+## Customer basket pickup station (Lessons 95–96)
+
+Scene GameObject: `CustomerBasketStation`, near the customer entrance.
 
 Component: `CustomerBasketStation`.
 Script: `Assets/_Game/Scripts/Customers/CustomerBasketStation.cs`.
 
-This station is **not** the player's `BasketStation` and does not manage
-`RestockBasket` objects. Its scene references are:
+Inspector references:
 
-- `PickupPoint`, a navigation point beside the entrance basket rack.
-- `CheckoutReturnPoint`, a Transform beside `CheckoutCounter`.
+- `pickupPoint`: `CustomerBasketStation/PickupPoint`, the existing navigation
+  destination beside the basket rack.
+- `basketPrefab`: the separate `PF_CustomerBasket` prefab asset.
 
-Rules:
+The station supplies a separate runtime basket instance to a customer who
+has arrived at the pickup point. It currently represents an unlimited supply:
+no finite stock level, inventory shortage, price or player-restock mechanic.
 
-- The customer decides whether a basket is needed from their generated
-  shopping-list length, as in Lesson 94.
-- `CustomerShoppingBasket.ConfigureForShoppingList()` hides the basket at
-  spawn even when the shopping list requires one.
-- After entering the store, a basket customer routes through
-  `WalkingToBasketStation` and `TakingBasket` before shopping.
-- The customer briefly waits at the pickup point and then activates the
-  basket attached to their root through `TakeBasket()`.
-- Non-basket customers continue to shop directly after entering.
-- The physical rack is a visible, effectively unlimited source in this POC.
-  Basket supply is not currently a gameplay resource or an obstruction.
-- `CustomerShoppingBasket.GetCarryPoint()` still places actual items into
-  dynamic anchors, but only after the basket is acquired.
-- Following a successful checkout, `CustomerController` asks the basket to
-  return. `CustomerBasketStation.LeaveBasketAtCheckout()` detaches the empty
-  basket from the customer, shows it beside checkout for five seconds by
-  default, then automatically destroys that returned visual.
-- Checkout `ShoppingBag` remains separate: the customer exits with the bag,
-  not the reusable shopping basket.
-- A shopper who leaves without paying hides their basket; cleanup follows
-  the existing customer lifetime. We do not create extra inventory rules.
-- If a pickup station reference is missing, a graceful fallback lets the
-  customer continue shopping, but a warning identifies the missing setup.
+The rack's simple cube stack is placeholder art. Improving its appearance
+should not require modifying shopping, checkout or basket-spawning code.
 
-The station is purely a traffic waypoint and return presentation in this
-version. It does not create a second product inventory, affect payments,
-modify satisfaction, or alter the current save schema.
+The former `CheckoutReturnPoint`, returned-basket queue and five-second visual
+cleanup are removed in Lesson 96. Basket cleanup after payment is immediate
+and handled by `CustomerShoppingBasket` on the customer.
 
-Basket presentation adjustment:
-
-- The basket is shifted farther to the customer's right to clear the capsule
-  body, and its visual width is reduced slightly for more natural carrying.
-- `Visual`, the face/eyes, `CarrySlots`, walking/browsing animation and the
-  checkout patience text are unchanged.
-
-Design decision:
-
-- Do not impose mandatory manual basket retrieval/stacking on the player yet.
-  First test whether this repeated chore would add a useful gameplay decision.
-- A finite supply or player restocking of basket stations requires an
-  actual recoverable mechanic and clear feedback; adding it prematurely would
-  only punish customers for an unavoidable shortage.
+Do not add mandatory manual basket return chores until playtesting shows a
+meaningful timing or store-management decision beyond repetitive walking.
 
 ## BasketStation
 
@@ -605,8 +592,11 @@ Lesson 94 adds runtime shopping-basket carry points and configurable larger
 shopping lists. It preserves the authoritative customer carriedItems list,
 checkout accounting, and save version 17.
 
-Lesson 95 adds customer basket pickup/return waypoints and a short-lived
-returned basket visual. No additional save fields or migration are needed.
+Lesson 95 adds customer basket pickup navigation and a temporary return
+presentation. Lesson 96 replaces the embedded basket geometry with a separate
+runtime `PF_CustomerBasket` prefab, removes checkout-return presentation, and
+uses immediate basket cleanup after payment. Neither lesson introduces
+persistent customer baskets or changes save version 17.
 
 ## Ownership rule
 

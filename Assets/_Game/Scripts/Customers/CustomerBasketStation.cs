@@ -3,41 +3,26 @@ using UnityEngine;
 [DisallowMultipleComponent]
 public class CustomerBasketStation : MonoBehaviour
 {
-    [Header("Customer Pickup")]
+    [Header("Basket Pickup")]
     [SerializeField] private Transform pickupPoint;
-
-    [Header("Checkout Returns")]
-    [SerializeField] private Transform checkoutReturnPoint;
-    [Min(0.1f)]
-    [SerializeField] private float returnedBasketDisplaySeconds = 5f;
-
-    private int basketsReturned;
+    [SerializeField] private GameObject basketPrefab;
 
     public Transform PickupPoint => pickupPoint;
 
-    public void LeaveBasketAtCheckout(GameObject returnedBasket)
+    public GameObject DispenseBasket(Transform carryPoint)
     {
-        if (returnedBasket == null)
-            return;
-
-        if (checkoutReturnPoint == null)
+        if (carryPoint == null || basketPrefab == null)
         {
-            Debug.LogWarning(
-                "CustomerBasketStation has no checkout return point. " +
-                "The returned basket will be cleaned up without a visual.",
-                this);
-            Destroy(returnedBasket);
-            return;
+            Debug.LogError(
+                "CustomerBasketStation needs a Basket Prefab and a carry point.",
+                this
+            );
+            return null;
         }
 
-        // This is a short-lived visual return, not persistent basket stock.
-        returnedBasket.transform.SetParent(checkoutReturnPoint, false);
-        returnedBasket.transform.localPosition =
-            new Vector3(0f, (basketsReturned % 3) * 0.12f, 0f);
-        returnedBasket.transform.localRotation = Quaternion.identity;
-        returnedBasket.SetActive(true);
-
-        basketsReturned++;
-        Destroy(returnedBasket, returnedBasketDisplaySeconds);
+        // The station supplies a reusable-basket *visual* for this visit.
+        // There is no finite basket stock in the prototype.
+        // The actual products still belong to CustomerController.carriedItems.
+        return Instantiate(basketPrefab, carryPoint, false);
     }
 }

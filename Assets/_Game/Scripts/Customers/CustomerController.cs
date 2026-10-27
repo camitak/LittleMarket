@@ -203,12 +203,10 @@ public class CustomerController : MonoBehaviour
             customerBasketStation.PickupPoint == null)
         {
             Debug.LogWarning(
-                "Customer basket station not configured. " +
-                "Customer will continue with a basket.",
+                "Customer basket station not configured. Continuing without a basket.",
                 this
             );
 
-            customerShoppingBasket.TakeBasket();
             SearchForNextProduct();
             return;
         }
@@ -220,16 +218,17 @@ public class CustomerController : MonoBehaviour
             customerBasketStation.PickupPoint.position
         );
 
+        
         if (!accepted)
         {
             Debug.LogWarning(
-                "Customer could not navigate to basket rack.",
+                "Basket rack unreachable. Continuing without a basket.",
                 this
             );
 
-            customerShoppingBasket.TakeBasket();
             SearchForNextProduct();
         }
+
     }
 
     private void UpdateWalkingToBasketStation()
@@ -241,14 +240,18 @@ public class CustomerController : MonoBehaviour
         if (!reached && basketApproachElapsed < 8f)
             return;
 
+        
         if (!reached)
         {
             Debug.LogWarning(
-                "Customer timed out approaching basket rack. " +
-                "Check that PickupPoint is reachable on the NavMesh.",
+                "Basket rack approach timed out. Continuing without a basket.",
                 this
             );
+
+            SearchForNextProduct();
+            return;
         }
+
 
         agent.ResetPath();
 
@@ -264,7 +267,7 @@ public class CustomerController : MonoBehaviour
             return;
 
         if (customerShoppingBasket != null)
-            customerShoppingBasket.TakeBasket();
+            customerShoppingBasket.TakeBasket(customerBasketStation);
 
         SearchForNextProduct();
     }
@@ -692,12 +695,12 @@ public class CustomerController : MonoBehaviour
         assignedQueuePoint = null;
         completedPurchase = true;
         
+        
         if (customerShoppingBasket != null)
         {
-            customerShoppingBasket.ReturnAfterCheckout(
-                customerBasketStation
-            );
+            customerShoppingBasket.ClearAfterCheckout();
         }
+
 
         if (shoppingBag != null)
         {
@@ -730,7 +733,7 @@ public class CustomerController : MonoBehaviour
     private void BeginLeaving()
     {
         if (!completedPurchase && customerShoppingBasket != null)
-            customerShoppingBasket.HideWithoutCheckout();
+            customerShoppingBasket.DiscardBasket();
         
         if (exitInsidePoint != null)
         {

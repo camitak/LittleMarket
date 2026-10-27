@@ -1,65 +1,98 @@
+
 using System.Collections.Generic;
 using UnityEngine;
 
 [DisallowMultipleComponent]
 public class CustomerShoppingBasket : MonoBehaviour
 {
-    [Header("Basket Hierarchy")]
-    [SerializeField] private GameObject basketRoot;
-    [SerializeField] private Transform itemSlotsRoot;
+    [Header("Customer Attachment")]
+    [SerializeField] private Transform basketCarryPoint;
 
     [Header("When To Use A Basket")]
-    [Min(1)] [SerializeField] private int minimumItemsForBasket = 3;
+    [Min(1)]
+    [SerializeField] private int minimumItemsForBasket = 3;
 
     [Header("Product Layout (Local Units)")]
-    [Min(0.01f)] [SerializeField] private float columnSpacing = 0.26f;
-    [Min(0.01f)] [SerializeField] private float rowSpacing = 0.17f;
-    [Min(0.01f)] [SerializeField] private float layerSpacing = 0.15f;
+    [Min(0.01f)]
+    [SerializeField] private float columnSpacing = 0.26f;
+
+    [Min(0.01f)]
+    [SerializeField] private float rowSpacing = 0.17f;
+
+    [Min(0.01f)]
+    [SerializeField] private float layerSpacing = 0.15f;
 
     private readonly List<Transform> itemSlots = new();
+
     private bool wantsBasket;
-    private bool hasBasket;
+    private GameObject activeBasket;
+    private Transform itemSlotsRoot;
 
     public bool NeedsBasket => wantsBasket;
-    public bool UsesBasket => hasBasket;
+    public bool UsesBasket => activeBasket != null;
 
     public void ConfigureForShoppingList(int itemCount)
     {
+        DiscardBasket();
         wantsBasket = itemCount >= minimumItemsForBasket;
-        hasBasket = false;
-        itemSlots.Clear();
-
-        if (basketRoot == null || itemSlotsRoot == null)
-        {
-            Debug.LogError(
-                "CustomerShoppingBasket needs Basket Root and Item Slots Root assigned.",
-                this);
-            wantsBasket = false;
-            return;
-        }
-
-        // The customer must first visit the entrance basket rack.
-        basketRoot.SetActive(false);
     }
 
-    public void TakeBasket()
+    public bool TakeBasket(CustomerBasketStation station)
     {
-        if (!wantsBasket || hasBasket || basketRoot == null)
-            return;
+        if (!wantsBasket)
+            return false;
 
-        hasBasket = true;
-        basketRoot.SetActive(true);
+        if (activeBasket != null)
+            return true;
+
+        if (station == null || basketCarryPoint == null)
+        {
+            Debug.LogWarning(
+                "Customer cannot collect a basket: station or BasketCarryPoint is missing.",
+                this
+            );
+            return false;
+        }
+
+        GameObject newBasket =
+            station.DispenseBasket(basketCarryPoint);
+
+        if (newBasket == null)
+            return false;
+
+        Transform newSlotsRoot =
+            newBasket.transform.Find("ItemSlotsRoot");
+
+        if (newSlotsRoot == null)
+        {
+            Debug.LogError(
+                "PF_CustomerBasket must contain a direct child named ItemSlotsRoot.",
+                newBasket
+            );
+
+            Destroy(newBasket);
+            return false;
+        }
+
+        activeBasket = newBasket;
+        itemSlotsRoot = newSlotsRoot;
+        itemSlots.Clear();
+
+        return true;
     }
 
     public Transform GetCarryPoint(int itemIndex)
     {
-        if (!hasBasket || itemSlotsRoot == null || itemIndex < 0)
+        if (!UsesBasket || itemSlotsRoot == null || itemIndex < 0)
             return null;
 
         while (itemSlots.Count <= itemIndex)
         {
             int index = itemSlots.Count;
-            GameObject slotObject = new($"BasketItemPoint_{index + 1:00}");
+
+            GameObject slotObject =
+                new($"BasketItemPoint_{index + 1:00}");
+
             Transform slot = slotObject.transform;
             slot.SetParent(itemSlotsRoot, false);
 
@@ -70,45 +103,30 @@ public class CustomerShoppingBasket : MonoBehaviour
             slot.localPosition = new Vector3(
                 (column - 0.5f) * columnSpacing,
                 layer * layerSpacing,
-                (row - 1f) * rowSpacing);
+                (row - 1f) * rowSpacing
+            );
+
             slot.localRotation = Quaternion.identity;
             slot.localScale = Vector3.one;
+
             itemSlots.Add(slot);
         }
 
         return itemSlots[itemIndex];
     }
 
-    public void ReturnAfterCheckout(CustomerBasketStation station)
+    public void ClearAfterCheckout()
     {
-        if (!hasBasket || basketRoot == null)
-            return;
-
-        hasBasket = false;
-        GameObject returnedBasket = basketRoot;
-
-        // Ownership transfers away from the customer: the basket can remain
-        // briefly at checkout after the customer starts walking to the exit.
-        basketRoot = null;
-        itemSlotsRoot = null;
-        itemSlots.Clear();
-
-        if (station != null)
-            station.LeaveBasketAtCheckout(returnedBasket);
-        else
-            Destroy(returnedBasket);
+        DiscardBasket();
     }
 
-    public void HideWithoutCheckout()
+    public void DiscardBasket()
     {
-        if (!hasBasket)
-            return;
+        if (activeBasket != null)
+            Destroy(activeBasket);
 
-        hasBasket = false;
-
-        // An empty-handed customer can leave without a checkout transaction.
-        // In that exceptional case, the basket goes away with the customer.
-        if (basketRoot != null)
-            basketRoot.SetActive(false);
+        activeBasket = null;
+        itemSlotsRoot = null;
+        itemSlots.Clear();
     }
 }
