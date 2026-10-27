@@ -1,6 +1,6 @@
 # Little Market System Architecture
 
-This document describes the existing owners of Little Market's systems and the rules for adding features without duplicating authority. Current through Lesson 97, based on the `main` repository and the verified Lesson 96 implementation.
+This document describes the existing owners of Little Market's systems and the rules for adding features without duplicating authority. Current through Lesson 98; grounded in GitHub `main` commit `587bc7e0` (Lesson 97) and its verified scene, prefab, and script ownership.
 
 **Rule:** Extend or query the existing owner of a rule rather than implementing that rule independently in another system.
 
@@ -173,6 +173,25 @@ Each successful scan:
 
 `CustomerController.CompleteCheckout(ShoppingBag)` still removes the actual items and clears the authoritative customer inventory. Checkout revenue and daily stats are still recorded through the existing checkout/economy/stat systems. **Lesson 97 does not change the transaction or payment rules.**
 
+## Customer missing-product reaction (Lesson 98)
+
+Prefab: `Assets/_Game/Prefabs/Characters/PF_CustomerPrototype.prefab`.
+
+Components on prefab root:
+
+- `CustomerController`: already owns the requested shopping list, `RecordMissingProduct()`, `missedProductCount`, and the **existing 20-point MissingProductPenalty**. The reaction must not create a separate penalty or timer that influences gameplay.
+- `CustomerMissingProductVisual` (`Assets/_Game/Scripts/Customers/CustomerMissingProductVisual.cs`): presentation only. Exposes `ShowReaction()` to display a short muted-coral `:(` using 3D TextMeshPro above the customer's head.
+
+Prefab child: `MissingProductText`, a direct child of the root, not of `Visual`, so it does not inherit walk bounce or shelf lean. Local position `(0, 2.26, 0)`, local scale `(0.10, 0.10, 0.10)`, TextMeshPro font size `20`, colour `#C46B6B`. It is initially active in the prefab and hidden in the visual component's `Awake()`.
+
+`CustomerController.RecordMissingProduct()` keeps its pre-existing penalty and count operations, then calls `missingProductVisual.ShowReaction()` if a visual component is assigned. This occurs when a requested product cannot be found in stocked shelves, not as a separate search or stock-accounting rule.
+
+The feedback lasts approximately `1.3` seconds, floats up `0.08` units, fades during the final `0.35` seconds, and faces `Camera.main`. If multiple products are missing rapidly, showing it again restarts the same one-shot feedback. The customer's NavMeshAgent, state machine, visual body transform, checkout queue, happiness bounce, and basket are not modified.
+
+Missing-product feedback is distinct from checkout waiting feedback. The existing `CustomerQueuePatienceVisual` is responsible only for `!` and `!!` during delayed checkout.
+
+No persistent state, UI Canvas, added HUD, additional satisfaction adjustment, or change to day-end reporting is created by this feedback.
+
 ## Customer checkout feedback (Lesson 91)
 
 Customer prefab: `Assets/_Game/Prefabs/Characters/PF_CustomerPrototype.prefab`.
@@ -205,7 +224,7 @@ Customer prefab root component: `CustomerWalkVisual`; script: `Assets/_Game/Scri
 - Does not move the actual NavMeshAgent, carry slots, basket, patience indicator or world items.
 - The `Eye_left` and `Eye_right` children of `Visual` move with this presentation.
 
-## Customer shopping baskets (Lessons 94–97)
+## Customer shopping baskets (Lessons 94–98)
 
 Customer prefab: `Assets/_Game/Prefabs/Characters/PF_CustomerPrototype.prefab`.
 
@@ -223,7 +242,7 @@ Scripts: `CustomerController`, `CustomerShoppingBasket`, `CustomerBasketStation`
 - `CustomerShoppingBasket` creates position anchors only as products are collected. `CustomerController.carriedItems` alone owns the authoritative list of actual acquired `PickupItem` objects.
 - `ShelfSlot.TryTakeItemForCustomer()` uses `PickupItem.PickUpForCustomer()` to move the actual product from shelf to the requested anchor, with collisions and gravity disabled.
 
-### Basket presentation (Lesson 97)
+### Basket presentation (Lessons 97–98)
 
 The basket's product arrangement is **only visual**. It must not affect prices, availability, item IDs, acquired-item order, scan indexes, customer satisfaction, or daily statistics.
 
@@ -231,7 +250,7 @@ The basket's product arrangement is **only visual**. It must not affect prices, 
 - Basket component initial values: `columnSpacing = 0.30`, `rowSpacing = 0.21`, `layerSpacing = 0.16` (Unity local units).
 - In the basket prefab, `ItemSlotsRoot` starts at local `(0, 0.04, 0)` instead of `(0, 0.16, 0)`, putting the center of the first layer *inside* the basket rather than above its rim.
 - After a successful pickup, `CustomerController` calls `CustomerShoppingBasket.FitCollectedItem(item)` once. This stores the actual item instance's original local scale, uses its enabled visible renderers' world bounds, scales **down but never up** to fit maximum presentation dimensions, then visually centers the bounds on that item's allocated carry point.
-- Initial maximum presentation dimensions: width `0.24`, height `0.20`, depth `0.16` world units. Fit dimensions are an art/presentation constraint, not an inventory-capacity rule.
+- Lesson 97 initially used maximum presentation dimensions width `0.24`, height `0.20`, depth `0.16` world units. Lesson 98 enlarges the **customer prefab Inspector values** to width `0.29`, height `0.32`, depth `0.20` to keep groceries visible and allow charming, slight protrusion over the basket rim. These are maximum bounds, **not** forced minimum size: the current `FitCollectedItem()` only shrinks items that exceed the limits, and it never enlarges small original meshes. Fit dimensions are an art/presentation constraint, not an inventory-capacity rule.
 - Because this simple bounds approach uses world-space axis-aligned bounding boxes, product shapes and rotations can still need later art review. Renderer bounds may include visible labels. The goal is better prototype packing, not a final physically accurate stacking simulation.
 - Original scales are held transiently in a dictionary keyed by the **same `PickupItem` object**, not a second product or payment list.
 - Immediately before the existing scanner transfer, `CheckoutRegister` calls `CustomerController.RestoreBasketItemForCheckout(item)`, which delegates to `CustomerShoppingBasket.RestoreItemForCheckout(item)` and restores the product's original scale.
@@ -299,6 +318,7 @@ Version 17 added historical `DailyReportData` entries to `StoreSaveData`. SaveMa
 - Lesson 95: basket pickup/return presentation; no extra saved fields.
 - Lesson 96: separate basket prefab and immediate basket cleanup; no extra saved fields.
 - Lesson 97: per-item basket fit and restoration of runtime visual scale during scanning; **no new persistence fields or save-version change**.
+- Lesson 98: larger basket-fitting Inspector limits and a transient 3D TMP missing-product reaction. No new save fields or save-version changes.
 
 ## Ownership rule
 

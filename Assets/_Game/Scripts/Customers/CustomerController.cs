@@ -11,6 +11,8 @@ public class CustomerController : MonoBehaviour
     [SerializeField] private Transform checkoutBagCarryPoint;
     [SerializeField] private Transform visual;
     [SerializeField] private CustomerShoppingBasket customerShoppingBasket;
+    [SerializeField] private CustomerMissingProductVisual missingProductVisual;
+
 
     [Header("Shelf Browsing")]
     [Min(0.05f)] [SerializeField] private float shelfBrowseDuration = 0.85f;
@@ -474,20 +476,21 @@ public class CustomerController : MonoBehaviour
         SearchForNextProduct();
     }
 
+    
     private void RecordMissingProduct()
     {
         missedProductCount++;
 
-        satisfactionScore -=
-            MissingProductPenalty;
+        satisfactionScore -= MissingProductPenalty;
 
-        satisfactionScore =
-            Mathf.Max(
-                0f,
-                satisfactionScore
-            );
+        satisfactionScore = Mathf.Max(
+            0f,
+            satisfactionScore
+        );
+
+        if (missingProductVisual != null)
+            missingProductVisual.ShowReaction();
     }
-
     
     private Transform GetNextCarrySlot()
     {
