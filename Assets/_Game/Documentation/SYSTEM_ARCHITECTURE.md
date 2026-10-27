@@ -450,9 +450,9 @@ Customer basket rules:
 - `CheckoutRegister` scans the existing customer item list using
   `GetCarriedItemCount()` / `GetCarriedItem()`; no changes to scanner,
   payment, bagging, or sales accounting are required.
-- After successful payment, `CustomerController` hides the shopping basket,
-  and the existing `ShoppingBag` is attached to the customer's own bag
-  carry point for the exit walk.
+- Lesson 95 replaces the simple basket hide with a short visible basket
+  return at checkout; the existing `ShoppingBag` still accompanies the
+  customer toward the exit.
 
 The customer shopping basket is distinct from the player's `RestockBasket`
 (found at `BasketStation`) and from the checkout `ShoppingBag`. Their
@@ -465,6 +465,64 @@ settings to preserve sensible playtest pacing and restocking pressure.
 A customer shopping basket and its dynamically generated item anchors are
 runtime-only objects. Active customer shopping trips are not saved, and this
 feature adds no persistence fields or save-version migration.
+
+## Customer basket pickup and checkout return (Lesson 95)
+
+Scene GameObject: `CustomerBasketStation`, placed near the customer entrance.
+
+Component: `CustomerBasketStation`.
+Script: `Assets/_Game/Scripts/Customers/CustomerBasketStation.cs`.
+
+This station is **not** the player's `BasketStation` and does not manage
+`RestockBasket` objects. Its scene references are:
+
+- `PickupPoint`, a navigation point beside the entrance basket rack.
+- `CheckoutReturnPoint`, a Transform beside `CheckoutCounter`.
+
+Rules:
+
+- The customer decides whether a basket is needed from their generated
+  shopping-list length, as in Lesson 94.
+- `CustomerShoppingBasket.ConfigureForShoppingList()` hides the basket at
+  spawn even when the shopping list requires one.
+- After entering the store, a basket customer routes through
+  `WalkingToBasketStation` and `TakingBasket` before shopping.
+- The customer briefly waits at the pickup point and then activates the
+  basket attached to their root through `TakeBasket()`.
+- Non-basket customers continue to shop directly after entering.
+- The physical rack is a visible, effectively unlimited source in this POC.
+  Basket supply is not currently a gameplay resource or an obstruction.
+- `CustomerShoppingBasket.GetCarryPoint()` still places actual items into
+  dynamic anchors, but only after the basket is acquired.
+- Following a successful checkout, `CustomerController` asks the basket to
+  return. `CustomerBasketStation.LeaveBasketAtCheckout()` detaches the empty
+  basket from the customer, shows it beside checkout for five seconds by
+  default, then automatically destroys that returned visual.
+- Checkout `ShoppingBag` remains separate: the customer exits with the bag,
+  not the reusable shopping basket.
+- A shopper who leaves without paying hides their basket; cleanup follows
+  the existing customer lifetime. We do not create extra inventory rules.
+- If a pickup station reference is missing, a graceful fallback lets the
+  customer continue shopping, but a warning identifies the missing setup.
+
+The station is purely a traffic waypoint and return presentation in this
+version. It does not create a second product inventory, affect payments,
+modify satisfaction, or alter the current save schema.
+
+Basket presentation adjustment:
+
+- The basket is shifted farther to the customer's right to clear the capsule
+  body, and its visual width is reduced slightly for more natural carrying.
+- `Visual`, the face/eyes, `CarrySlots`, walking/browsing animation and the
+  checkout patience text are unchanged.
+
+Design decision:
+
+- Do not impose mandatory manual basket retrieval/stacking on the player yet.
+  First test whether this repeated chore would add a useful gameplay decision.
+- A finite supply or player restocking of basket stations requires an
+  actual recoverable mechanic and clear feedback; adding it prematurely would
+  only punish customers for an unavoidable shortage.
 
 ## BasketStation
 
@@ -546,6 +604,9 @@ Visual transform. It adds no new save fields and does not change save version 17
 Lesson 94 adds runtime shopping-basket carry points and configurable larger
 shopping lists. It preserves the authoritative customer carriedItems list,
 checkout accounting, and save version 17.
+
+Lesson 95 adds customer basket pickup/return waypoints and a short-lived
+returned basket visual. No additional save fields or migration are needed.
 
 ## Ownership rule
 

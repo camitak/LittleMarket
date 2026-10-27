@@ -25,6 +25,9 @@ public class CustomerController : MonoBehaviour
     private Transform exitInsidePoint;
     private Transform exitPoint;
     private DailyStats dailyStats;
+    private CustomerBasketStation customerBasketStation;
+    private float basketPickupElapsed;
+    private float basketApproachElapsed;
     private ShelfSlot targetShelfSlot;
     private CustomerState currentState;
     private List<PickupItem> carriedItems = new();
@@ -75,7 +78,15 @@ public class CustomerController : MonoBehaviour
             case CustomerState.WalkingIntoStore:
                 UpdateWalkingIntoStore();
                 break;
+            
+            case CustomerState.WalkingToBasketStation:
+                UpdateWalkingToBasketStation();
+                break;
 
+            case CustomerState.TakingBasket:
+                UpdateTakingBasket();
+                break;
+            
             case CustomerState.SearchingForProduct:
                 break;
 
@@ -120,34 +131,24 @@ public class CustomerController : MonoBehaviour
         Transform newEntranceInsidePoint,
         Transform newExitInsidePoint,
         Transform newExitPoint,
-        DailyStats newDailyStats
+        DailyStats newDailyStats,
+        CustomerBasketStation newCustomerBasketStation
     )
     {
         shoppingList = newShoppingList;
-
         shelfRegistry = newShelfRegistry;
-
         checkoutQueue = newCheckoutQueue;
-        
         entranceInsidePoint = newEntranceInsidePoint;
         exitInsidePoint = newExitInsidePoint;
-
         exitPoint = newExitPoint;
-
         dailyStats = newDailyStats;
-
+        customerBasketStation = newCustomerBasketStation;
         currentShoppingIndex = 0;
-
         satisfactionScore = 100f;
-
         missedProductCount = 0;
-
         checkoutWaitSeconds = 0f;
-
         completedPurchase = false;
-
         visitReported = false;
-        
         isConfigured = true;
 
         if (customerShoppingBasket != null)
@@ -162,34 +163,112 @@ public class CustomerController : MonoBehaviour
         BeginEnteringStore();
 
     }
-
+    
     private void BeginEnteringStore()
     {
         if (entranceInsidePoint == null)
         {
-            SearchForNextProduct();
+            BeginBasketPickupOrShopping();
             return;
         }
 
         currentState = CustomerState.WalkingIntoStore;
 
-        bool destinationAccepted = agent.SetDestination(entranceInsidePoint.position);
+        bool accepted = agent.SetDestination(
+            entranceInsidePoint.position
+        );
 
-        if (!destinationAccepted)
-        {
-            SearchForNextProduct();
-        }
+        if (!accepted)
+            BeginBasketPickupOrShopping();
     }
 
     private void UpdateWalkingIntoStore()
     {
         if (!HasReachedDestination())
+            return;
+
+        BeginBasketPickupOrShopping();
+    }
+
+    private void BeginBasketPickupOrShopping()
+    {
+        if (customerShoppingBasket == null ||
+            !customerShoppingBasket.NeedsBasket)
         {
+            SearchForNextProduct();
             return;
         }
 
+        if (customerBasketStation == null ||
+            customerBasketStation.PickupPoint == null)
+        {
+            Debug.LogWarning(
+                "Customer basket station not configured. " +
+                "Customer will continue with a basket.",
+                this
+            );
+
+            customerShoppingBasket.TakeBasket();
+            SearchForNextProduct();
+            return;
+        }
+
+        currentState = CustomerState.WalkingToBasketStation;
+        basketApproachElapsed = 0f;
+
+        bool accepted = agent.SetDestination(
+            customerBasketStation.PickupPoint.position
+        );
+
+        if (!accepted)
+        {
+            Debug.LogWarning(
+                "Customer could not navigate to basket rack.",
+                this
+            );
+
+            customerShoppingBasket.TakeBasket();
+            SearchForNextProduct();
+        }
+    }
+
+    private void UpdateWalkingToBasketStation()
+    {
+        basketApproachElapsed += Time.deltaTime;
+
+        bool reached = HasReachedDestination();
+
+        if (!reached && basketApproachElapsed < 8f)
+            return;
+
+        if (!reached)
+        {
+            Debug.LogWarning(
+                "Customer timed out approaching basket rack. " +
+                "Check that PickupPoint is reachable on the NavMesh.",
+                this
+            );
+        }
+
+        agent.ResetPath();
+
+        basketPickupElapsed = 0f;
+        currentState = CustomerState.TakingBasket;
+    }
+
+    private void UpdateTakingBasket()
+    {
+        basketPickupElapsed += Time.deltaTime;
+
+        if (basketPickupElapsed < 0.45f)
+            return;
+
+        if (customerShoppingBasket != null)
+            customerShoppingBasket.TakeBasket();
+
         SearchForNextProduct();
     }
+
     
     private void SearchForNextProduct()
     {
@@ -614,7 +693,11 @@ public class CustomerController : MonoBehaviour
         completedPurchase = true;
         
         if (customerShoppingBasket != null)
-            customerShoppingBasket.HideAfterCheckout();
+        {
+            customerShoppingBasket.ReturnAfterCheckout(
+                customerBasketStation
+            );
+        }
 
         if (shoppingBag != null)
         {
@@ -646,6 +729,9 @@ public class CustomerController : MonoBehaviour
 
     private void BeginLeaving()
     {
+        if (!completedPurchase && customerShoppingBasket != null)
+            customerShoppingBasket.HideWithoutCheckout();
+        
         if (exitInsidePoint != null)
         {
             currentState = CustomerState.WalkingToExitApproach;

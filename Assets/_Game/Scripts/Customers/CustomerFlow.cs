@@ -25,6 +25,7 @@ public class CustomerFlow : MonoBehaviour
     [SerializeField] private StoreProgression storeProgression;
     [SerializeField] private ShelfRegistry shelfRegistry;
     [SerializeField] private CheckoutQueue checkoutQueue;
+    [SerializeField] private CustomerBasketStation customerBasketStation;
     [SerializeField] private Transform customerSpawnPoint;
     [SerializeField] private Transform customerEntranceInsidePoint;
     [SerializeField] private Transform customerExitInsidePoint;
@@ -84,6 +85,7 @@ public class CustomerFlow : MonoBehaviour
                 customerSpawnPoint.rotation
             );
 
+        
         customer.Configure(
             shoppingList,
             shelfRegistry,
@@ -91,8 +93,10 @@ public class CustomerFlow : MonoBehaviour
             customerEntranceInsidePoint,
             customerExitInsidePoint,
             customerExitPoint,
-            dailyStats
+            dailyStats,
+            customerBasketStation
         );
+
 
         activeCustomers.Add(
             customer
