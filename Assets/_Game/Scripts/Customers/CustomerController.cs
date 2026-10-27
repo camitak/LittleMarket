@@ -464,13 +464,13 @@ public class CustomerController : MonoBehaviour
 
             return;
         }
+        
+        carriedItems.Add(item);
 
-        carriedItems.Add(
-            item
-        );
+        if (customerShoppingBasket != null)
+            customerShoppingBasket.FitCollectedItem(item);
 
         currentShoppingIndex++;
-
         SearchForNextProduct();
     }
 
@@ -619,7 +619,13 @@ public class CustomerController : MonoBehaviour
 
         return carriedItems[index];
     }
-
+    
+    public void RestoreBasketItemForCheckout(PickupItem item)
+    {
+        if (customerShoppingBasket != null)
+            customerShoppingBasket.RestoreItemForCheckout(item);
+    }
+    
     public ProductData GetCarriedProductData(
         int index
     )

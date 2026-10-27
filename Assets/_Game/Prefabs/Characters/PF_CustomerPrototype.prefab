@@ -250,9 +250,12 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::CustomerShoppingBasket
   basketCarryPoint: {fileID: 863651556331893779}
   minimumItemsForBasket: 3
-  columnSpacing: 0.26
-  rowSpacing: 0.17
-  layerSpacing: 0.15
+  columnSpacing: 0.3
+  rowSpacing: 0.21
+  layerSpacing: 0.16
+  maximumItemWidth: 0.24
+  maximumItemHeight: 0.2
+  maximumItemDepth: 0.16
 --- !u!1 &3331872740172664456
 GameObject:
   m_ObjectHideFlags: 0

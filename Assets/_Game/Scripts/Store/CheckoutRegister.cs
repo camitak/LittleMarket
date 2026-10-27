@@ -204,7 +204,8 @@ public class CheckoutRegister : MonoBehaviour, IInteractable
         {
             yield break;
         }
-
+        
+        customer.RestoreBasketItemForCheckout(item);
         item.PlaceInContainer(scanPoint);
 
         if (checkoutFeedback != null)
