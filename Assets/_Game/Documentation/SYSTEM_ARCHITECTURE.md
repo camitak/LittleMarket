@@ -1,335 +1,369 @@
-# Little Market System Architecture
+# Little Market — System Architecture
 
-This document describes the existing owners of Little Market's systems and the rules for adding features without duplicating authority. Current through Lesson 98; grounded in GitHub `main` commit `587bc7e0` (Lesson 97) and its verified scene, prefab, and script ownership.
+Current architecture after Lesson 99. This is the **complete replacement** for
+`Assets/_Game/Documentation/SYSTEM_ARCHITECTURE.md`.
 
-**Rule:** Extend or query the existing owner of a rule rather than implementing that rule independently in another system.
+## Project principles
+
+Little Market is a cute first-person Unity 6.3 grocery-store simulator. The
+player orders, receives and stores real product objects, arranges retail stock,
+serves customers, and gradually grows the shop. Gameplay remains physical and
+in-world. Keep the persistent HUD minimal, and locate reports and other
+management information in the Manager Book.
+
+For every change, establish which component owns the rule. UI and cosmetic
+components must query existing authoritative systems rather than duplicate
+accounting, inventory, timing or progression. Avoid large rewrites of working
+customer, checkout and save paths. Check actual scene/prefab paths before
+issuing Inspector instructions. Unity 6.3 uses the new Input System in this
+project; Rider is the C# editor.
 
 ## StoreSystems
 
-Scene GameObject: `StoreSystems`.
+Scene GameObject: `StoreSystems`. Responsibilities include:
 
-Store-wide systems include:
+- `StoreClock`: day number, in-game clock, opening/closing schedule,
+  supplier cutoff and day-end. Other systems query the clock; they do not
+  define competing hours. The active scene starts at 07:00, opens at 08:00,
+  closes at 21:00, and ends at 22:00. In the inspected scene, the configured
+  simulation speed is 10 game minutes per real second; designers may reduce
+  it temporarily for placement testing.
+- `StoreEconomy`: authoritative player money. Sales, purchasing and eventual
+  furniture costs must use this system, not parallel balances.
+- `StoreReputation`: reputation and its influence on customer arrivals.
+- `StoreProgression`: currently available products and the requirements to
+  unlock others; uses the level/progression system.
+- `StoreLevelProgression`: store XP and levels.
+- `StoreGoals`: live daily goals and reward logic. The day lifecycle coordinates
+  their completion; UI must not award them.
+- `DailyStats`: live current-day customer, sales and satisfaction statistics.
+- `ShelfRegistry`: registered `ShelfSlot` inventory locations and product-stock
+  lookup. Shelf slots register/unregister themselves.
+- `StorageRegistry`: registered backroom `StorageBay` locations.
+- `WorldItemRegistry`: tracks loose physical product instances.
+- `CustomerFlow`: customer prefab spawning, traffic capacity, shopping-list
+  generation, and active-customer count. Its Inspector currently allows 1–4
+  requested items per visitor, with up to five simultaneous customers in the
+  inspected scene. It uses `StoreClock.IsStoreOpen` and `StoreReputation`.
+- `StoreDayLifecycle`: authoritative day transition, daily calculations,
+  goal rewards, reputation/XP/unlocks, daily resets and advancement. It is
+  separate from the end-of-day screen.
+- `StoreReportHistory`: immutable snapshots of completed-day results, produced
+  at day completion. It does not duplicate live `DailyStats` counters.
+- `SaveManager`: coordinates persistence; current save version is 17. It
+  serializes the existing store/stock/progression/report data. See the Lesson
+  99 furniture-movement save guard below.
 
-- `StoreClock`
-- `StoreEconomy`
-- `CustomerFlow`
-- `ShelfRegistry`
-- `StorageRegistry`
-- `SaveManager`
-- `StoreProgression`
-- `StoreReputation`
-- `StoreGoals`
-- `StoreLevelProgression`
-- `StoreStockOverview`
-- `WorldItemRegistry`
-- `StoreDayLifecycle`
-- `StoreReportHistory`
-
-### StoreClock
-
-Owns the current day and game time, opening time, supplier same-day cutoff, closing time, and hard day-end time.
-
-- `CustomerFlow` queries whether the store is open.
-- Supplier and ordering systems query supplier cutoff and delivery timing.
-- `OrderingTerminal` queries closing conditions.
-
-Other components must not maintain separate authoritative schedule values.
-
-### StoreDayLifecycle
-
-Scene GameObject: `StoreSystems`; component: `StoreDayLifecycle`.
-
-Coordinates day completion **once per day**, after `StoreClock` reports the day ended and `CustomerFlow` reports no active customers.
-
-End-of-day processing order:
-
-1. Apply daily satisfaction through `StoreReputation`.
-2. Claim rewards through `StoreGoals`.
-3. Apply experience and level progression through `StoreLevelProgression`.
-4. Refresh unlocked products through `StoreProgression`.
-5. Ask `StoreReportHistory` to snapshot the completed day.
-
-Starting the next day resets daily state and uses the existing clock/customer flow. It does not make `EndOfDayUI` the owner of rewards or progression.
-
-`EndOfDayUI` only observes `StoreDayLifecycle.IsDayComplete` and requests `StartNextDay()`.
-
-### StoreReportHistory
-
-Scene GameObject: `StoreSystems`; component: `StoreReportHistory`.
-
-Stores read-only historical results after end-of-day processing. Each `DailyReportData` entry captures one completed day: finances, customer results, reputation, goal rewards, experience, ending level/cash, and newly unlocked stable ProductIDs.
-
-- `DailyStats` still owns **live current-day** counters.
-- `StoreReportHistory` does not reconstruct past days from live statistics.
-- The report collection is day-ordered, deduplicated, and persisted by `SaveManager`.
-- There is no arbitrary history cap in the current prototype.
-- Older saves cannot reconstruct historical reports that were never recorded.
+`DailyReportData` is a serializable snapshot type, not a MonoBehaviour.
+Historical reports are ordered by completed day and persist independently of
+live daily-stat resets. Never reconstruct past values from current-day data.
 
 ## GameUI
 
-Scene GameObject: `GameUI`.
+Scene GameObject: `GameUI`. UI controllers include `InteractionUI`,
+`OrderingUI`, `EndOfDayUI`, `PauseMenuUI`, `ProductCatalogueUI`,
+`ManagerBookUI`, `ReportsUI`, `StockWatchUI`, `StoreGoalsUI`, `StoreLevelUI`,
+`StorageCapacityUI`, `BasketContentsHUD` and `BasketLocatorUI`.
 
-Screen-space UI controllers include:
+### Minimal HUD
 
-- `InteractionUI`
-- `OrderingUI`
-- `EndOfDayUI`
-- `PauseMenuUI`
-- `ProductCatalogueUI`
-- `ManagerBookUI`
-- `ReportsUI`
-- `StockWatchUI`
-- `StoreGoalsUI`
-- `StoreLevelUI`
-- `StorageCapacityUI`
-- `BasketContentsHUD`
-- `BasketLocatorUI`
+Show persistent money, day/time/store status and context interaction feedback.
+Contextual indicators such as basket contents/locator and brief money feedback
+should only appear when useful. Do not turn every management statistic into a
+permanent on-screen widget.
 
-### HUD information rule
+### Manager Book
 
-Normal gameplay HUD remains minimal: money, day/time/store status, and contextual interaction feedback. Other information should be available only when useful:
+`ManagerBookUI` owns the navigation/modal state for Today, Stock, Catalogue
+and Reports. The M key opens the book in normal gameplay. `ProductCatalogueUI`
+and `ReportsUI` own the content of their respective pages, not cursor locking
+or time scale. Future books may include orders, furniture catalogue, and
+upgrades. A furniture catalogue must not replicate economy ownership.
 
-- Restock basket contents while carried.
-- Basket locator on request.
-- Money-gain feedback when relevant.
+### End of day
 
-Management detail belongs in `ManagerBookUI`, not on a permanently crowded HUD. Customer's world-space patience indicator is not a permanent HUD element.
+`EndOfDayUI` observes `StoreDayLifecycle.IsDayComplete` and presents a short
+Day Complete transition with day, revenue, customers served and a relevant
+achievement message. `StoreDayLifecycle.StartNextDay()` is the only transition
+entry point. The detailed completed-day report is available in Manager Book →
+Reports rather than being compulsory at close. `EndOfDayUI` does not award XP,
+reputation or money or write reports.
 
-### ManagerBookUI
+### Reports
 
-Current pages: **Today, Stock, Catalogue, Reports**.
+`ReportsUI` is a read-only presentation of `StoreReportHistory` with latest
+completed day as default, previous/next navigation, finances, customers,
+goals, reputation, progression and unlocked product names resolved via
+`StoreProgression`. It cannot create/modify reports or live counters.
 
-`ManagerBookUI` owns page navigation, pause/modality, cursor unlocking, and disabling/restoring player controls. Individual pages do not own a competing modal state.
+### Interaction feedback
 
-- `ProductCatalogueUI` presents catalogue data.
-- `ReportsUI` presents completed-day history.
+`InteractionUI.ShowPrompt/HidePrompt` is the existing contextual interaction
+line. `PlayerInteraction` updates it for ordinary interactions. In Lesson 99,
+`FurniturePlacementController` overrides that same prompt *only while in
+furniture mode* (and adds the G hint when looking at an eligible shelf). No
+new permanent HUD is created.
 
-Possible future pages: Orders and store progression/upgrades, only when they serve a demonstrated gameplay need.
+## Player and physical interaction
 
-### EndOfDayUI
+Scene GameObject: `Player`. `PlayerController` owns first-person motion/camera
+and cursor capture/release. `PlayerInteraction` owns E primary interaction, R
+secondary transfer, F carry/bulk, Q drop, hold-X management, and delegation to
+`PlayerCarryState`. `InteractionTargetFinder` raycasts through colliders and
+resolves `IInteractable` components on the hit object/parents. It is important
+to keep the existing interaction priority intact.
 
-Scene GameObject: `GameUI`; component: `EndOfDayUI`.
+`PickupItem` holds a `ProductData` reference and physical instance. It
+transitions among shelf, world, player hand, customer's carry point, scanner,
+and other supported containers. `PlaceInContainer()`/`PickUpForCustomer()`
+disable colliders and physics when items are visual cargo. Its `PlaceOnShelf()`
+uses `PlacementUtility` and actual product display transforms. Product
+ownership is never inferred from where a mesh happens to appear.
 
-Lesson 90's compact transition screen:
+## OrderingTerminal and deliveries
 
-- Waits for `StoreDayLifecycle.IsDayComplete`.
-- Displays completed day, sales revenue, customers served, and one short achievement or neutral message.
-- Uses the existing Start Next Day action through `StoreDayLifecycle.StartNextDay()`.
-- Temporarily manages cursor, player controls and paused gameplay for the transition.
+Scene `OrderingTerminal` lets the player open `OrderingUI` with E and, when
+`StoreDayLifecycle` permits, end the day via hold-X.
 
-The former expanded report and View Details button were removed. Detailed reporting belongs in the Manager Book. EndOfDayUI does not award money, reputation, goal rewards, XP, unlocks or record report history.
+Scene `DeliveryZone` contains `DeliveryZone` and `SupplierDeliveryQueue`:
+`SupplierDeliveryQueue` owns pending orders, due dates and placement into
+available receiving slots; it queries `StoreClock.IsPastSupplierCutoff`.
+`DeliveryZone` owns physical receiving positions and received cartons.
+Portable `DeliveryBox` objects remain distinct from loose items and baskets.
 
-### ReportsUI
+## Storage room
 
-Scene GameObject: `GameUI`; component: `ReportsUI`.
+`StorageBay` owns backroom stock assignment/quantity, capacity and physical
+carton/basket transfers. `StorageRegistry` finds storage locations. It is not
+an independent refrigeration model yet: future chilled products should only
+be eligible for the correct storage furniture, but adding cold-chain rules
+must reuse `ProductData`/storage furniture compatibility rather than create
+another unrelated inventory.
 
-Presentation-only read access to `StoreReportHistory`:
+The player's `RestockBasket` and scene `BasketStation` are for stock transfers
+between backroom and retail shelves. They are **not** customer shopping
+baskets. `BasketLocatorUI` lives in `GameUI`.
 
-- Empty history message.
-- Latest completed day when opened.
-- Previous/Next controls, disabled at boundaries.
-- Historic finances, customers, goals, satisfaction/reputation, experience, and unlocked product names (resolved from saved ProductIDs through `StoreProgression`).
+## Sales shelves and products
 
-`ReportsUI` does not track live counters, calculate rewards, modify histories, persist data, or manage the Manager Book's modal state.
+`Assets/_Game/Prefabs/Store/PF_Shelf.prefab` has:
 
-### Reports direction
+- Root `ShelfIdentity`: scene-instance persistent ID, currently created in
+  Unity Editor `OnValidate`. Prefab asset IDs remain blank; the identity
+  handles duplicate IDs in editor. Runtime-instantiated purchased furniture
+  needs an explicit ID-generation/restore path in a later lesson.
+- Root `SalesShelf`: allowed `ProductCategory` and `Customer_Point` used for
+  customer navigation and browsing.
+- Eight child `ShelfSlot` components, each with a distinct `localSlotKey` and
+  a `DisplayOrigin` transform. Stable slot IDs combine parent persistent ID
+  with local slot key; older legacy IDs are supported for load compatibility.
+- Physical shelf meshes (`Shelf_Back`, `Shelf_Top`, `Shelf_Middle`,
+  `Shelf_Bottom`) with child colliders, plus a customer stand point.
 
-The basic historical Reports page works. Optional future improvements: visual hierarchy, limited day-to-day comparisons, and useful trends. Reporting is not a compulsory separate gameplay screen.
+`ShelfSlot` owns assigned product, local facing, real stored `PickupItem`s,
+customer accessibility, shelf capacity, accepting/removing items, and
+registering with `ShelfRegistry`. `ShelfRegistry.TryFindStockedSlot` is the
+stocked-product lookup used by customer AI.
 
-## OrderingTerminal
+`ProductData` owns product ID, category, prefab, wholesale/retail price,
+merchandising layout (columns/depth/layers/spacing) and unlock requirements.
+The current `ProductCategory` enum includes Cereal, Dairy, Bakery, Produce,
+Drinks, Snacks and Household. These are not yet cold-chain requirements;
+refrigerated vs ambient storage must be a separate, coherent concept when
+fridges arrive.
 
-Scene GameObject: `OrderingTerminal`; component: `OrderingTerminal`.
-
-Physical point for opening `OrderingUI` with E and ending the day with Hold X when allowed. It queries existing `StoreClock` and `CustomerFlow` conditions rather than owning them.
-
-## DeliveryZone
-
-Scene GameObject: `DeliveryZone`.
-
-- `DeliveryZone`: physical receiving positions and received cartons.
-- `SupplierDeliveryQueue`: pending supplier orders, arrival-day data, and unloading due deliveries when receiving capacity is available.
-
-The supplier queue queries `StoreClock` for timing; it does not define a second schedule.
-
-## CheckoutCounter
-
-Scene GameObject: `CheckoutCounter`.
-
-Components: `CheckoutRegister`, `CheckoutFeedback`.
-
-The checkout owns the active manual scan/payment transaction, scan point, shopping-bag preparation, checkout queue interaction, and physical feedback.
-
-`CheckoutRegister` reads `CustomerController.GetCarriedItemCount()`, `GetCarriedItem(index)`, and `GetCarriedProductData(index)`; it does not use a basket-owned inventory or recalculate a separate basket total.
-
-Each successful scan:
-
-1. Reserves the specific item being scanned.
-2. Asks `CustomerController.RestoreBasketItemForCheckout(item)` to restore an item visually resized for the basket (Lesson 97); this is a no-op for hand-carried items.
-3. Calls the **existing** `PickupItem.PlaceInContainer(scanPoint)` to show the actual product at the scanner.
-4. Waits for the existing scanner display duration and validates the reservation.
-5. Counts the scanned product and adds its actual `ProductData.SellPrice` to the total.
-6. Hides the scanned `PickupItem` object while it remains in `CustomerController.carriedItems` until successful payment.
-7. Updates `ShoppingBag`'s existing scan feedback.
-
-`CustomerController.CompleteCheckout(ShoppingBag)` still removes the actual items and clears the authoritative customer inventory. Checkout revenue and daily stats are still recorded through the existing checkout/economy/stat systems. **Lesson 97 does not change the transaction or payment rules.**
-
-## Customer missing-product reaction (Lesson 98)
-
-Prefab: `Assets/_Game/Prefabs/Characters/PF_CustomerPrototype.prefab`.
-
-Components on prefab root:
-
-- `CustomerController`: already owns the requested shopping list, `RecordMissingProduct()`, `missedProductCount`, and the **existing 20-point MissingProductPenalty**. The reaction must not create a separate penalty or timer that influences gameplay.
-- `CustomerMissingProductVisual` (`Assets/_Game/Scripts/Customers/CustomerMissingProductVisual.cs`): presentation only. Exposes `ShowReaction()` to display a short muted-coral `:(` using 3D TextMeshPro above the customer's head.
-
-Prefab child: `MissingProductText`, a direct child of the root, not of `Visual`, so it does not inherit walk bounce or shelf lean. Local position `(0, 2.26, 0)`, local scale `(0.10, 0.10, 0.10)`, TextMeshPro font size `20`, colour `#C46B6B`. It is initially active in the prefab and hidden in the visual component's `Awake()`.
-
-`CustomerController.RecordMissingProduct()` keeps its pre-existing penalty and count operations, then calls `missingProductVisual.ShowReaction()` if a visual component is assigned. This occurs when a requested product cannot be found in stocked shelves, not as a separate search or stock-accounting rule.
-
-The feedback lasts approximately `1.3` seconds, floats up `0.08` units, fades during the final `0.35` seconds, and faces `Camera.main`. If multiple products are missing rapidly, showing it again restarts the same one-shot feedback. The customer's NavMeshAgent, state machine, visual body transform, checkout queue, happiness bounce, and basket are not modified.
-
-Missing-product feedback is distinct from checkout waiting feedback. The existing `CustomerQueuePatienceVisual` is responsible only for `!` and `!!` during delayed checkout.
-
-No persistent state, UI Canvas, added HUD, additional satisfaction adjustment, or change to day-end reporting is created by this feedback.
-
-## Customer checkout feedback (Lesson 91)
+## Customer AI and checkout
 
 Customer prefab: `Assets/_Game/Prefabs/Characters/PF_CustomerPrototype.prefab`.
+`CustomerController` owns the shopping list, state progression, movement
+navigation destinations, actual `carriedItems` list, missed-product penalties,
+checkout wait penalties, purchase outcome and visit reporting. Never duplicate
+customer-owned item or satisfaction accounting in a basket/visual component.
 
-`CustomerController` owns queue states, waiting time, and satisfaction penalty. It exposes read-only `IsWaitingAtCheckout` and `CurrentCheckoutWaitPenalty` properties.
+Customers use the entrance and exit inside points under `CustomerTraffic`,
+plus the external spawn/exit points. Customer states include walking inside,
+visiting the basket station, taking basket, searching, walking to a stocked
+shelf, browsing/taking a product, waiting/walking at checkout, and leaving.
+Shelf browsing (Lesson 92) uses the existing TakingProduct state: stop at the
+shelf, rotate to the slot, animate `Visual.localRotation` forward and back for
+~0.85 sec, then call the existing `ShelfSlot.TryTakeItemForCustomer`.
 
-`CustomerQueuePatienceVisual` reads those properties. After the existing grace period, an amber `!` appears; at its configurable visual critical penalty (default 15), a coral `!!` appears. The 3D TextMeshPro label bobs and faces the camera. Its font size 20 is a verified readable prototype setting.
+`CheckoutCounter` holds `CheckoutRegister` and `CheckoutFeedback` and is the
+single authoritative transaction/scanning interaction. `CheckoutQueue`
+coordinates assignment of front/back queue positions and advancing customers.
+The checkout reserves a real `PickupItem` while scanning, moves it to the
+scanner, increases scanned total/count, hides its GameObject after the scan,
+adds a bag visual count, and only awards sales/money on successful payment.
+A completed purchase transfers the `ShoppingBag` to the customer for the exit.
+No visual lesson may bypass the reservation or payment ownership.
 
-Visual feedback does not alter customer satisfaction, queue positions, payments or timing rules.
+### Customer visual feedback (Lessons 91–93, 98)
 
-## Customer shelf browsing (Lesson 92)
+- `CustomerQueuePatienceVisual`: a 3D TMP `!` / `!!` overhead based on the
+  existing `CustomerController.IsWaitingAtCheckout` and
+  `CurrentCheckoutWaitPenalty`; no new patience timer or satisfaction rule.
+  The user's readable font size is 20, with amber `#F6D77A` and coral
+  `#C46B6B`. The grace-period/penalty remain in `CustomerController`.
+- `CustomerWalkVisual`: reads actual `NavMeshAgent.velocity`, applies walking
+  bounce/sway or breathing to `Visual.localPosition` only. It does not control
+  navigation, visual local rotation or local scale. The customer's two eyes
+  are children of `Visual` so they follow these animations naturally.
+- `CustomerController` itself animates `Visual.localRotation` when browsing
+  and `Visual.localScale` for the happy-payment reaction.
+- `CustomerMissingProductVisual`: presentation-only brief `:(` world TMP
+  reaction (about 1.3 sec) triggered from the existing `RecordMissingProduct`.
+  It does not change the existing 20-point missed-product satisfaction penalty.
 
-Customer prefab root component: `CustomerController`.
+## Customer baskets (Lessons 94–99)
 
-- The established `SalesShelf.CustomerStandPoint` remains the shopper destination.
-- On arrival, the existing `TakingProduct` state lasts for a configurable browse duration.
-- The customer's root rotates toward the selected `ShelfSlot`; its child `Visual` briefly leans and returns upright.
-- NavMeshAgent automatic rotation is disabled only for browsing, then restored.
-- `ShelfSlot.TryTakeItemForCustomer()` still controls stock removal, and the customer retries searching if another customer took the last item.
+Customer prefab contains a root-level `CustomerShoppingBasket` component and
+an empty direct child `BasketCarryPoint`, currently near `(0.127,0.78,0.60)`
+so the basket appears in front of the body. Basket geometry is separate at
+`Assets/_Game/Prefabs/Store/PF_CustomerBasket.prefab`.
 
-The browsing animation adds pacing/presentation without changing the shopping list, inventory accounting, prices or satisfaction.
+Scene `CustomerBasketStation` holds a visible placeholder basket rack and
+`PickupPoint`; `CustomerBasketStation.DispenseBasket` instantiates the separate
+basket prefab under `BasketCarryPoint`. Customers requesting three or more
+products visit the rack and pause briefly before receiving the basket; small
+purchases use the existing fixed hand-carry slots. The source is unlimited
+for now and has no player restocking chore.
 
-## Customer walking and idle animation (Lesson 93)
+`PF_CustomerBasket` consists of `BasketVisual` non-colliding decorative meshes
+and a direct child `ItemSlotsRoot`. Dynamic anchors appear under that root as
+actual products are taken; the first four anchors use a two-by-two pattern
+and further products use additional layers. `CustomerController.carriedItems`
+is still the only authoritative list of purchased physical product instances.
 
-Customer prefab root component: `CustomerWalkVisual`; script: `Assets/_Game/Scripts/Customers/CustomerWalkVisual.cs`.
+`CustomerShoppingBasket.FitCollectedItem` centres renderer bounds on each
+anchor and keeps track of original scales for checkout restoration. **Lesson
+99 changes the basket's default to preserve original product size:** the
+new `shrinkOversizedItems` Inspector switch is **false**. This is based on the
+user's Lesson 98 test: setting the size limits to 10 made the products look
+normal again. When `shrinkOversizedItems` is false, *no visual shrinking* is
+applied, but centring remains. The width/height/depth limits are only used if
+the optional shrink switch is deliberately enabled in a later art pass.
+Product meshes may stick out slightly, which is preferable to illegibly tiny
+miniature products in this cozy presentation.
 
-- Reads `NavMeshAgent.velocity` rather than creating a second movement state.
-- Animates only `Visual.localPosition`: light walking bounce and sway, transitioning to subtle idle breathing.
-- Leaves `Visual.localRotation` for shelf browsing and `Visual.localScale` for the existing happy checkout reaction.
-- Does not move the actual NavMeshAgent, carry slots, basket, patience indicator or world items.
-- The `Eye_left` and `Eye_right` children of `Visual` move with this presentation.
+`CheckoutRegister` still asks `CustomerController.RestoreBasketItemForCheckout`
+before calling `PickupItem.PlaceInContainer(scanPoint)`. That restores the
+original item's scale (if changed), and all normal scanning/payment behavior
+continues unchanged. After successful checkout the reusable customer basket
+instance is destroyed immediately, not displayed as a floating returned item.
+The customer exits with the separate checkout `ShoppingBag`.
 
-## Customer shopping baskets (Lessons 94–98)
+`CustomerBasketStation` is distinct from the player's `BasketStation` and the
+checkout `ShoppingBag`. Basket supply and return management is postponed until
+it is actually a meaningful shopkeeper decision. The rack's geometry is
+placeholder art and is explicitly deferred to the modelling/art phase.
 
-Customer prefab: `Assets/_Game/Prefabs/Characters/PF_CustomerPrototype.prefab`.
+## Lesson 99: first furniture placement (closed-store testing)
 
-Basket prefab: `Assets/_Game/Prefabs/Store/PF_CustomerBasket.prefab`.
+New script: `Assets/_Game/Scripts/Store/FurniturePlacementController.cs`.
+Component lives on scene `Player`, alongside `PlayerController` and
+`PlayerInteraction`. This is a first-person interaction tool, **not** an
+owner of furniture prices, inventory or persistence. It queries:
 
-Scripts: `CustomerController`, `CustomerShoppingBasket`, `CustomerBasketStation`.
+- The Player's `Main Camera`, `PlayerInteraction` and `GameUI/InteractionUI`.
+- `StoreSystems/StoreClock` for whether the shop is open/ended.
+- `StoreSystems/CustomerFlow.ActiveCustomerCount` to require zero visitors.
+- The existing `store_model/Floor` BoxCollider as a valid store floor surface.
+- The existing `Navigation` `NavMeshSurface` to synchronously rebuild paths
+  after a confirmed placement.
 
-### Responsibilities
+Controls while the store is closed with no customers:
 
-- `CustomerFlow` generates configurable shopping lists (current scene playtest range 1–4) and controls visitor spawning/capacity.
-- Customers requesting at least three items (configurable) visit the basket rack. Shorter trips continue with fixed hand-carry slots.
-- `CustomerBasketStation.DispenseBasket()` instantiates the separate `PF_CustomerBasket` asset beneath the customer root's `BasketCarryPoint`, after pickup. The rack is an effectively unlimited source at this stage.
-- Customer prefab includes a direct child `BasketCarryPoint`, not embedded basket meshes. Current local position is approximately `(0.127, 0.78, 0.6)`; preserve the player's front-facing arrangement.
-- `PF_CustomerBasket` holds `BasketVisual` mesh pieces and `ItemSlotsRoot`, both directly beneath the basket root. The basket does not contain AI, inventory state, purchase data, Rigidbody, or checkout payment behavior.
-- `CustomerShoppingBasket` creates position anchors only as products are collected. `CustomerController.carriedItems` alone owns the authoritative list of actual acquired `PickupItem` objects.
-- `ShelfSlot.TryTakeItemForCustomer()` uses `PickupItem.PickUpForCustomer()` to move the actual product from shelf to the requested anchor, with collisions and gravity disabled.
+- Look at any empty `PF_Shelf` collider within ~4m, press **G** to enter
+  placement preview. Shelves with any `ShelfSlot.StoredItemCount > 0` cannot
+  move, even if another facing is empty.
+- Aim the camera at the shop floor: shelf follows the ray intersection on a
+  0.5m grid; it remains a real scene shelf, not a purchased clone.
+- **R** rotates 90°, **E** confirms only when valid, **Q** cancels and restores
+  the exact original position and rotation. `PlayerInteraction` is temporarily
+  disabled during placement to avoid E/R/Q conflicting with stock interactions.
+- Shelf colliders are temporarily disabled in preview and restored on exit;
+  `Physics.OverlapBox` checks a generously sized shelf volume against other
+  solid scene objects and player; all four corners must remain inside floor
+  bounds. Green preview means valid, coral red means invalid. Visual tint is
+  restored without altering shared materials.
+- The shelf must have eight existing slots with zero stored items; stock
+  ownership and persistent shelf IDs remain unchanged through movement.
+- `NavMeshSurface.BuildNavMesh()` refreshes customer navigation **after** a
+  valid placement with colliders reenabled. This POC synchronous rebuild can
+  be reconsidered for large stores later.
+- Furniture mode cancels if the store opens, customers appear, time is paused,
+  or the player leaves normal locked-cursor gameplay.
 
-### Basket presentation (Lessons 97–98)
+### Lesson 99 saving limitation and guard
 
-The basket's product arrangement is **only visual**. It must not affect prices, availability, item IDs, acquired-item order, scan indexes, customer satisfaction, or daily statistics.
+The current v17 `StoreSaveData` stores shelf-slot stock by persistent ID, but
+**does not store the world transform of furniture**. Moving a shelf and saving
+only stock would silently restore the wrong layout after reload.
 
-- The layout uses **two columns and two rows per layer**, instead of the old three-row first layer; additional quantities continue on higher layers.
-- Basket component initial values: `columnSpacing = 0.30`, `rowSpacing = 0.21`, `layerSpacing = 0.16` (Unity local units).
-- In the basket prefab, `ItemSlotsRoot` starts at local `(0, 0.04, 0)` instead of `(0, 0.16, 0)`, putting the center of the first layer *inside* the basket rather than above its rim.
-- After a successful pickup, `CustomerController` calls `CustomerShoppingBasket.FitCollectedItem(item)` once. This stores the actual item instance's original local scale, uses its enabled visible renderers' world bounds, scales **down but never up** to fit maximum presentation dimensions, then visually centers the bounds on that item's allocated carry point.
-- Lesson 97 initially used maximum presentation dimensions width `0.24`, height `0.20`, depth `0.16` world units. Lesson 98 enlarges the **customer prefab Inspector values** to width `0.29`, height `0.32`, depth `0.20` to keep groceries visible and allow charming, slight protrusion over the basket rim. These are maximum bounds, **not** forced minimum size: the current `FitCollectedItem()` only shrinks items that exceed the limits, and it never enlarges small original meshes. Fit dimensions are an art/presentation constraint, not an inventory-capacity rule.
-- Because this simple bounds approach uses world-space axis-aligned bounding boxes, product shapes and rotations can still need later art review. Renderer bounds may include visible labels. The goal is better prototype packing, not a final physically accurate stacking simulation.
-- Original scales are held transiently in a dictionary keyed by the **same `PickupItem` object**, not a second product or payment list.
-- Immediately before the existing scanner transfer, `CheckoutRegister` calls `CustomerController.RestoreBasketItemForCheckout(item)`, which delegates to `CustomerShoppingBasket.RestoreItemForCheckout(item)` and restores the product's original scale.
-- The scanner then moves that same real item to `scanPoint` and continues its pre-existing scan/reservation/payment workflow. Scanned products visibly leave the basket and do not remain duplicated inside it.
-- `CustomerShoppingBasket.ClearAfterCheckout()` destroys the temporary basket immediately after successful payment. `DiscardBasket()` handles abandoned shopping/cleanup, including clearing temporary scale bookkeeping.
+Therefore `FurniturePlacementController.HasUnpersistedFurnitureChanges` becomes
+true once any shelf move is confirmed. `SaveManager.CanUseSaveSystemNow()` has a
+small guard which rejects both Save and Load in that Play session once a
+furniture change has occurred, with a clear explanation in the pause menu.
+This intentionally protects existing saves until Lesson 100 adds furniture
+layout persistence, runtime furniture identity and a migration plan. A new
+Play session restores the scene's authored placement. Scene/prefab assets do
+not move on disk during Play Mode, and the lesson does not change save v17.
 
-Do not use the basket to hold a second purchased-item collection. Hand-carried products never enter the basket-fitting path.
+**This is a placement prototype, not yet the final furniture purchasing loop.**
+No furniture catalogue, spending, selling furniture, room boundary editing,
+refrigeration, rent or spoilage is implemented in Lesson 99.
 
-### What is deliberately not implemented
+## Planned gameplay systems and dependency order
 
-- No fixed three-item basket maximum, new basket stock system, or player basket-restocking chore.
-- No independent customer basket save data; customer visits remain runtime-only.
-- No packing physics or reparenting of decorative clones.
-- No replacement of checkout payment/scanning, shelf stock removal, or store day lifecycle.
+The planned features should connect to existing authority rather than create
+parallel data:
 
-The customer basket is distinct from the player's `RestockBasket` and the checkout's `ShoppingBag`.
+1. Furniture layout saving and runtime IDs, then buying a second shelf using
+   `StoreEconomy` and a small furniture catalogue/placement workflow.
+2. Refrigerated display furniture and **appropriate cold backroom storage**.
+   Chilled product requirements should be declared on `ProductData`; both
+   sales furniture and storage compatibility must enforce the same rule.
+3. Simple spoilage for improperly stored perishables, tied to `StoreClock`
+   and clearly signalled to the player. Initially prefer a grace period and
+   product-level elapsed storage time, not an elaborate temperature simulation.
+   Customers should not be punished for invisible rules.
+4. Modest aggregated end-of-day operating cost for rent/electricity. It should
+   be charged once by the authoritative day/economy system and shown in the
+   Manager Book/report, not as multiple detailed utilities.
+5. Store expansion as a **purchasable layout upgrade** with a bigger allowed
+   placement zone, updated walls/floor and navigation. Avoid arbitrary
+   expansions unrelated to furniture movement and store progression.
+6. Employees only after the manual shopkeeper activities feel rewarding;
+   defer rosters, wages and schedules until their role is understood.
+7. Art pass/modeling for shelves, basket station and store environment later.
+   Geometry may improve without rewriting the underlying mechanics.
 
-## Customer basket pickup station (Lessons 95–96)
+## Save system and historical compatibility
 
-Scene GameObject: `CustomerBasketStation` near the entrance.
+`SaveManager` in `StoreSystems` coordinates `StoreSaveData` version 17. It
+stores money, day/time, unlocked product IDs, stock assignments/quantities,
+storage slots, supplier orders/deliveries, loose products, goals, level data,
+live stats and immutable daily report history. Version 17 introduced
+`DailyReportData` history. Older saves load with empty historical history
+rather than invented records. Existing SaveManager restrictions (no active
+customers, no held restock basket/carton/product, etc.) remain intact.
 
-Component: `CustomerBasketStation`; script: `Assets/_Game/Scripts/Customers/CustomerBasketStation.cs`.
+Lessons 91–98 introduced only runtime customer visuals, basket-carry points and
+presentation parameters; they did not introduce new saved fields. Lesson 99
+adds experimental placement and a protective Save/Load guard, without a save
+migration. The v17 schema remains the authoritative persisted format until
+Lesson 100 explicitly extends it.
 
-- `pickupPoint` is `CustomerBasketStation/PickupPoint` and must remain reachable by NavMesh.
-- `basketPrefab` points at the separate `PF_CustomerBasket` asset.
-- `WalkingToBasketStation` and `TakingBasket` are existing `CustomerState` values used before basket shopping. There is a short pause at the rack.
-- The simple stack of cube meshes on `RackVisual` is placeholder art only; its visual form may improve independently of basket AI.
-- The former returned-basket presentation, `CheckoutReturnPoint`, and five-second cleanup were removed in Lesson 96. The basket disappears immediately after payment; the customer exits with the existing purchased `ShoppingBag`.
+## Ownership and scene-reference rules
 
-No finite stock, player collection requirement or second store resource is created by this station. Basket restocking should be considered only if it produces meaningful player decisions during day playtests.
+Before adding a persistent rule ask: is this represented already, who owns it,
+and can the new component query that owner? Examples: the supplier queue must
+query `StoreClock.IsPastSupplierCutoff`; it must not define its own cutoff.
+Furniture buying must use `StoreEconomy` and shelf identities, not hide stock
+in placement scripts. Chilled storage and retail display must share product
+requirements. Furniture upgrades must coordinate wall/floor/Navigation.
 
-## BasketStation
+Before documenting Inspector wiring, verify the actual scene owner and prefab
+hierarchy. Avoid vague phrasing such as “object containing the component.”
 
-Scene GameObject: `BasketStation`; component: `BasketStation`.
-
-This is the **player's restock basket** home/recovery point, unrelated to the customer basket rack. Temporary locator UI is on `GameUI`.
-
-## Player
-
-Scene GameObject: `Player`.
-
-`PlayerController` and `PlayerInteraction` own player movement and action coordination. Carry-state and target interpretation are delegated to the existing specialized components. Established controls include E interact, R reverse, F carry, Q drop, Tab restock basket, M Manager Book, and Hold X end-day at the terminal.
-
-## Sales Shelves
-
-Prefab: `Assets/_Game/Prefabs/Store/PF_Shelf.prefab`.
-
-- Root `ShelfIdentity` owns persistent furniture identity.
-- Root `SalesShelf` owns allowed category and customer stand point.
-- Child `ShelfSlot`s own product-facing assignment and stored products.
-- ProductData owns item-specific merchandising arrangement; do not duplicate that in every category-specific shelf transform.
-
-## Persistence
-
-`SaveManager` is on `StoreSystems`, coordinating serialization, not gameplay authority.
-
-**Current save version: 17.**
-
-Version 17 added historical `DailyReportData` entries to `StoreSaveData`. SaveManager exports/restores reports through `StoreReportHistory`; older saves load with empty historical reports rather than invented backfilled records. Existing save restrictions remain unchanged.
-
-- Lesson 91: patience visuals and read-only customer penalty access; no extra saved fields.
-- Lesson 92: runtime browsing timing and lean; no extra saved fields.
-- Lesson 93: runtime walking/idle body motion; no extra saved fields.
-- Lesson 94: basket carry points and configurable shopping-list size; no extra saved fields.
-- Lesson 95: basket pickup/return presentation; no extra saved fields.
-- Lesson 96: separate basket prefab and immediate basket cleanup; no extra saved fields.
-- Lesson 97: per-item basket fit and restoration of runtime visual scale during scanning; **no new persistence fields or save-version change**.
-- Lesson 98: larger basket-fitting Inspector limits and a transient 3D TMP missing-product reaction. No new save fields or save-version changes.
-
-## Ownership rule
-
-Before adding a serialized gameplay rule:
-
-1. Does another system already own this rule?
-2. Which component is its authoritative owner?
-3. Can the new behavior query that component rather than duplicate its data?
-
-Example: `SupplierDeliveryQueue` queries `StoreClock.IsPastSupplierCutoff`; it must not define a second conflicting same-day cutoff.
-
-## Scene reference rule
-
-Before documenting an Inspector assignment, check the actual owning GameObject in `Market.unity` and the actual prefab hierarchy in GitHub. Keep field names and paths exact; do not write generic instructions when ownership is known.
+End of complete Lesson 99 architecture document.

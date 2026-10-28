@@ -9700,7 +9700,7 @@ MonoBehaviour:
   supplierCutoffMinute: 0
   dayEndHour: 22
   dayEndMinute: 0
-  gameMinutesPerRealSecond: 10
+  gameMinutesPerRealSecond: 0.1
   dayText: {fileID: 741771842}
   timeText: {fileID: 1557549108}
   statusText: {fileID: 249437617}
@@ -11427,6 +11427,7 @@ GameObject:
   - component: {fileID: 1349577613}
   - component: {fileID: 1349577614}
   - component: {fileID: 1349577615}
+  - component: {fileID: 1349577616}
   m_Layer: 0
   m_Name: Player
   m_TagString: Untagged
@@ -11509,6 +11510,32 @@ MonoBehaviour:
   playerCamera: {fileID: 330585545}
   holdPoint: {fileID: 1641586007}
   interactionUI: {fileID: 766562198}
+--- !u!114 &1349577616
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1349577611}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 60fea34b643b4b846b23a6465e8d7c9a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::FurniturePlacementController
+  playerCamera: {fileID: 330585545}
+  playerInteraction: {fileID: 1349577615}
+  interactionUI: {fileID: 766562198}
+  storeClock: {fileID: 1117834532}
+  customerFlow: {fileID: 1117834531}
+  storeFloor: {fileID: 1065726998}
+  navMeshSurface: {fileID: 436418470}
+  grabDistance: 4
+  previewRayDistance: 18
+  gridSize: 0.5
+  footprintHalfExtents: {x: 1.3, y: 1.05, z: 0.52}
+  footprintCenter: {x: 0, y: 1.1, z: 0}
+  validColor: {r: 0.43529412, g: 0.8117647, b: 0.5921569, a: 1}
+  invalidColor: {r: 0.76862746, g: 0.41960785, b: 0.41960785, a: 1}
 --- !u!1 &1369482165
 GameObject:
   m_ObjectHideFlags: 0

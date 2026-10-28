@@ -939,6 +939,21 @@ public class SaveManager : MonoBehaviour
 
     private bool CanUseSaveSystemNow()
     {
+        
+        var furniturePlacement =
+            FindAnyObjectByType<FurniturePlacementController>();
+
+        if (furniturePlacement != null &&
+            furniturePlacement.HasUnpersistedFurnitureChanges)
+        {
+            LastOperationMessage =
+                "Furniture positions cannot be saved yet (Lesson 100). " +
+                "Restart Play Mode to return to your saved layout.";
+
+            Debug.LogWarning(LastOperationMessage);
+            return false;
+        }
+
         if (storeClock.HasDayEnded)
         {
             LastOperationMessage = "Start the next day before saving or loading.";

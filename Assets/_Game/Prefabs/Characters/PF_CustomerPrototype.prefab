@@ -437,9 +437,10 @@ MonoBehaviour:
   columnSpacing: 0.3
   rowSpacing: 0.21
   layerSpacing: 0.16
-  maximumItemWidth: 0.29
-  maximumItemHeight: 0.32
-  maximumItemDepth: 0.2
+  shrinkOversizedItems: 0
+  maximumItemWidth: 10
+  maximumItemHeight: 10
+  maximumItemDepth: 10
 --- !u!114 &3464890494841654905
 MonoBehaviour:
   m_ObjectHideFlags: 0
