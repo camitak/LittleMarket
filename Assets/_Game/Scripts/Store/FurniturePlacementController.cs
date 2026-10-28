@@ -40,6 +40,8 @@ public class FurniturePlacementController : MonoBehaviour
     private Quaternion originalRotation;
     private float previewYaw;
     private bool canPlace;
+    private bool isNewShelfPurchase;
+    private FurnitureShop pendingPurchase;
     
     private Collider[] selectedColliders;
     private bool[] originallyEnabled;
@@ -101,7 +103,9 @@ public class FurniturePlacementController : MonoBehaviour
         if (selectedShelf != null)
         {
             interactionUI.ShowPrompt(canPlace
-                ? "[E] Place  |  [R] Right  [T] Left  |  [Q] Cancel"
+                ? (isNewShelfPurchase
+                    ? "[E] Buy & place  |  [R] Right  [T] Left  |  [Q] Cancel (free)"
+                    : "[E] Place  |  [R] Right  [T] Left  |  [Q] Cancel")
                 : "Keep the front clear  |  [R] Right  [T] Left  |  [Q] Cancel");
             return;
         }
@@ -156,12 +160,30 @@ public class FurniturePlacementController : MonoBehaviour
         return true;
     }
 
+    // Called after the shop computer closes and its cursor has been recaptured.
+    // The new shelf exists only as a preview until E confirms the purchase.
+    public bool BeginPurchasedShelfPreview(ShelfIdentity shelf, FurnitureShop shop)
+    {
+        if (shelf == null || shop == null || selectedShelf != null ||
+            !CanStartPlacement()) return false;
+
+        StartPreview(shelf, true, shop);
+        return true;
+    }
+
     private void TryStartPlacement()
     {
         if (!TryFindLookedAtShelf(out ShelfIdentity shelf) || !IsEmpty(shelf))
             return;
 
+        StartPreview(shelf, false, null);
+    }
+
+    private void StartPreview(ShelfIdentity shelf, bool purchased, FurnitureShop shop)
+    {
         selectedShelf = shelf;
+        isNewShelfPurchase = purchased;
+        pendingPurchase = shop;
         originalPosition = shelf.transform.position;
         originalRotation = shelf.transform.rotation;
         previewYaw = shelf.transform.eulerAngles.y;
@@ -373,16 +395,34 @@ public class FurniturePlacementController : MonoBehaviour
 
     private void ConfirmPlacement()
     {
+        if (isNewShelfPurchase &&
+            (pendingPurchase == null || !pendingPurchase.TryCompletePurchase()))
+        {
+            Debug.LogWarning("Not enough money to confirm shelf purchase.", this);
+            return;
+        }
+
         FinishPreview(false);
-        // Current scene already has Navigation/NavMeshSurface.
-        // Rebuild after the moved shelf's colliders are enabled again.
+        Physics.SyncTransforms();
         navMeshSurface.BuildNavMesh();
-        Debug.Log("Shelf moved. Layout can now be saved with Save Game.", this);
+        Debug.Log("Shelf placed. Save your game to keep the new layout.", this);
     }
 
     private void CancelPlacement()
     {
-        FinishPreview(true);
+        if (selectedShelf == null) return;
+
+        if (isNewShelfPurchase)
+        {
+            ShelfIdentity preview = selectedShelf;
+            FurnitureShop shop = pendingPurchase;
+            FinishPreview(false);
+            if (shop != null) shop.CancelPurchase(preview);
+        }
+        else
+        {
+            FinishPreview(true);
+        }
     }
 
     private void FinishPreview(bool restorePosition)
@@ -405,6 +445,8 @@ public class FurniturePlacementController : MonoBehaviour
 
         DestroyAccessOutline();
         selectedShelf = null;
+        isNewShelfPurchase = false;
+        pendingPurchase = null;
         selectedColliders = null;
         selectedRenderers = null;
         originalProperties = null;

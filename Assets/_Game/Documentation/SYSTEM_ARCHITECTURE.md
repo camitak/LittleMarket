@@ -451,20 +451,19 @@ move**. The old `HasUnpersistedFurnitureChanges` flag and warning are removed.
 Existing guardrails (no active customers, no held items/basket/delivery box,
 not after day end) are preserved. Pause menu and HUD are unchanged.
 
-This version only supports **scene-authored existing shelves**. It does not
-create furniture from save records, sell furniture, or persist player-bought
-instances; that's the next lesson. Extending the layout service to instantiate
-furniture safely is required before allowing any purchase. The current strict
-ID roster check is intentional for version-18 safety, and must be extended
-when runtime purchases are implemented.
+Lesson 101 supports only scene-authored shelves (version 18). Lesson 102 extends
+this with safe runtime shelf purchases, ID assignment and reconstruction during
+load (version 19). The original three scene shelf IDs remain unchanged, and the
+original inventory list stays authoritative.
 
 ## Save system and historical compatibility
 
-`SaveManager` on `StoreSystems` coordinates `StoreSaveData` **version 18**. It
+`SaveManager` on `StoreSystems` coordinates `StoreSaveData` **version 19**. It
 still saves day/time, money, reputation, unlocked product IDs, shelf-slot
 inventory, storage inventory, supplier orders/deliveries, loose products,
 rewards, level and immutable daily report history. Version 17 introduced
-`DailyReportData` history; version 18 adds only a per-shelf layout list.
+`DailyReportData` history; version 18 adds a per-shelf layout list; version 19 adds a purchased-by-player flag
+on each shelf layout record, without changing the shelf inventory format.
 All existing older-save handling remains intact, including historical reports
 and the restrictions on saving/loading while customers or held physical
 products are present.
@@ -472,8 +471,70 @@ products are present.
 Lessons 91–98 added runtime customer visuals and basket presentation; Lessons
 99–100 introduced furniture placement and front clearance without changing
 schema. Lesson 101 adds per-shelf positions/rotations and an explicit
-backward-compatible version-17 fallback. It does not modify the stock list
-format, shelf IDs, economy accounting or day lifecycle.
+backward-compatible version-17 fallback. It does not modify the stock list format, shelf IDs, economy accounting or day lifecycle.
+Lesson 102 adds purchased shelf records while preserving those rules.
+
+## Lesson 102: One store computer and purchasable shelves (save version 19)
+
+**Design:** `OrderingTerminal`/`OrderingUI` remains the shared management computer.
+`GameUI/OrderingPanel` contains the existing `ProductScrollView` (unchanged)
+and new Products/Furniture tab Buttons plus a `FurniturePanel`. `StoreComputerFurnitureUI`
+is attached to the always-active `GameUI` root rather than OrderingPanel, so it
+can finish the cursor-recapture coroutine after `OrderingUI.Close()` deactivates
+that panel. Its code owns tab/purchase button presentation but never spends money.
+The Manager Book stays the read-only on-the-move information companion; the
+normal HUD remains minimal. An Upgrades computer section is reserved for later.
+
+**Purchase transaction:** new `FurnitureShop` on `StoreSystems` owns the initial
+£40 test price, store-clock/customer-free eligibility, currency check and calls
+`StoreEconomy.TrySpend(price)` only at E **valid placement confirmation**. The
+UI first checks affordability while the computer is open, closes the existing
+`OrderingUI`, then starts a preview after cursor recapture. Q cancels the preview
+free; no refund calculation or furniture-delivery inventory is needed. Buying
+is allowed only when closed, no customers and nothing held. This is a prototype
+choice, not a fixed long-term price. Furniture spending reduces money but must
+not be recorded as `DailyStats.StockSpending` (stock-specific reporting). A
+future financial report may add a separate furniture investment category.
+
+`FurniturePlacementController` continues to own floor preview, orientation R/T,
+E confirmation, Q cancel, grid/body checks, front-access reservations and
+NavMesh rebuild after confirmation. `BeginPurchasedShelfPreview(shelf, shop)`
+uses the same path as G-moving an existing empty shelf but marks the temporary
+object as a new purchase. E calls the shop for payment, then finalizes it;
+Q asks the shop to discard the temporary instance. Existing shelf moves remain
+free. `SaveManager` still rejects Save/Load while any preview is active.
+
+**Identity and persistence:** `ShelfIdentity.AssignRuntimeID(string)` assigns
+a newly generated GUID to a purchased `PF_Shelf` instance before its slots
+register. The three authored shelf IDs are never replaced.
+`StoreFurnitureLayout` has new `shelfPrefab` (PF_Shelf asset) and `shelfRegistry`
+references. The layout's original scene-authored IDs are captured at Awake.
+Every saved placement includes `purchasedByPlayer` (false on authored shelves,
+true on runtime purchases) and continues to store ID, position and rotation.
+No extra product inventory collection is created: the existing `shelfSlots`
+list remains authoritative and still uses `<shelfID>:<slotKey>`.
+
+Version-19 preflight requires every authored shelf exactly once and rejects
+unknown layout IDs unless they are explicitly marked purchased. Duplicate
+IDs abort before money/inventory mutations. On load, the layout removes any
+currently purchased shelf objects and unregisters their old slots; it restores
+authored shelf positions, instantiates the purchased PF_Shelf objects with their
+saved IDs, synchronously registers the new ShelfSlots with ShelfRegistry, and
+rebuilds NavMesh. **This happens before RestoreShelfInventory**, so all
+purchased shelf slots are known when their product assignments/quantities
+restore. Deferred Unity Destroy objects are excluded from discovery until
+they disappear. Repeated Load does not duplicate purchased shelves.
+
+Version-18 saves have no purchased flag and are validated strictly against
+the original authored shelf roster, even if purchased shelves currently exist
+in runtime. Loading them clears current purchased instances and restores only
+the authored layout. Version 17 and earlier use the existing authored-pose
+fallback. This is a backward-compatible addition, not a reset of stock data.
+
+**Out of scope:** selling furniture, buying while the shop is open, furniture
+shipments, proper multi-item furniture catalog, configurable per-type footprint
+dimensions, fridges, perishable stock, bills, employees and store expansion.
+All remain planned. No current customer/basket/checkout behaviors change.
 
 ## Ownership and scene-reference rules
 
@@ -487,4 +548,4 @@ requirements. Furniture upgrades must coordinate wall/floor/Navigation.
 Before documenting Inspector wiring, verify the actual scene owner and prefab
 hierarchy. Avoid vague phrasing such as “object containing the component.”
 
-End of complete Lesson 101 architecture document.
+End of complete Lesson 102 architecture document.

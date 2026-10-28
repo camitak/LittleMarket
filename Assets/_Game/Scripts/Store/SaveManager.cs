@@ -4,7 +4,7 @@ using UnityEngine;
 
 public class SaveManager : MonoBehaviour
 {
-    private const int CurrentSaveVersion = 18;
+    private const int CurrentSaveVersion = 19;
 
     [Header("Store References")] 
     [SerializeField] private StoreClock storeClock;

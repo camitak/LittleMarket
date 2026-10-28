@@ -8,22 +8,29 @@ using UnityEditor;
 [DisallowMultipleComponent]
 public class ShelfIdentity : MonoBehaviour
 {
-    [Tooltip(
-        "Generated automatically for each shelf instance. " +
-        "Do not edit this value manually."
-    )]
-    [SerializeField]
-    private string persistentID = "";
+    [Tooltip("Generated automatically for each scene shelf; do not change manually.")]
+    [SerializeField] private string persistentID = "";
 
     public string PersistentID => persistentID;
+
+    // For purchases, after Instantiate and before any ShelfSlot registers.
+    // Existing authored shelf identities never need this method.
+    public void AssignRuntimeID(string newID)
+    {
+        if (string.IsNullOrWhiteSpace(newID))
+        {
+            Debug.LogError("A runtime shelf needs a non-empty ID.", this);
+            return;
+        }
+
+        persistentID = newID;
+    }
 
 #if UNITY_EDITOR
     private void OnValidate()
     {
         if (Application.isPlaying) return;
 
-        // The prefab asset itself must remain blank.
-        // Individual scene instances own the persistent ID.
         if (PrefabUtility.IsPartOfPrefabAsset(this))
         {
             persistentID = "";
@@ -32,40 +39,28 @@ public class ShelfIdentity : MonoBehaviour
 
         if (!gameObject.scene.IsValid()) return;
 
-        if (string.IsNullOrWhiteSpace(persistentID) ||
-            HasDuplicateID())
-            GenerateNewID();
+        if (string.IsNullOrWhiteSpace(persistentID) || HasDuplicateID())
+        {
+            persistentID = Guid.NewGuid().ToString("N");
+            EditorUtility.SetDirty(this);
+        }
     }
 
     private bool HasDuplicateID()
     {
         if (string.IsNullOrWhiteSpace(persistentID)) return false;
 
-        var identities =
-            FindObjectsByType<ShelfIdentity>(
-                FindObjectsInactive.Include,
-                FindObjectsSortMode.None
-            );
+        ShelfIdentity[] identities = FindObjectsByType<ShelfIdentity>(
+            FindObjectsInactive.Include, FindObjectsSortMode.None);
 
-        for (var i = 0; i < identities.Length; i++)
+        foreach (ShelfIdentity other in identities)
         {
-            var other = identities[i];
-
-            if (other == null ||
-                other == this ||
-                other.gameObject.scene != gameObject.scene)
+            if (other == null || other == this || other.gameObject.scene != gameObject.scene)
                 continue;
-
             if (other.persistentID == persistentID) return true;
         }
 
         return false;
-    }
-
-    private void GenerateNewID()
-    {
-        persistentID = Guid.NewGuid().ToString("N");
-        EditorUtility.SetDirty(this);
     }
 #endif
 }
