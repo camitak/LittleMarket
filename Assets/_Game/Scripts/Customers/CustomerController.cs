@@ -442,7 +442,20 @@ public class CustomerController : MonoBehaviour
         }
 
         var carrySlot = GetNextCarrySlot();
+        
+        if (!targetShelfSlot.IsActorAtShelfFront(transform.position))
+        {
+            Debug.LogWarning(
+                "Customer reached a shelf from behind; skipping inaccessible item. " +
+                "Check that the shelf's front access has a clear NavMesh route.",
+                this
+            );
 
+            currentShoppingIndex++;
+            SearchForNextProduct();
+            return;
+        }
+        
         if (carrySlot == null)
         {
             BeginCheckout();
@@ -452,6 +465,7 @@ public class CustomerController : MonoBehaviour
         var tookProduct =
             targetShelfSlot.TryTakeItemForCustomer(
                 carrySlot,
+                transform,
                 out var item
             );
 

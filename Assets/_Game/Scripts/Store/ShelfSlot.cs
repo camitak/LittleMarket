@@ -104,6 +104,22 @@ public class ShelfSlot :
         salesShelf = GetComponentInParent<SalesShelf>();
     }
     
+    public bool IsActorAtShelfFront(Vector3 worldPosition)
+    {
+        if (salesShelf == null)
+            salesShelf = GetComponentInParent<SalesShelf>();
+
+        return salesShelf == null ||
+               salesShelf.IsWorldPositionInFront(worldPosition);
+    }
+
+    private bool CanPlayerAccessShelf(PlayerInteraction player)
+    {
+        return player != null &&
+               IsActorAtShelfFront(player.transform.position);
+    }
+
+    
     private void Start()
     {
         RegisterWithCorrectRegistry();
@@ -282,6 +298,9 @@ public class ShelfSlot :
         {
             return "";
         }
+        
+        if (!CanPlayerAccessShelf(player))
+            return "Use the front of the shelf";
 
         RemoveNullEntries();
 
@@ -345,10 +364,8 @@ public class ShelfSlot :
 
     public void Interact(PlayerInteraction player)
     {
-        if (player == null)
-        {
+        if (!CanPlayerAccessShelf(player))
             return;
-        }
 
         RemoveNullEntries();
 
@@ -376,11 +393,9 @@ public class ShelfSlot :
 
     public void TakeOne(PlayerInteraction player)
     {
-        if (player == null)
-        {
+        if (!CanPlayerAccessShelf(player))
             return;
-        }
-
+        
         RemoveNullEntries();
 
         if (!HasStoredItem)
@@ -428,10 +443,8 @@ public class ShelfSlot :
 
     public bool CanRepeatPrimary(PlayerInteraction player)
     {
-        if (player == null)
-        {
+        if (!CanPlayerAccessShelf(player))
             return false;
-        }
 
         return player.GetHeldRestockBasket() != null ||
                player.GetHeldDeliveryBox() != null;
@@ -439,10 +452,8 @@ public class ShelfSlot :
 
     public bool CanRepeatSecondary(PlayerInteraction player)
     {
-        if (player == null)
-        {
+        if (!CanPlayerAccessShelf(player))
             return false;
-        }
 
         return player.GetHeldRestockBasket() != null ||
                player.GetHeldDeliveryBox() != null;
@@ -450,10 +461,8 @@ public class ShelfSlot :
 
     public bool CanUseManagementAction(PlayerInteraction player)
     {
-        if (player == null)
-        {
+        if (!CanPlayerAccessShelf(player))
             return false;
-        }
 
         RemoveNullEntries();
 
@@ -862,12 +871,18 @@ public class ShelfSlot :
         return GetStoredProductCount(productData) > 0;
     }
 
+    
     public bool TryTakeItemForCustomer(
         Transform carryPoint,
+        Transform customerRoot,
         out PickupItem takenItem
     )
     {
         takenItem = null;
+        
+        if (customerRoot == null ||
+            !IsActorAtShelfFront(customerRoot.position))
+            return false;
 
         if (!customerAccessible)
         {

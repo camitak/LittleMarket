@@ -3,8 +3,8 @@ using Unity.AI.Navigation;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
-// Lesson 99: moves existing EMPTY sales shelves during a closed-store session.
-// Furniture layout persistence is deliberately deferred to Lesson 100.
+// Lesson 100: two-way rotation and required clear access in front of each shelf.
+// Persistence is intentionally postponed until these rules are reliable.
 [DisallowMultipleComponent]
 public class FurniturePlacementController : MonoBehaviour
 {
@@ -26,6 +26,11 @@ public class FurniturePlacementController : MonoBehaviour
     [SerializeField] private Vector3 footprintHalfExtents = new(1.30f, 1.05f, 0.52f);
     [SerializeField] private Vector3 footprintCenter = new(0f, 1.10f, 0f);
 
+    [Header("Front Access Footprint - Shelf Front Is Local -Z")]
+    [SerializeField] private Vector3 accessHalfExtents = new(1.25f, 0.75f, 0.50f);
+    [SerializeField] private Vector3 accessCenter = new(0f, 0.80f, -1.02f);
+    [Min(0.01f)] [SerializeField] private float outlineWidth = 0.05f;
+
     [Header("Preview Colours")]
     [SerializeField] private Color validColor = new Color32(111, 207, 151, 255);
     [SerializeField] private Color invalidColor = new Color32(196, 107, 107, 255);
@@ -41,6 +46,8 @@ public class FurniturePlacementController : MonoBehaviour
     private bool[] originallyEnabled;
     private MeshRenderer[] selectedRenderers;
     private MaterialPropertyBlock[] originalProperties;
+    private LineRenderer accessOutline;
+    private Material outlineMaterial;
 
     private static readonly int BaseColorId = Shader.PropertyToID("_BaseColor");
 
@@ -75,7 +82,10 @@ public class FurniturePlacementController : MonoBehaviour
         }
 
         if (Keyboard.current.rKey.wasPressedThisFrame)
-            previewYaw = (previewYaw + 90f) % 360f;
+            previewYaw = Mathf.Repeat(previewYaw + 90f, 360f);
+
+        if (Keyboard.current.tKey.wasPressedThisFrame)
+            previewYaw = Mathf.Repeat(previewYaw - 90f, 360f);
 
         UpdatePreview();
 
@@ -91,8 +101,8 @@ public class FurniturePlacementController : MonoBehaviour
         if (selectedShelf != null)
         {
             interactionUI.ShowPrompt(canPlace
-                ? "[E] Place shelf  |  [R] Rotate  |  [Q] Cancel"
-                : "Cannot place here  |  [R] Rotate  |  [Q] Cancel");
+                ? "[E] Place  |  [R] Right  [T] Left  |  [Q] Cancel"
+                : "Keep the front clear  |  [R] Right  [T] Left  |  [Q] Cancel");
             return;
         }
 
@@ -174,6 +184,7 @@ public class FurniturePlacementController : MonoBehaviour
         }
 
         playerInteraction.enabled = false;
+        CreateAccessOutline();
         UpdatePreview();
     }
 
@@ -207,36 +218,142 @@ public class FurniturePlacementController : MonoBehaviour
             selectedShelf.transform.SetPositionAndRotation(target, rotation);
 
         canPlace = foundFloor && ValidatePlacement(target, rotation);
-        TintPreview(canPlace ? validColor : invalidColor);
+        Color previewColor = canPlace ? validColor : invalidColor;
+        TintPreview(previewColor);
+        UpdateAccessOutline(previewColor);
     }
 
     private bool ValidatePlacement(Vector3 position, Quaternion rotation)
     {
-        // All four footprint corners must lie within the store's floor bounds.
+        // Both the furniture itself AND the customer/player access strip must
+        // be within the permitted shop floor. This space is never a collider.
+        if (!IsFootprintOnFloor(position, rotation, footprintCenter, footprintHalfExtents))
+            return false;
+        if (!IsFootprintOnFloor(position, rotation, accessCenter, accessHalfExtents))
+            return false;
+
+        if (HasBlockingCollider(position, rotation, footprintCenter, footprintHalfExtents, false))
+            return false;
+
+        // The player is allowed to stand in the access area while arranging it.
+        // Other solid furniture/walls still make the arrangement invalid.
+        if (HasBlockingCollider(position, rotation, accessCenter, accessHalfExtents, true))
+            return false;
+
+        return true;
+    }
+
+    private bool IsFootprintOnFloor(
+        Vector3 position, Quaternion rotation, Vector3 offset, Vector3 halfExtents)
+    {
         Bounds floor = storeFloor.bounds;
-        float halfX = Mathf.Max(0.01f, footprintHalfExtents.x);
-        float halfZ = Mathf.Max(0.01f, footprintHalfExtents.z);
+        float halfX = Mathf.Max(0.01f, halfExtents.x);
+        float halfZ = Mathf.Max(0.01f, halfExtents.z);
         for (int x = -1; x <= 1; x += 2)
         for (int z = -1; z <= 1; z += 2)
         {
-            Vector3 corner = position + rotation * new Vector3(x * halfX, 0f, z * halfZ);
+            Vector3 corner = position + rotation *
+                (offset + new Vector3(x * halfX, 0f, z * halfZ));
             if (corner.x < floor.min.x || corner.x > floor.max.x ||
                 corner.z < floor.min.z || corner.z > floor.max.z)
                 return false;
         }
-
-        Vector3 center = position + rotation * footprintCenter;
-        Collider[] collisions = Physics.OverlapBox(
-            center, footprintHalfExtents, rotation, ~0, QueryTriggerInteraction.Ignore);
-        foreach (Collider collider in collisions)
-        {
-            if (collider == null || collider == storeFloor)
-                continue;
-            if (collider.transform.IsChildOf(selectedShelf.transform))
-                continue;
-            return false;
-        }
         return true;
+    }
+
+    private bool HasBlockingCollider(
+        Vector3 position, Quaternion rotation, Vector3 offset,
+        Vector3 halfExtents, bool ignorePlayer)
+    {
+        Vector3 center = position + rotation * offset;
+        Collider[] hits = Physics.OverlapBox(center, halfExtents,
+            rotation, ~0, QueryTriggerInteraction.Ignore);
+
+        foreach (Collider hit in hits)
+        {
+            if (hit == null || hit == storeFloor)
+                continue;
+            if (selectedShelf != null &&
+                hit.transform.IsChildOf(selectedShelf.transform))
+                continue;
+            if (ignorePlayer && hit.transform.IsChildOf(transform))
+                continue;
+            return true;
+        }
+        return false;
+    }
+
+    private void CreateAccessOutline()
+    {
+        if (accessOutline != null)
+            return;
+
+        Shader shader = Shader.Find("Universal Render Pipeline/Unlit");
+        if (shader == null)
+            shader = Shader.Find("Sprites/Default");
+        if (shader == null)
+        {
+            Debug.LogWarning("No compatible outline shader found.", this);
+            return;
+        }
+
+        GameObject outlineObject = new("ShelfFrontAccessPreview");
+        accessOutline = outlineObject.AddComponent<LineRenderer>();
+        accessOutline.useWorldSpace = true;
+        accessOutline.positionCount = 5;
+        accessOutline.widthMultiplier = outlineWidth;
+        accessOutline.numCornerVertices = 2;
+        accessOutline.shadowCastingMode =
+            UnityEngine.Rendering.ShadowCastingMode.Off;
+        accessOutline.receiveShadows = false;
+
+        outlineMaterial = new Material(shader);
+        accessOutline.sharedMaterial = outlineMaterial;
+    }
+
+    private void UpdateAccessOutline(Color color)
+    {
+        if (accessOutline == null || selectedShelf == null)
+            return;
+
+        // Display a low, flat rectangle in GAME view. Never add a collider:
+        // this represents required clear walking/interaction space.
+        Vector3 half = accessHalfExtents;
+        Vector3 center = accessCenter;
+        float y = 0.075f;
+        Vector3[] localCorners =
+        {
+            new(center.x - half.x, y, center.z - half.z),
+            new(center.x + half.x, y, center.z - half.z),
+            new(center.x + half.x, y, center.z + half.z),
+            new(center.x - half.x, y, center.z + half.z)
+        };
+
+        for (int i = 0; i < 4; i++)
+            accessOutline.SetPosition(i,
+                selectedShelf.transform.TransformPoint(localCorners[i]));
+        accessOutline.SetPosition(4,
+            selectedShelf.transform.TransformPoint(localCorners[0]));
+
+        accessOutline.startColor = color;
+        accessOutline.endColor = color;
+        if (outlineMaterial != null)
+        {
+            if (outlineMaterial.HasProperty(BaseColorId))
+                outlineMaterial.SetColor(BaseColorId, color);
+            else
+                outlineMaterial.color = color;
+        }
+    }
+
+    private void DestroyAccessOutline()
+    {
+        if (accessOutline != null)
+            Destroy(accessOutline.gameObject);
+        if (outlineMaterial != null)
+            Destroy(outlineMaterial);
+        accessOutline = null;
+        outlineMaterial = null;
     }
 
     private void TintPreview(Color color)
@@ -261,7 +378,7 @@ public class FurniturePlacementController : MonoBehaviour
         // Current scene already has Navigation/NavMeshSurface.
         // Rebuild after the moved shelf's colliders are enabled again.
         navMeshSurface.BuildNavMesh();
-        Debug.Log("Shelf moved. This test layout cannot be saved until Lesson 100.", this);
+        Debug.Log("Shelf moved. Layout persistence will be added in Lesson 101.", this);
     }
 
     private void CancelPlacement()
@@ -287,6 +404,7 @@ public class FurniturePlacementController : MonoBehaviour
                 if (selectedRenderers[i] != null)
                     selectedRenderers[i].SetPropertyBlock(originalProperties[i]);
 
+        DestroyAccessOutline();
         selectedShelf = null;
         selectedColliders = null;
         selectedRenderers = null;

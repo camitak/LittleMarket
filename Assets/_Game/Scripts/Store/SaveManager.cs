@@ -947,7 +947,7 @@ public class SaveManager : MonoBehaviour
             furniturePlacement.HasUnpersistedFurnitureChanges)
         {
             LastOperationMessage =
-                "Furniture positions cannot be saved yet (Lesson 100). " +
+                "Furniture positions cannot be saved yet (Lesson 101). " +
                 "Restart Play Mode to return to your saved layout.";
 
             Debug.LogWarning(LastOperationMessage);
