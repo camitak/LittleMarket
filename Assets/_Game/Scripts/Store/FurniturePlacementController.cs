@@ -3,8 +3,8 @@ using Unity.AI.Navigation;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
-// Lesson 100: two-way rotation and required clear access in front of each shelf.
-// Persistence is intentionally postponed until these rules are reliable.
+// Lesson 101: furniture positions are persisted by StoreFurnitureLayout/SaveManager.
+// Preserve the Lesson 100 front-clearance and two-direction rotation rules.
 [DisallowMultipleComponent]
 public class FurniturePlacementController : MonoBehaviour
 {
@@ -40,8 +40,7 @@ public class FurniturePlacementController : MonoBehaviour
     private Quaternion originalRotation;
     private float previewYaw;
     private bool canPlace;
-    private bool hasUnpersistedFurnitureChanges;
-
+    
     private Collider[] selectedColliders;
     private bool[] originallyEnabled;
     private MeshRenderer[] selectedRenderers;
@@ -51,8 +50,9 @@ public class FurniturePlacementController : MonoBehaviour
 
     private static readonly int BaseColorId = Shader.PropertyToID("_BaseColor");
 
-    // SaveManager reads this until furniture positions have a save format.
-    public bool HasUnpersistedFurnitureChanges => hasUnpersistedFurnitureChanges;
+    // SaveManager rejects saving/loading while a shelf is still being previewed.
+    // After E confirms placement, its final transform can be saved in version 18.
+    public bool IsPlacementActive => selectedShelf != null;
 
     private void Update()
     {
@@ -374,11 +374,10 @@ public class FurniturePlacementController : MonoBehaviour
     private void ConfirmPlacement()
     {
         FinishPreview(false);
-        hasUnpersistedFurnitureChanges = true;
         // Current scene already has Navigation/NavMeshSurface.
         // Rebuild after the moved shelf's colliders are enabled again.
         navMeshSurface.BuildNavMesh();
-        Debug.Log("Shelf moved. Layout persistence will be added in Lesson 101.", this);
+        Debug.Log("Shelf moved. Layout can now be saved with Save Game.", this);
     }
 
     private void CancelPlacement()

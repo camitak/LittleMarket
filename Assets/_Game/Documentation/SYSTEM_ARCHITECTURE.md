@@ -1,6 +1,6 @@
 # Little Market — System Architecture
 
-Current architecture after Lesson 99. This is the **complete replacement** for
+Current architecture after Lesson 101. This is the **complete replacement** for
 `Assets/_Game/Documentation/SYSTEM_ARCHITECTURE.md`.
 
 ## Project principles
@@ -50,7 +50,7 @@ Scene GameObject: `StoreSystems`. Responsibilities include:
   separate from the end-of-day screen.
 - `StoreReportHistory`: immutable snapshots of completed-day results, produced
   at day completion. It does not duplicate live `DailyStats` counters.
-- `SaveManager`: coordinates persistence; current save version is 17. It
+- `SaveManager`: coordinates persistence; current save version is 18. It
   serializes the existing store/stock/progression/report data. See the Lesson
   99 furniture-movement save guard below.
 
@@ -296,30 +296,98 @@ Controls while the store is closed with no customers:
 
 ### Lesson 99 saving limitation and guard
 
-The current v17 `StoreSaveData` stores shelf-slot stock by persistent ID, but
-**does not store the world transform of furniture**. Moving a shelf and saving
-only stock would silently restore the wrong layout after reload.
-
-Therefore `FurniturePlacementController.HasUnpersistedFurnitureChanges` becomes
-true once any shelf move is confirmed. `SaveManager.CanUseSaveSystemNow()` has a
-small guard which rejects both Save and Load in that Play session once a
-furniture change has occurred, with a clear explanation in the pause menu.
-This intentionally protects existing saves until Lesson 100 adds furniture
-layout persistence, runtime furniture identity and a migration plan. A new
-Play session restores the scene's authored placement. Scene/prefab assets do
-not move on disk during Play Mode, and the lesson does not change save v17.
+At Lessons 99 and 100, the version-17 `StoreSaveData` stored shelf-slot stock
+by persistent ID, but **did not store furniture world transforms**. The
+`HasUnpersistedFurnitureChanges` guard therefore blocked saving after a
+confirmed move. **Lesson 101 supersedes that restriction** with version-18
+shelf-layout persistence. Saving and loading while still dragging furniture
+remain blocked; confirmed moves are included in the next Save Game.
+The source scene and prefab assets still do not move on disk in Play Mode.
 
 **This is a placement prototype, not yet the final furniture purchasing loop.**
 No furniture catalogue, spending, selling furniture, room boundary editing,
 refrigeration, rent or spoilage is implemented in Lesson 99.
+
+## Lesson 100: shelf fronts, both-way rotation and access footprints
+
+### Consistent orientation (shelf local -Z)
+
+`PF_Shelf` is the current canonical example. Its eight `ShelfSlot`s are
+located on local negative Z (`z = -0.3`, facing 180 degrees) and its
+`Customer_Point` is `(0, 0, -0.6)`. **Front means local -Z**, including after
+the shelf root rotates in the world. Do not infer front from world Z or the
+player's camera. A different furniture type will define its own front and
+access footprint before joining the placement system.
+
+`SalesShelf.IsWorldPositionInFront(worldPosition)` projects the direction from
+shelf root to actor onto the horizontal plane and takes a dot product with
+`-transform.forward`. A configurable `frontSideTolerance` default 0.10 avoids
+ambiguous access directly beside the shelf's centre line. The method is the
+shared authority for front access, not a separate test in every interaction.
+
+- `ShelfSlot.IsActorAtShelfFront(worldPosition)` delegates to `SalesShelf`.
+- All player-facing ShelfSlot interactions (normal E, take/reverse R, repeated
+  transfer, and Hold X management) reject actors approaching from behind.
+  The regular interaction prompt instead says to use the shelf's front.
+- Customers already walk toward the shelf's established front
+  `CustomerStandPoint`. The final product transfer also checks customer-root
+  position against the same front rule, independently of which side the player
+  currently sees. A mispositioned/rear-side customer skips the inaccessible
+  list entry with a warning rather than looping forever on the same stock.
+  This is a defensive fallback, not an excuse to leave unreachable navigation.
+- The shelf continues to own actual stock transfer and registration. No stock
+  quantities, category restrictions, product assignments or sales values change.
+
+### Closed-store placement improvements
+
+`FurniturePlacementController` remains on `Player` with the same existing
+camera, interaction, clock, customer-flow, `storeFloor`, `NavMeshSurface` and
+UI references. `G` starts moving an empty shelf; `R` rotates +90 degrees
+(right), `T` rotates -90 degrees (left), `E` confirms, `Q` cancels.
+
+In addition to its physical shelf `footprintHalfExtents`/`footprintCenter`, it
+now checks a reserved **front access region**:
+
+- `accessCenter` local `(0, 0.80, -1.02)`
+- `accessHalfExtents` `(1.25, 0.75, 0.50)`
+- `outlineWidth` `0.05`
+
+The access region is approximately 2.5 units wide and 1.0 unit deep in front
+of this shelf. It is **not a solid object or blocking collider**: customers
+and the player must be able to stand there. The position and dimensions are
+prototyping constraints, not finalized aisle regulations. In placement preview,
+its outline is displayed in the Game view using a transient LineRenderer that
+never blocks raycasts or navigation. Green means valid shelf + access area,
+coral means blocked. It is destroyed when the preview exits; associated
+runtime Material is also cleaned up.
+
+Both the shelf body and front access corners must lie within the scene's
+`store_model/Floor` bounds. `Physics.OverlapBox` rejects solid objects in
+either volume. For the access zone only, the player's collider is ignored so
+standing in front while placing furniture is not a false obstruction. Other
+fixtures and walls still block placement. The old body clearance continues to
+check physical collisions. The whole shelf's NavMesh is rebuilt on confirm
+with its colliders reenabled, not during preview.
+
+These changes do **not** save furniture positions or change any persistent
+layout identity. `SaveManager` now saves confirmed shelf moves in version 18. Active placement
+previews remain unsavable. Old saves restore scene-authored shelf positions.
+Furniture purchase and sale remain out of scope.
+
+The clearance box is a first working constraint; later furniture types
+(fridges, racks, produce) will need distinct body/access dimensions and the
+ability to place opposing displays across genuinely usable aisles. Testing
+must confirm customers can navigate around placed furniture in practice.
 
 ## Planned gameplay systems and dependency order
 
 The planned features should connect to existing authority rather than create
 parallel data:
 
-1. Furniture layout saving and runtime IDs, then buying a second shelf using
-   `StoreEconomy` and a small furniture catalogue/placement workflow.
+1. **Completed in Lesson 101:** save and restore the positions/rotations of
+   existing scene shelves by persistent ID. Next: runtime IDs for purchased
+   furniture, then buying a second shelf using `StoreEconomy` and a small
+   furniture catalogue/placement workflow.
 2. Refrigerated display furniture and **appropriate cold backroom storage**.
    Chilled product requirements should be declared on `ProductData`; both
    sales furniture and storage compatibility must enforce the same rule.
@@ -338,21 +406,74 @@ parallel data:
 7. Art pass/modeling for shelves, basket station and store environment later.
    Geometry may improve without rewriting the underlying mechanics.
 
+## Lesson 101: persistent shelf layout (version 18)
+
+The existing `PF_Shelf` already has a `ShelfIdentity.PersistentID` per scene
+instance (generated by editor `OnValidate`; the prefab asset itself has a blank
+ID). As of the inspected scene, three placed shelves have distinct IDs. Slots
+use `<shelfPersistentID>:<localSlotKey>` for their existing stable IDs.
+
+New scene component: `StoreFurnitureLayout` attached to `StoreSystems`, with a
+reference to `Navigation/NavMeshSurface`. It is the authoritative runtime
+layout service; `FurniturePlacementController` only previews/moves empty
+shelves and does not own furniture persistence. `ShelfIdentity` continues to
+own individual furniture identity. `SaveManager` remains the single owner of
+file serialization.
+
+New data class: `ShelfPlacementSaveData` contains `shelfID`, world `position`
+(Vector3), and world `rotation` (Quaternion). `StoreSaveData` includes a new
+`List<ShelfPlacementSaveData> shelfPlacements`. **This does not duplicate
+inventory**: `shelfSlots` still owns product IDs, assignments and quantities.
+
+On Awake, `StoreFurnitureLayout` captures the original scene-authored world
+position/rotation of all existing `ShelfIdentity` objects in the active scene.
+It rejects missing or duplicate IDs. `SaveManager.SaveGame` obtains the shelf
+placements and writes them with its existing save fields as **version 18**.
+
+On load, `SaveManager.LoadGame` preflights furniture IDs **before** changing
+money, inventory, clock or goals. A version-18 save requires every existing
+scene shelf ID once and rejects missing/unknown/duplicated entries to avoid
+silent loss of stock. Within `ApplySaveData`, layout positions are applied
+**before** `RestoreShelfInventory`, followed by `Physics.SyncTransforms` and
+`NavMeshSurface.BuildNavMesh()`. Existing shelf IDs are unchanged; stock
+restores to those same shelves after their physical position is restored.
+
+When loading **version 17 or older**, no `shelfPlacements` entry is required.
+`StoreFurnitureLayout` restores the scene-authored world positions/rotations
+captured at Awake and rebuilds navigation; it then allows the older inventory
+migration to proceed as before. This also allows loading an old save after a
+runtime shelf move without leaving stale positions behind.
+
+`FurniturePlacementController.IsPlacementActive` now exposes only whether an
+unconfirmed furniture preview is active. `SaveManager.CanUseSaveSystemNow()`
+prevents saving/loading mid-preview but **does not block after confirming a
+move**. The old `HasUnpersistedFurnitureChanges` flag and warning are removed.
+Existing guardrails (no active customers, no held items/basket/delivery box,
+not after day end) are preserved. Pause menu and HUD are unchanged.
+
+This version only supports **scene-authored existing shelves**. It does not
+create furniture from save records, sell furniture, or persist player-bought
+instances; that's the next lesson. Extending the layout service to instantiate
+furniture safely is required before allowing any purchase. The current strict
+ID roster check is intentional for version-18 safety, and must be extended
+when runtime purchases are implemented.
+
 ## Save system and historical compatibility
 
-`SaveManager` in `StoreSystems` coordinates `StoreSaveData` version 17. It
-stores money, day/time, unlocked product IDs, stock assignments/quantities,
-storage slots, supplier orders/deliveries, loose products, goals, level data,
-live stats and immutable daily report history. Version 17 introduced
-`DailyReportData` history. Older saves load with empty historical history
-rather than invented records. Existing SaveManager restrictions (no active
-customers, no held restock basket/carton/product, etc.) remain intact.
+`SaveManager` on `StoreSystems` coordinates `StoreSaveData` **version 18**. It
+still saves day/time, money, reputation, unlocked product IDs, shelf-slot
+inventory, storage inventory, supplier orders/deliveries, loose products,
+rewards, level and immutable daily report history. Version 17 introduced
+`DailyReportData` history; version 18 adds only a per-shelf layout list.
+All existing older-save handling remains intact, including historical reports
+and the restrictions on saving/loading while customers or held physical
+products are present.
 
-Lessons 91–98 introduced only runtime customer visuals, basket-carry points and
-presentation parameters; they did not introduce new saved fields. Lesson 99
-adds experimental placement and a protective Save/Load guard, without a save
-migration. The v17 schema remains the authoritative persisted format until
-Lesson 100 explicitly extends it.
+Lessons 91–98 added runtime customer visuals and basket presentation; Lessons
+99–100 introduced furniture placement and front clearance without changing
+schema. Lesson 101 adds per-shelf positions/rotations and an explicit
+backward-compatible version-17 fallback. It does not modify the stock list
+format, shelf IDs, economy accounting or day lifecycle.
 
 ## Ownership and scene-reference rules
 
@@ -366,4 +487,4 @@ requirements. Furniture upgrades must coordinate wall/floor/Navigation.
 Before documenting Inspector wiring, verify the actual scene owner and prefab
 hierarchy. Avoid vague phrasing such as “object containing the component.”
 
-End of complete Lesson 99 architecture document.
+End of complete Lesson 101 architecture document.

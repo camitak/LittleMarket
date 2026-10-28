@@ -4,7 +4,7 @@ using UnityEngine;
 
 public class SaveManager : MonoBehaviour
 {
-    private const int CurrentSaveVersion = 17;
+    private const int CurrentSaveVersion = 18;
 
     [Header("Store References")] 
     [SerializeField] private StoreClock storeClock;
@@ -16,6 +16,7 @@ public class SaveManager : MonoBehaviour
     [SerializeField] private StoreLevelProgression storeLevelProgression;
     [SerializeField] private CustomerFlow customerFlow;
     [SerializeField] private ShelfRegistry shelfRegistry;
+    [SerializeField] private StoreFurnitureLayout storeFurnitureLayout;
     [SerializeField] private StorageRegistry storageRegistry;
     [SerializeField] private DeliveryZone deliveryZone;
     [SerializeField] private WorldItemRegistry worldItemRegistry;
@@ -58,6 +59,15 @@ public class SaveManager : MonoBehaviour
         }
 
         if (!CanUseSaveSystemNow()) return false;
+        
+        if (!storeFurnitureLayout.TryCreateSaveData(out var shelfPlacements))
+        {
+            LastOperationMessage =
+                "Cannot save: check StoreFurnitureLayout, NavMeshSurface and shelf IDs.";
+
+            Debug.LogError(LastOperationMessage, this);
+            return false;
+        }
 
         var saveData = new StoreSaveData();
 
@@ -74,6 +84,8 @@ public class SaveManager : MonoBehaviour
         saveData.unlockedProductIDs = storeProgression.GetUnlockedProductIDs();
 
         saveData.shelfSlots = BuildShelfSlotSaveData();
+        
+        saveData.shelfPlacements = shelfPlacements;
 
         saveData.storageSlots = BuildStorageSlotSaveData();
 
@@ -102,8 +114,7 @@ public class SaveManager : MonoBehaviour
             json
         );
 
-        LastOperationMessage =
-            "Game saved successfully.";
+        LastOperationMessage = "Game saved successfully.";
 
         Debug.Log(
             "Little Market saved "
@@ -176,6 +187,17 @@ public class SaveManager : MonoBehaviour
                 LastOperationMessage
             );
 
+            return false;
+        }
+        
+        if (!storeFurnitureLayout.CanRestoreSaveData(
+                saveData.shelfPlacements,
+                saveData.saveVersion))
+        {
+            LastOperationMessage =
+                "Cannot load: saved furniture layout does not match scene shelves.";
+
+            Debug.LogError(LastOperationMessage, this);
             return false;
         }
 
@@ -775,6 +797,12 @@ public class SaveManager : MonoBehaviour
         );
 
         storeProgression.RestoreUnlockedProducts(saveData.unlockedProductIDs);
+        
+        // Restore shelf positions before rebuilding their products.
+        storeFurnitureLayout.RestoreLayout(
+            saveData.shelfPlacements,
+            saveData.saveVersion
+        );
 
         if (saveData.saveVersion >= 2)
         {
@@ -939,16 +967,14 @@ public class SaveManager : MonoBehaviour
 
     private bool CanUseSaveSystemNow()
     {
-        
         var furniturePlacement =
             FindAnyObjectByType<FurniturePlacementController>();
 
         if (furniturePlacement != null &&
-            furniturePlacement.HasUnpersistedFurnitureChanges)
+            furniturePlacement.IsPlacementActive)
         {
             LastOperationMessage =
-                "Furniture positions cannot be saved yet (Lesson 101). " +
-                "Restart Play Mode to return to your saved layout.";
+                "Finish or cancel furniture placement before saving or loading.";
 
             Debug.LogWarning(LastOperationMessage);
             return false;
@@ -1074,6 +1100,8 @@ public class SaveManager : MonoBehaviour
         if (restockBasket == null) return false;
         
         if (storeReportHistory == null) return false;
+        
+        if (storeFurnitureLayout == null) return false;
 
         return true;
     }

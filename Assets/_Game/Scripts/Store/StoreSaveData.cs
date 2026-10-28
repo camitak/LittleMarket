@@ -18,10 +18,14 @@ public class StoreSaveData
 
     public List<ShelfSlotSaveData> shelfSlots;
 
+    // Version 18: position/rotation keyed by existing ShelfIdentity.PersistentID.
+    // The shelfSlots list above remains the only saved shelf-stock authority.
+    public List<ShelfPlacementSaveData> shelfPlacements = new();
+
     public List<StorageSlotSaveData> storageSlots;
 
     public List<DeliveryBoxSaveData> deliveries;
-    
+
     public List<PendingDeliverySaveData> pendingDeliveries = new();
 
     public DailyStatsSaveData dailyStats;
@@ -31,6 +35,6 @@ public class StoreSaveData
     public StoreGoalsSaveData goalRewards;
 
     public StoreLevelSaveData storeLevel;
-    
+
     public List<DailyReportData> dailyReports = new();
 }

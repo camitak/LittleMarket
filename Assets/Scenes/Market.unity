@@ -9599,6 +9599,7 @@ GameObject:
   - component: {fileID: 1117834541}
   - component: {fileID: 1117834542}
   - component: {fileID: 1117834543}
+  - component: {fileID: 1117834544}
   m_Layer: 0
   m_Name: StoreSystems
   m_TagString: Untagged
@@ -9766,6 +9767,7 @@ MonoBehaviour:
   storeLevelProgression: {fileID: 1117834539}
   customerFlow: {fileID: 1117834531}
   shelfRegistry: {fileID: 1117834529}
+  storeFurnitureLayout: {fileID: 1117834544}
   storageRegistry: {fileID: 1117834541}
   deliveryZone: {fileID: 43201577}
   worldItemRegistry: {fileID: 1117834537}
@@ -9883,6 +9885,19 @@ MonoBehaviour:
   storeGoals: {fileID: 1117834538}
   storeLevelProgression: {fileID: 1117834539}
   storeProgression: {fileID: 1117834535}
+--- !u!114 &1117834544
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1117834526}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9dd8e4a7a0fa3e543807aae0f2d7255a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::StoreFurnitureLayout
+  navMeshSurface: {fileID: 436418470}
 --- !u!1 &1126133432
 GameObject:
   m_ObjectHideFlags: 0
@@ -11534,6 +11549,9 @@ MonoBehaviour:
   gridSize: 0.5
   footprintHalfExtents: {x: 1.3, y: 1.05, z: 0.52}
   footprintCenter: {x: 0, y: 1.1, z: 0}
+  accessHalfExtents: {x: 1.25, y: 0.75, z: 0.5}
+  accessCenter: {x: 0, y: 0.8, z: -1.02}
+  outlineWidth: 0.05
   validColor: {r: 0.43529412, g: 0.8117647, b: 0.5921569, a: 1}
   invalidColor: {r: 0.76862746, g: 0.41960785, b: 0.41960785, a: 1}
 --- !u!1 &1369482165
