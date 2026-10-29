@@ -18,6 +18,7 @@ MonoBehaviour:
   icon: {fileID: 0}
   description: Creamy fresh milk in a little blue carton.
   worldPrefab: {fileID: 1259238513786771469, guid: d9cdc0fcfc35612408be0fcd914b5a16, type: 3}
+  requiredStorageCondition: 1
   shelfColumns: 1
   shelfVerticalLayers: 1
   shelfDepthRows: 3

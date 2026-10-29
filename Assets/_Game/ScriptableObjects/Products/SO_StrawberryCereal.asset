@@ -18,6 +18,7 @@ MonoBehaviour:
   icon: {fileID: 0}
   description: Tiny strawberry stars that make breakfast feel like a celebration.
   worldPrefab: {fileID: 4517765470160310462, guid: f2a65b7c7b8379144a767b2ad0c769e3, type: 3}
+  requiredStorageCondition: 0
   shelfColumns: 1
   shelfVerticalLayers: 1
   shelfDepthRows: 4

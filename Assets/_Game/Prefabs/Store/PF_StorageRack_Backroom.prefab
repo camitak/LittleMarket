@@ -553,6 +553,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::StorageBay
   slotID: StorageSlot_07
+  storageCondition: 1
   capacity: 12
   cartonPrefab: {fileID: 2451739325236826120, guid: d6fd02bc723a5674ebd36140829485fc, type: 3}
   portableCartonCapacity: 4
@@ -2184,6 +2185,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::StorageBay
   slotID: StorageSlot_06
+  storageCondition: 0
   capacity: 12
   cartonPrefab: {fileID: 2451739325236826120, guid: d6fd02bc723a5674ebd36140829485fc, type: 3}
   portableCartonCapacity: 4
@@ -2371,6 +2373,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::StorageBay
   slotID: StorageSlot_05
+  storageCondition: 0
   capacity: 12
   cartonPrefab: {fileID: 2451739325236826120, guid: d6fd02bc723a5674ebd36140829485fc, type: 3}
   portableCartonCapacity: 4
@@ -4246,6 +4249,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::StorageBay
   slotID: StorageSlot_01
+  storageCondition: 0
   capacity: 12
   cartonPrefab: {fileID: 2451739325236826120, guid: d6fd02bc723a5674ebd36140829485fc, type: 3}
   portableCartonCapacity: 4
@@ -4396,6 +4400,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::StorageBay
   slotID: StorageSlot_03
+  storageCondition: 0
   capacity: 12
   cartonPrefab: {fileID: 2451739325236826120, guid: d6fd02bc723a5674ebd36140829485fc, type: 3}
   portableCartonCapacity: 4
@@ -5348,6 +5353,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::StorageBay
   slotID: StorageSlot_04
+  storageCondition: 0
   capacity: 12
   cartonPrefab: {fileID: 2451739325236826120, guid: d6fd02bc723a5674ebd36140829485fc, type: 3}
   portableCartonCapacity: 4
@@ -5498,6 +5504,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::StorageBay
   slotID: StorageSlot_02
+  storageCondition: 0
   capacity: 12
   cartonPrefab: {fileID: 2451739325236826120, guid: d6fd02bc723a5674ebd36140829485fc, type: 3}
   portableCartonCapacity: 4
@@ -7143,6 +7150,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::StorageBay
   slotID: StorageSlot_08
+  storageCondition: 0
   capacity: 12
   cartonPrefab: {fileID: 2451739325236826120, guid: d6fd02bc723a5674ebd36140829485fc, type: 3}
   portableCartonCapacity: 4
