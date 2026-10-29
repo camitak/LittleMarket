@@ -3,20 +3,26 @@ using System.Collections.Generic;
 using Unity.AI.Navigation;
 using UnityEngine;
 
-// Scene-authored shelf IDs stay stable. Purchased shelves receive runtime IDs.
-// SaveManager serializes the data; ShelfSlot remains the only stock authority.
+// Owns persistent layout and reconstruction for the current shelf-display
+// furniture family. SaveManager still owns file serialization.
 [DisallowMultipleComponent]
 public class StoreFurnitureLayout : MonoBehaviour
 {
     [Header("Navigation")]
     [SerializeField] private NavMeshSurface navMeshSurface;
 
-    [Header("Purchasable Shelf")]
-    [SerializeField] private ShelfIdentity shelfPrefab;
+    [Header("Furniture Catalog")]
+    [SerializeField] private FurnitureCatalog furnitureCatalog;
+
+    [Tooltip("Used when loading version-19 saves, where every purchased item was the old regular shelf.")]
+    [SerializeField] private FurnitureDefinition legacyVersion19ShelfDefinition;
+
+    [Header("Shelf Registration")]
     [SerializeField] private ShelfRegistry shelfRegistry;
 
     private readonly Dictionary<string, Pose> authoredPositions = new();
     private readonly HashSet<ShelfIdentity> pendingRemoval = new();
+
     private bool capturedAuthoredLayout;
 
     private void Awake()
@@ -33,49 +39,89 @@ public class StoreFurnitureLayout : MonoBehaviour
         capturedAuthoredLayout = true;
     }
 
-    public bool TryCreatePreviewShelf(out ShelfIdentity shelf)
+    public bool TryCreatePreviewFurniture(
+        FurnitureDefinition definition,
+        out ShelfIdentity furniture)
     {
-        shelf = null;
-        if (!capturedAuthoredLayout || shelfPrefab == null ||
-            shelfRegistry == null || navMeshSurface == null ||
-            !TryFindShelves(out Dictionary<string, ShelfIdentity> existing))
-            return false;
+        furniture = null;
 
-        // New instances are created below the map and immediately passed to
-        // FurniturePlacementController, which disables colliders during preview.
-        shelf = Instantiate(shelfPrefab, new Vector3(0f, -100f, 0f),
-            Quaternion.identity);
-        string id = Guid.NewGuid().ToString("N");
-        while (existing.ContainsKey(id)) id = Guid.NewGuid().ToString("N");
-        shelf.AssignRuntimeID(id);
-        shelf.gameObject.name = "Purchased_Shelf";
+        if (!capturedAuthoredLayout ||
+            navMeshSurface == null ||
+            shelfRegistry == null ||
+            !IsCatalogDefinitionUsable(definition) ||
+            !TryFindShelves(out Dictionary<string, ShelfIdentity> existing))
+        {
+            return false;
+        }
+
+        furniture = Instantiate(
+            definition.Prefab,
+            new Vector3(0f, -100f, 0f),
+            Quaternion.identity
+        );
+
+        string id;
+
+        do
+        {
+            id = Guid.NewGuid().ToString("N");
+        }
+        while (existing.ContainsKey(id));
+
+        furniture.AssignRuntimeID(id);
+        furniture.AssignFurnitureDefinition(definition);
+        furniture.gameObject.name = $"Purchased_{definition.FurnitureID}";
+
         return true;
     }
 
-    public void DiscardUnconfirmedShelf(ShelfIdentity shelf)
+    public void DiscardUnconfirmedFurniture(ShelfIdentity furniture)
     {
-        if (shelf == null || authoredPositions.ContainsKey(shelf.PersistentID))
+        if (furniture == null)
             return;
-        RetireShelf(shelf);
+
+        if (authoredPositions.ContainsKey(furniture.PersistentID))
+            return;
+
+        RetireShelf(furniture);
     }
 
     public bool TryCreateSaveData(out List<ShelfPlacementSaveData> entries)
     {
         entries = new List<ShelfPlacementSaveData>();
-        if (navMeshSurface == null || shelfRegistry == null ||
+
+        if (navMeshSurface == null ||
+            shelfRegistry == null ||
+            furnitureCatalog == null ||
             !capturedAuthoredLayout ||
             !TryFindShelves(out Dictionary<string, ShelfIdentity> shelves))
+        {
             return false;
+        }
 
         foreach (KeyValuePair<string, ShelfIdentity> entry in shelves)
         {
-            Transform root = entry.Value.transform;
+            ShelfIdentity shelf = entry.Value;
+            bool purchasedByPlayer = !authoredPositions.ContainsKey(entry.Key);
+
+            if (purchasedByPlayer && !IsCatalogDefinitionUsable(shelf.FurnitureDefinition))
+            {
+                return Fail(
+                    $"Purchased furniture '{shelf.name}' has no valid FurnitureDefinition."
+                );
+            }
+
+            Transform root = shelf.transform;
+
             entries.Add(new ShelfPlacementSaveData
             {
                 shelfID = entry.Key,
                 position = root.position,
                 rotation = root.rotation,
-                purchasedByPlayer = !authoredPositions.ContainsKey(entry.Key)
+                purchasedByPlayer = purchasedByPlayer,
+                furnitureDefinitionID = purchasedByPlayer
+                    ? shelf.FurnitureDefinition.FurnitureID
+                    : ""
             });
         }
 
@@ -83,52 +129,87 @@ public class StoreFurnitureLayout : MonoBehaviour
         return true;
     }
 
-    // Preflight before SaveManager modifies money or inventory.
-    public bool CanRestoreSaveData(List<ShelfPlacementSaveData> entries, int saveVersion)
+    public bool CanRestoreSaveData(
+        List<ShelfPlacementSaveData> entries,
+        int saveVersion)
     {
-        if (!capturedAuthoredLayout || navMeshSurface == null || shelfRegistry == null ||
+        if (!capturedAuthoredLayout ||
+            navMeshSurface == null ||
+            shelfRegistry == null ||
+            furnitureCatalog == null ||
             !TryFindShelves(out Dictionary<string, ShelfIdentity> existing))
+        {
             return false;
+        }
 
         foreach (string id in authoredPositions.Keys)
-            if (!existing.ContainsKey(id)) return Fail("An authored shelf is missing from the scene.");
+        {
+            if (!existing.ContainsKey(id))
+                return Fail("An authored shelf is missing from the scene.");
+        }
 
-        if (saveVersion < 18) return true;
-        if (entries == null) return Fail("Shelf placements are missing in save version 18+. ");
+        if (saveVersion < 18)
+            return true;
+
+        if (entries == null)
+            return Fail("Shelf placements are missing in save version 18+.");
 
         HashSet<string> seen = new();
         int authoredCount = 0;
+
         foreach (ShelfPlacementSaveData entry in entries)
         {
-            if (entry == null || string.IsNullOrWhiteSpace(entry.shelfID) ||
+            if (entry == null ||
+                string.IsNullOrWhiteSpace(entry.shelfID) ||
                 !seen.Add(entry.shelfID))
+            {
                 return Fail("Saved shelf identities are missing or duplicated.");
+            }
 
             bool authored = authoredPositions.ContainsKey(entry.shelfID);
+
             if (authored)
             {
                 if (saveVersion >= 19 && entry.purchasedByPlayer)
-                    return Fail("An authored shelf is incorrectly marked as purchased.");
+                {
+                    return Fail(
+                        "An authored shelf is incorrectly marked as purchased."
+                    );
+                }
+
                 authoredCount++;
+                continue;
             }
-            else if (saveVersion < 19 || !entry.purchasedByPlayer)
+
+            if (saveVersion < 19 || !entry.purchasedByPlayer)
             {
-                return Fail("An unknown shelf is not a valid purchased furniture entry.");
+                return Fail(
+                    "An unknown shelf is not a valid purchased furniture entry."
+                );
+            }
+
+            if (!TryResolvePurchasedDefinition(entry, saveVersion, out _))
+            {
+                return Fail(
+                    $"Purchased furniture '{entry.shelfID}' has no valid furniture definition."
+                );
             }
         }
 
         if (authoredCount != authoredPositions.Count)
             return Fail("Saved layout does not contain every original shelf.");
+
         if (saveVersion < 19 && entries.Count != authoredPositions.Count)
             return Fail("Legacy furniture save count does not match the authored layout.");
-        if (saveVersion >= 19 && entries.Count > authoredCount && shelfPrefab == null)
-            return Fail("Purchased shelf prefab is missing; cannot restore purchases.");
+
         return true;
     }
 
-    // Called before shelf stock restore. New purchased shelf slots are registered
-    // synchronously so their stable slot IDs can be found immediately.
-    public void RestoreLayout(List<ShelfPlacementSaveData> entries, int saveVersion)
+    // Called before shelf inventory restore so purchased ShelfSlots exist
+    // and are registered before their product data is reconstructed.
+    public void RestoreLayout(
+        List<ShelfPlacementSaveData> entries,
+        int saveVersion)
     {
         if (!CanRestoreSaveData(entries, saveVersion))
         {
@@ -136,10 +217,13 @@ public class StoreFurnitureLayout : MonoBehaviour
             return;
         }
 
-        if (!TryFindShelves(out Dictionary<string, ShelfIdentity> current)) return;
+        if (!TryFindShelves(out Dictionary<string, ShelfIdentity> current))
+            return;
+
         foreach (KeyValuePair<string, ShelfIdentity> pair in current)
         {
-            if (!authoredPositions.ContainsKey(pair.Key)) RetireShelf(pair.Value);
+            if (!authoredPositions.ContainsKey(pair.Key))
+                RetireShelf(pair.Value);
         }
 
         if (saveVersion < 18)
@@ -147,7 +231,9 @@ public class StoreFurnitureLayout : MonoBehaviour
             foreach (KeyValuePair<string, Pose> pair in authoredPositions)
             {
                 current[pair.Key].transform.SetPositionAndRotation(
-                    pair.Value.position, pair.Value.rotation);
+                    pair.Value.position,
+                    pair.Value.rotation
+                );
             }
         }
         else
@@ -157,14 +243,36 @@ public class StoreFurnitureLayout : MonoBehaviour
                 if (authoredPositions.ContainsKey(entry.shelfID))
                 {
                     current[entry.shelfID].transform.SetPositionAndRotation(
-                        entry.position, entry.rotation);
+                        entry.position,
+                        entry.rotation
+                    );
+
                     continue;
                 }
 
-                ShelfIdentity purchased = Instantiate(shelfPrefab,
-                    entry.position, entry.rotation);
+                if (!TryResolvePurchasedDefinition(
+                        entry,
+                        saveVersion,
+                        out FurnitureDefinition definition))
+                {
+                    Debug.LogError(
+                        $"Could not resolve purchased furniture '{entry.shelfID}'.",
+                        this
+                    );
+
+                    continue;
+                }
+
+                ShelfIdentity purchased = Instantiate(
+                    definition.Prefab,
+                    entry.position,
+                    entry.rotation
+                );
+
                 purchased.AssignRuntimeID(entry.shelfID);
-                purchased.gameObject.name = "Purchased_Shelf";
+                purchased.AssignFurnitureDefinition(definition);
+                purchased.gameObject.name = $"Purchased_{definition.FurnitureID}";
+
                 foreach (ShelfSlot slot in purchased.GetComponentsInChildren<ShelfSlot>(true))
                     shelfRegistry.RegisterSlot(slot);
             }
@@ -174,11 +282,44 @@ public class StoreFurnitureLayout : MonoBehaviour
         navMeshSurface.BuildNavMesh();
     }
 
+    private bool TryResolvePurchasedDefinition(
+        ShelfPlacementSaveData entry,
+        int saveVersion,
+        out FurnitureDefinition definition)
+    {
+        definition = null;
+
+        if (saveVersion >= 20)
+        {
+            if (furnitureCatalog == null)
+                return false;
+
+            if (!furnitureCatalog.TryGetByID(entry.furnitureDefinitionID, out definition))
+                return false;
+
+            return IsCatalogDefinitionUsable(definition);
+        }
+
+        definition = legacyVersion19ShelfDefinition;
+        return IsCatalogDefinitionUsable(definition);
+    }
+
+    private bool IsCatalogDefinitionUsable(FurnitureDefinition definition)
+    {
+        return furnitureCatalog != null &&
+               definition != null &&
+               furnitureCatalog.Contains(definition) &&
+               definition.IsConfigured;
+    }
+
     private void RetireShelf(ShelfIdentity shelf)
     {
-        if (shelf == null || pendingRemoval.Contains(shelf)) return;
+        if (shelf == null || pendingRemoval.Contains(shelf))
+            return;
+
         foreach (ShelfSlot slot in shelf.GetComponentsInChildren<ShelfSlot>(true))
             shelfRegistry.UnregisterSlot(slot);
+
         pendingRemoval.Add(shelf);
         shelf.gameObject.SetActive(false);
         Destroy(shelf.gameObject);
@@ -187,18 +328,26 @@ public class StoreFurnitureLayout : MonoBehaviour
     private bool TryFindShelves(out Dictionary<string, ShelfIdentity> shelves)
     {
         shelves = new Dictionary<string, ShelfIdentity>();
+
         ShelfIdentity[] found = FindObjectsByType<ShelfIdentity>(
-            FindObjectsInactive.Include, FindObjectsSortMode.None);
+            FindObjectsInactive.Include,
+            FindObjectsSortMode.None
+        );
 
         foreach (ShelfIdentity shelf in found)
         {
-            if (shelf == null || pendingRemoval.Contains(shelf) ||
+            if (shelf == null ||
+                pendingRemoval.Contains(shelf) ||
                 shelf.gameObject.scene != gameObject.scene)
+            {
                 continue;
+            }
 
             string id = shelf.PersistentID;
+
             if (string.IsNullOrWhiteSpace(id) || shelves.ContainsKey(id))
                 return Fail("Duplicate or empty ShelfIdentity on " + shelf.name);
+
             shelves.Add(id, shelf);
         }
 

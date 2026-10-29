@@ -62,10 +62,7 @@ public class OrderingUI : MonoBehaviour
 
         RebuildCatalogRows();
 
-        statusText.text =
-            supplierDeliveryQueue != null
-                ? supplierDeliveryQueue.GetTerminalStatusText()
-                : "";
+        RefreshTerminalStatus();
 
         orderingPanel.SetActive(
             true
@@ -124,6 +121,16 @@ public class OrderingUI : MonoBehaviour
 
         if (playerController != null && playerController.enabled)
             playerController.CaptureCursor();
+    }
+    
+    public void RefreshTerminalStatus()
+    {
+        if (statusText == null)
+            return;
+
+        statusText.text = supplierDeliveryQueue != null
+            ? supplierDeliveryQueue.GetTerminalStatusText()
+            : "";
     }
 
     private void RebuildCatalogRows()

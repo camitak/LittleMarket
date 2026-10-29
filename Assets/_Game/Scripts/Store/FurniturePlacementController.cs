@@ -3,8 +3,6 @@ using Unity.AI.Navigation;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
-// Lesson 101: furniture positions are persisted by StoreFurnitureLayout/SaveManager.
-// Preserve the Lesson 100 front-clearance and two-direction rotation rules.
 [DisallowMultipleComponent]
 public class FurniturePlacementController : MonoBehaviour
 {
@@ -20,16 +18,25 @@ public class FurniturePlacementController : MonoBehaviour
     [SerializeField] private NavMeshSurface navMeshSurface;
 
     [Header("Placement")]
-    [Min(1f)] [SerializeField] private float grabDistance = 4f;
-    [Min(1f)] [SerializeField] private float previewRayDistance = 18f;
-    [Min(0.1f)] [SerializeField] private float gridSize = 0.5f;
+    [Min(1f)]
+    [SerializeField] private float grabDistance = 4f;
+
+    [Min(1f)]
+    [SerializeField] private float previewRayDistance = 18f;
+
+    [Min(0.1f)]
+    [SerializeField] private float gridSize = 0.5f;
+
+    [Header("Fallback Body Footprint")]
     [SerializeField] private Vector3 footprintHalfExtents = new(1.30f, 1.05f, 0.52f);
     [SerializeField] private Vector3 footprintCenter = new(0f, 1.10f, 0f);
 
-    [Header("Front Access Footprint - Shelf Front Is Local -Z")]
+    [Header("Fallback Front Access Footprint")]
     [SerializeField] private Vector3 accessHalfExtents = new(1.25f, 0.75f, 0.50f);
     [SerializeField] private Vector3 accessCenter = new(0f, 0.80f, -1.02f);
-    [Min(0.01f)] [SerializeField] private float outlineWidth = 0.05f;
+
+    [Min(0.01f)]
+    [SerializeField] private float outlineWidth = 0.05f;
 
     [Header("Preview Colours")]
     [SerializeField] private Color validColor = new Color32(111, 207, 151, 255);
@@ -40,9 +47,9 @@ public class FurniturePlacementController : MonoBehaviour
     private Quaternion originalRotation;
     private float previewYaw;
     private bool canPlace;
-    private bool isNewShelfPurchase;
+    private bool isNewFurniturePurchase;
     private FurnitureShop pendingPurchase;
-    
+
     private Collider[] selectedColliders;
     private bool[] originallyEnabled;
     private MeshRenderer[] selectedRenderers;
@@ -52,9 +59,30 @@ public class FurniturePlacementController : MonoBehaviour
 
     private static readonly int BaseColorId = Shader.PropertyToID("_BaseColor");
 
-    // SaveManager rejects saving/loading while a shelf is still being previewed.
-    // After E confirms placement, its final transform can be saved in version 18.
     public bool IsPlacementActive => selectedShelf != null;
+
+    private FurnitureDefinition CurrentDefinition =>
+        selectedShelf != null ? selectedShelf.FurnitureDefinition : null;
+
+    private Vector3 CurrentBodyHalfExtents =>
+        CurrentDefinition != null
+            ? CurrentDefinition.BodyHalfExtents
+            : footprintHalfExtents;
+
+    private Vector3 CurrentBodyCenter =>
+        CurrentDefinition != null
+            ? CurrentDefinition.BodyCenter
+            : footprintCenter;
+
+    private Vector3 CurrentAccessHalfExtents =>
+        CurrentDefinition != null
+            ? CurrentDefinition.AccessHalfExtents
+            : accessHalfExtents;
+
+    private Vector3 CurrentAccessCenter =>
+        CurrentDefinition != null
+            ? CurrentDefinition.AccessCenter
+            : accessCenter;
 
     private void Update()
     {
@@ -65,13 +93,16 @@ public class FurniturePlacementController : MonoBehaviour
         {
             if (Keyboard.current.gKey.wasPressedThisFrame && CanStartPlacement())
                 TryStartPlacement();
+
             return;
         }
 
         if (Cursor.lockState != CursorLockMode.Locked ||
-            Time.timeScale <= 0f || storeClock == null ||
+            Time.timeScale <= 0f ||
+            storeClock == null ||
             storeClock.IsStoreOpen ||
-            customerFlow == null || customerFlow.ActiveCustomerCount > 0)
+            customerFlow == null ||
+            customerFlow.ActiveCustomerCount > 0)
         {
             CancelPlacement();
             return;
@@ -102,26 +133,56 @@ public class FurniturePlacementController : MonoBehaviour
 
         if (selectedShelf != null)
         {
-            interactionUI.ShowPrompt(canPlace
-                ? (isNewShelfPurchase
-                    ? "[E] Buy & place  |  [R] Right  [T] Left  |  [Q] Cancel (free)"
-                    : "[E] Place  |  [R] Right  [T] Left  |  [Q] Cancel")
-                : "Keep the front clear  |  [R] Right  [T] Left  |  [Q] Cancel");
+            if (!canPlace)
+            {
+                interactionUI.ShowPrompt(
+                    "Keep furniture and front access clear  |  [R] Right  [T] Left  |  [Q] Cancel"
+                );
+
+                return;
+            }
+
+            if (isNewFurniturePurchase)
+            {
+                FurnitureDefinition definition = CurrentDefinition;
+
+                string priceText = definition != null
+                    ? $"£{definition.PurchasePrice:0.00}"
+                    : "purchase";
+
+                interactionUI.ShowPrompt(
+                    $"[E] Buy & place {priceText}  |  [R] Right  [T] Left  |  [Q] Cancel (free)"
+                );
+            }
+            else
+            {
+                interactionUI.ShowPrompt(
+                    "[E] Place  |  [R] Right  [T] Left  |  [Q] Cancel"
+                );
+            }
+
             return;
         }
 
-        if (CanStartPlacement() && TryFindLookedAtShelf(out ShelfIdentity shelf)
-                                && IsEmpty(shelf))
-            interactionUI.ShowPrompt("[G] Move empty shelf (test layout)");
+        if (CanStartPlacement() &&
+            TryFindLookedAtShelf(out ShelfIdentity shelf) &&
+            IsEmpty(shelf))
+        {
+            interactionUI.ShowPrompt("[G] Move empty furniture");
+        }
     }
 
     private bool CanStartPlacement()
     {
-        return playerCamera != null && playerInteraction != null &&
-               interactionUI != null && storeFloor != null &&
-               navMeshSurface != null && storeClock != null &&
+        return playerCamera != null &&
+               playerInteraction != null &&
+               interactionUI != null &&
+               storeFloor != null &&
+               navMeshSurface != null &&
+               storeClock != null &&
                customerFlow != null &&
-               !storeClock.IsStoreOpen && !storeClock.HasDayEnded &&
+               !storeClock.IsStoreOpen &&
+               !storeClock.HasDayEnded &&
                customerFlow.ActiveCustomerCount == 0 &&
                !playerInteraction.HasAnythingHeld &&
                Time.timeScale > 0f &&
@@ -131,19 +192,30 @@ public class FurniturePlacementController : MonoBehaviour
     private bool TryFindLookedAtShelf(out ShelfIdentity shelf)
     {
         shelf = null;
-        Ray ray = new(playerCamera.transform.position, playerCamera.transform.forward);
+
+        Ray ray = new(
+            playerCamera.transform.position,
+            playerCamera.transform.forward
+        );
+
         RaycastHit[] hits = Physics.RaycastAll(
-            ray, grabDistance, ~0, QueryTriggerInteraction.Ignore);
+            ray,
+            grabDistance,
+            ~0,
+            QueryTriggerInteraction.Ignore
+        );
+
         Array.Sort(hits, (a, b) => a.distance.CompareTo(b.distance));
 
-        // Only select if the closest solid object belongs to a shelf.
         foreach (RaycastHit hit in hits)
         {
             if (hit.collider == null || hit.collider.transform.IsChildOf(transform))
                 continue;
+
             shelf = hit.collider.GetComponentInParent<ShelfIdentity>();
             return shelf != null;
         }
+
         return false;
     }
 
@@ -151,23 +223,35 @@ public class FurniturePlacementController : MonoBehaviour
     {
         if (shelf == null)
             return false;
+
         ShelfSlot[] slots = shelf.GetComponentsInChildren<ShelfSlot>();
+
         if (slots.Length == 0)
             return false;
+
         foreach (ShelfSlot slot in slots)
+        {
             if (slot.StoredItemCount > 0)
                 return false;
+        }
+
         return true;
     }
 
-    // Called after the shop computer closes and its cursor has been recaptured.
-    // The new shelf exists only as a preview until E confirms the purchase.
-    public bool BeginPurchasedShelfPreview(ShelfIdentity shelf, FurnitureShop shop)
+    public bool BeginPurchasedFurniturePreview(
+        ShelfIdentity furniture,
+        FurnitureShop shop)
     {
-        if (shelf == null || shop == null || selectedShelf != null ||
-            !CanStartPlacement()) return false;
+        if (furniture == null ||
+            furniture.FurnitureDefinition == null ||
+            shop == null ||
+            selectedShelf != null ||
+            !CanStartPlacement())
+        {
+            return false;
+        }
 
-        StartPreview(shelf, true, shop);
+        StartPreview(furniture, true, shop);
         return true;
     }
 
@@ -179,11 +263,15 @@ public class FurniturePlacementController : MonoBehaviour
         StartPreview(shelf, false, null);
     }
 
-    private void StartPreview(ShelfIdentity shelf, bool purchased, FurnitureShop shop)
+    private void StartPreview(
+        ShelfIdentity shelf,
+        bool purchased,
+        FurnitureShop shop)
     {
         selectedShelf = shelf;
-        isNewShelfPurchase = purchased;
+        isNewFurniturePurchase = purchased;
         pendingPurchase = shop;
+
         originalPosition = shelf.transform.position;
         originalRotation = shelf.transform.rotation;
         previewYaw = shelf.transform.eulerAngles.y;
@@ -191,6 +279,7 @@ public class FurniturePlacementController : MonoBehaviour
 
         selectedColliders = shelf.GetComponentsInChildren<Collider>(true);
         originallyEnabled = new bool[selectedColliders.Length];
+
         for (int i = 0; i < selectedColliders.Length; i++)
         {
             originallyEnabled[i] = selectedColliders[i].enabled;
@@ -199,6 +288,7 @@ public class FurniturePlacementController : MonoBehaviour
 
         selectedRenderers = shelf.GetComponentsInChildren<MeshRenderer>(true);
         originalProperties = new MaterialPropertyBlock[selectedRenderers.Length];
+
         for (int i = 0; i < selectedRenderers.Length; i++)
         {
             originalProperties[i] = new MaterialPropertyBlock();
@@ -206,6 +296,7 @@ public class FurniturePlacementController : MonoBehaviour
         }
 
         playerInteraction.enabled = false;
+
         CreateAccessOutline();
         UpdatePreview();
     }
@@ -215,9 +306,18 @@ public class FurniturePlacementController : MonoBehaviour
         if (selectedShelf == null)
             return;
 
-        Ray ray = new(playerCamera.transform.position, playerCamera.transform.forward);
+        Ray ray = new(
+            playerCamera.transform.position,
+            playerCamera.transform.forward
+        );
+
         RaycastHit[] hits = Physics.RaycastAll(
-            ray, previewRayDistance, ~0, QueryTriggerInteraction.Ignore);
+            ray,
+            previewRayDistance,
+            ~0,
+            QueryTriggerInteraction.Ignore
+        );
+
         bool foundFloor = false;
         Vector3 target = originalPosition;
 
@@ -227,81 +327,139 @@ public class FurniturePlacementController : MonoBehaviour
                 continue;
 
             float step = Mathf.Max(0.1f, gridSize);
+
             target = new Vector3(
                 Mathf.Round(hit.point.x / step) * step,
                 storeFloor.bounds.max.y,
-                Mathf.Round(hit.point.z / step) * step);
+                Mathf.Round(hit.point.z / step) * step
+            );
+
             foundFloor = true;
             break;
         }
 
         Quaternion rotation = Quaternion.Euler(0f, previewYaw, 0f);
+
         if (foundFloor)
             selectedShelf.transform.SetPositionAndRotation(target, rotation);
 
         canPlace = foundFloor && ValidatePlacement(target, rotation);
+
         Color previewColor = canPlace ? validColor : invalidColor;
+
         TintPreview(previewColor);
         UpdateAccessOutline(previewColor);
     }
 
     private bool ValidatePlacement(Vector3 position, Quaternion rotation)
     {
-        // Both the furniture itself AND the customer/player access strip must
-        // be within the permitted shop floor. This space is never a collider.
-        if (!IsFootprintOnFloor(position, rotation, footprintCenter, footprintHalfExtents))
+        if (!IsFootprintOnFloor(
+                position,
+                rotation,
+                CurrentBodyCenter,
+                CurrentBodyHalfExtents))
+        {
             return false;
-        if (!IsFootprintOnFloor(position, rotation, accessCenter, accessHalfExtents))
-            return false;
+        }
 
-        if (HasBlockingCollider(position, rotation, footprintCenter, footprintHalfExtents, false))
+        if (!IsFootprintOnFloor(
+                position,
+                rotation,
+                CurrentAccessCenter,
+                CurrentAccessHalfExtents))
+        {
             return false;
+        }
 
-        // The player is allowed to stand in the access area while arranging it.
-        // Other solid furniture/walls still make the arrangement invalid.
-        if (HasBlockingCollider(position, rotation, accessCenter, accessHalfExtents, true))
+        if (HasBlockingCollider(
+                position,
+                rotation,
+                CurrentBodyCenter,
+                CurrentBodyHalfExtents,
+                false))
+        {
             return false;
+        }
+
+        if (HasBlockingCollider(
+                position,
+                rotation,
+                CurrentAccessCenter,
+                CurrentAccessHalfExtents,
+                true))
+        {
+            return false;
+        }
 
         return true;
     }
 
     private bool IsFootprintOnFloor(
-        Vector3 position, Quaternion rotation, Vector3 offset, Vector3 halfExtents)
+        Vector3 position,
+        Quaternion rotation,
+        Vector3 offset,
+        Vector3 halfExtents)
     {
         Bounds floor = storeFloor.bounds;
+
         float halfX = Mathf.Max(0.01f, halfExtents.x);
         float halfZ = Mathf.Max(0.01f, halfExtents.z);
+
         for (int x = -1; x <= 1; x += 2)
-        for (int z = -1; z <= 1; z += 2)
         {
-            Vector3 corner = position + rotation *
-                (offset + new Vector3(x * halfX, 0f, z * halfZ));
-            if (corner.x < floor.min.x || corner.x > floor.max.x ||
-                corner.z < floor.min.z || corner.z > floor.max.z)
-                return false;
+            for (int z = -1; z <= 1; z += 2)
+            {
+                Vector3 corner =
+                    position +
+                    rotation * (offset + new Vector3(x * halfX, 0f, z * halfZ));
+
+                if (corner.x < floor.min.x ||
+                    corner.x > floor.max.x ||
+                    corner.z < floor.min.z ||
+                    corner.z > floor.max.z)
+                {
+                    return false;
+                }
+            }
         }
+
         return true;
     }
 
     private bool HasBlockingCollider(
-        Vector3 position, Quaternion rotation, Vector3 offset,
-        Vector3 halfExtents, bool ignorePlayer)
+        Vector3 position,
+        Quaternion rotation,
+        Vector3 offset,
+        Vector3 halfExtents,
+        bool ignorePlayer)
     {
         Vector3 center = position + rotation * offset;
-        Collider[] hits = Physics.OverlapBox(center, halfExtents,
-            rotation, ~0, QueryTriggerInteraction.Ignore);
+
+        Collider[] hits = Physics.OverlapBox(
+            center,
+            halfExtents,
+            rotation,
+            ~0,
+            QueryTriggerInteraction.Ignore
+        );
 
         foreach (Collider hit in hits)
         {
             if (hit == null || hit == storeFloor)
                 continue;
+
             if (selectedShelf != null &&
                 hit.transform.IsChildOf(selectedShelf.transform))
+            {
                 continue;
+            }
+
             if (ignorePlayer && hit.transform.IsChildOf(transform))
                 continue;
+
             return true;
         }
+
         return false;
     }
 
@@ -311,15 +469,18 @@ public class FurniturePlacementController : MonoBehaviour
             return;
 
         Shader shader = Shader.Find("Universal Render Pipeline/Unlit");
+
         if (shader == null)
             shader = Shader.Find("Sprites/Default");
+
         if (shader == null)
         {
             Debug.LogWarning("No compatible outline shader found.", this);
             return;
         }
 
-        GameObject outlineObject = new("ShelfFrontAccessPreview");
+        GameObject outlineObject = new("FurnitureFrontAccessPreview");
+
         accessOutline = outlineObject.AddComponent<LineRenderer>();
         accessOutline.useWorldSpace = true;
         accessOutline.positionCount = 5;
@@ -338,11 +499,11 @@ public class FurniturePlacementController : MonoBehaviour
         if (accessOutline == null || selectedShelf == null)
             return;
 
-        // Display a low, flat rectangle in GAME view. Never add a collider:
-        // this represents required clear walking/interaction space.
-        Vector3 half = accessHalfExtents;
-        Vector3 center = accessCenter;
-        float y = 0.075f;
+        Vector3 half = CurrentAccessHalfExtents;
+        Vector3 center = CurrentAccessCenter;
+
+        const float y = 0.075f;
+
         Vector3[] localCorners =
         {
             new(center.x - half.x, y, center.z - half.z),
@@ -352,28 +513,38 @@ public class FurniturePlacementController : MonoBehaviour
         };
 
         for (int i = 0; i < 4; i++)
-            accessOutline.SetPosition(i,
-                selectedShelf.transform.TransformPoint(localCorners[i]));
-        accessOutline.SetPosition(4,
-            selectedShelf.transform.TransformPoint(localCorners[0]));
+        {
+            accessOutline.SetPosition(
+                i,
+                selectedShelf.transform.TransformPoint(localCorners[i])
+            );
+        }
+
+        accessOutline.SetPosition(
+            4,
+            selectedShelf.transform.TransformPoint(localCorners[0])
+        );
 
         accessOutline.startColor = color;
         accessOutline.endColor = color;
-        if (outlineMaterial != null)
-        {
-            if (outlineMaterial.HasProperty(BaseColorId))
-                outlineMaterial.SetColor(BaseColorId, color);
-            else
-                outlineMaterial.color = color;
-        }
+
+        if (outlineMaterial == null)
+            return;
+
+        if (outlineMaterial.HasProperty(BaseColorId))
+            outlineMaterial.SetColor(BaseColorId, color);
+        else
+            outlineMaterial.color = color;
     }
 
     private void DestroyAccessOutline()
     {
         if (accessOutline != null)
             Destroy(accessOutline.gameObject);
+
         if (outlineMaterial != null)
             Destroy(outlineMaterial);
+
         accessOutline = null;
         outlineMaterial = null;
     }
@@ -382,10 +553,12 @@ public class FurniturePlacementController : MonoBehaviour
     {
         if (selectedRenderers == null)
             return;
+
         foreach (MeshRenderer renderer in selectedRenderers)
         {
             if (renderer == null)
                 continue;
+
             MaterialPropertyBlock propertyBlock = new();
             renderer.GetPropertyBlock(propertyBlock);
             propertyBlock.SetColor(BaseColorId, color);
@@ -395,29 +568,53 @@ public class FurniturePlacementController : MonoBehaviour
 
     private void ConfirmPlacement()
     {
-        if (isNewShelfPurchase &&
-            (pendingPurchase == null || !pendingPurchase.TryCompletePurchase()))
+        string furnitureName =
+            CurrentDefinition != null
+                ? CurrentDefinition.DisplayName
+                : "Furniture";
+
+        if (isNewFurniturePurchase)
         {
-            Debug.LogWarning("Not enough money to confirm shelf purchase.", this);
-            return;
+            FurnitureDefinition definition = CurrentDefinition;
+
+            if (definition == null ||
+                pendingPurchase == null ||
+                !pendingPurchase.TryCompletePurchase(definition))
+            {
+                Debug.LogWarning(
+                    "Not enough money or invalid furniture purchase configuration.",
+                    this
+                );
+
+                return;
+            }
         }
 
         FinishPreview(false);
+
         Physics.SyncTransforms();
         navMeshSurface.BuildNavMesh();
-        Debug.Log("Shelf placed. Save your game to keep the new layout.", this);
+
+        Debug.Log(
+            $"{furnitureName} placed. Save your game to keep the new layout.",
+            this
+        );
     }
 
     private void CancelPlacement()
     {
-        if (selectedShelf == null) return;
+        if (selectedShelf == null)
+            return;
 
-        if (isNewShelfPurchase)
+        if (isNewFurniturePurchase)
         {
             ShelfIdentity preview = selectedShelf;
             FurnitureShop shop = pendingPurchase;
+
             FinishPreview(false);
-            if (shop != null) shop.CancelPurchase(preview);
+
+            if (shop != null)
+                shop.CancelPurchase(preview);
         }
         else
         {
@@ -431,29 +628,52 @@ public class FurniturePlacementController : MonoBehaviour
             return;
 
         if (restorePosition)
-            selectedShelf.transform.SetPositionAndRotation(originalPosition, originalRotation);
+        {
+            selectedShelf.transform.SetPositionAndRotation(
+                originalPosition,
+                originalRotation
+            );
+        }
 
         if (selectedColliders != null)
+        {
             for (int i = 0; i < selectedColliders.Length; i++)
+            {
                 if (selectedColliders[i] != null)
                     selectedColliders[i].enabled = originallyEnabled[i];
+            }
+        }
 
         if (selectedRenderers != null)
+        {
             for (int i = 0; i < selectedRenderers.Length; i++)
+            {
                 if (selectedRenderers[i] != null)
-                    selectedRenderers[i].SetPropertyBlock(originalProperties[i]);
+                {
+                    selectedRenderers[i].SetPropertyBlock(
+                        originalProperties[i]
+                    );
+                }
+            }
+        }
 
         DestroyAccessOutline();
+
         selectedShelf = null;
-        isNewShelfPurchase = false;
+        isNewFurniturePurchase = false;
         pendingPurchase = null;
         selectedColliders = null;
         selectedRenderers = null;
         originalProperties = null;
         originallyEnabled = null;
         canPlace = false;
-        if (Cursor.lockState == CursorLockMode.Locked && playerInteraction != null)
+
+        if (Cursor.lockState == CursorLockMode.Locked &&
+            playerInteraction != null)
+        {
             playerInteraction.enabled = true;
+        }
+
         if (interactionUI != null)
             interactionUI.HidePrompt();
     }

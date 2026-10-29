@@ -8,6 +8,10 @@ public class ShelfPlacementSaveData
     public Vector3 position;
     public Quaternion rotation;
 
-    // Added in version 19. Defaults to false for old version-18 saves.
+    // Added in version 19.
     public bool purchasedByPlayer;
+
+    // Added in version 20.
+    // Empty on old version-19 furniture records.
+    public string furnitureDefinitionID;
 }

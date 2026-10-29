@@ -1,502 +1,331 @@
 # Little Market — System Architecture
 
-Current architecture after **Lesson 103**.
+Current architecture after **Lesson 104**.
 
-This is the complete replacement for:
+## Project baseline
 
-`Assets/_Game/Documentation/SYSTEM_ARCHITECTURE.md`
+Little Market is a cozy first-person grocery-store management game built with Unity 6.3, URP, the Unity Input System, Unity AI Navigation/NavMesh, C#, Rider, and GitHub `main`.
 
-## Project principles
+The player physically orders, receives, stores, carries, restocks, arranges, and sells products. The persistent HUD stays minimal. The existing store computer is the central place for active management; the Manager Book remains primarily read-only.
 
-Little Market is a cozy first-person Unity 6.3 grocery-store management game.
-The player physically orders, receives, stores, carries, restocks and sells real
-product objects while gradually arranging and expanding a neighborhood grocery store.
+Lesson 104 was designed from GitHub `main` at commit:
 
-The persistent HUD remains minimal. Management actions are centralized in the
-existing store computer, while the Manager Book remains a portable, mostly read-only
-source of information. New systems must query the authoritative owner of existing
-state rather than duplicating balances, stock, time, progression, transactions or
-customer state.
-
-Unity 6.3, URP, the new Input System, Unity AI Navigation/NavMesh, C#, Rider and
-GitHub `main` remain the project baseline.
-
-## Current verified source state
-
-Lesson 103 was designed from repository `main` at commit:
-
-`d66c97f3d2aea275df0c2ebd5044dcb8012a3742`
+`24c653756ecd4221d33ad11fa5b093b225e087c5`
 
 Commit message:
 
-`Lesson 102 complete - furniture purchases through store computer`
+`Lesson 103 complete - shared chilled storage rules and cold-chain prototype`
 
-That commit remains the verified Lesson 102 baseline. Lesson 103 does not change the
-save schema and therefore keeps save version **19**.
+## Core authority rules
 
-## Core gameplay loop
-
-Order products → receive deliveries → organize storage → restock displays → serve
-customers → earn money → buy furniture → arrange/expand the store → unlock new
-possibilities.
-
-Physical interaction remains the heart of the game. Systems should make logical sense
-without becoming a tedious simulation.
-
-## StoreSystems
-
-Scene GameObject: `StoreSystems`.
-
-Major authoritative components include:
-
-- `StoreClock`: current day/time, opening/closing schedule, supplier cutoff and day end.
-- `StoreEconomy`: authoritative player money.
-- `StoreReputation`: reputation and its customer-arrival influence.
-- `StoreProgression`: product catalogue/unlocks.
-- `StoreLevelProgression`: store XP and level.
-- `StoreGoals`: daily goals and reward state.
-- `DailyStats`: current-day sales/customer/satisfaction statistics.
-- `ShelfRegistry`: live customer-accessible `ShelfSlot` registration and stock lookup.
-- `StorageRegistry`: live backroom `StorageBay` registration.
-- `WorldItemRegistry`: loose physical products.
-- `CustomerFlow`: spawning, shopping-list generation, traffic capacity and active count.
-- `StoreDayLifecycle`: day transition and day-end calculations.
-- `StoreReportHistory`: immutable completed-day reports.
-- `StoreFurnitureLayout`: persistent shelf layout and purchased-shelf reconstruction.
-- `FurnitureShop`: store-computer furniture transaction rules.
-- `SaveManager`: serialization and migration orchestration.
-
-`SaveManager` remains the owner of file serialization. It must not become the owner of
-furniture mechanics, storage compatibility or product rules.
+- `StoreEconomy` owns money.
+- `StoreClock` owns day/time/open-state rules.
+- `CustomerFlow` owns active customer flow.
+- `StoreProgression` owns product unlocks.
+- `ProductData` owns individual product data and storage requirements.
+- `ShelfSlot` owns displayed product instances and facing assignments.
+- `StorageBay` owns backroom quantity storage.
+- `StoreFurnitureLayout` owns persistent shelf-display layout and reconstruction.
+- `FurnitureShop` owns purchase transaction rules but does not own furniture prices or prefabs.
+- `SaveManager` owns serialization and migration orchestration.
 
 ## Save system
 
-Current save version: **19**.
+Current save version after Lesson 104: **20**.
 
-The save contains day/time, money, reputation, unlocked products, shelf inventory,
-storage inventory, supplier/delivery state, loose products, daily statistics, goals,
-store level, reports and shelf layout/purchased-shelf records.
+Version history relevant to furniture:
 
-Version history relevant to current work:
+- v18: authored shelf positions and rotations.
+- v19: purchased shelf records via `purchasedByPlayer`.
+- v20: purchased furniture records also store a stable `furnitureDefinitionID`.
 
-- v17: historical reports.
-- v18: shelf positions/rotations.
-- v19: purchased-shelf layout records.
+`ShelfPlacementSaveData` contains:
 
-### Lesson 103 save compatibility
+- `shelfID`
+- world `position`
+- world `rotation`
+- `purchasedByPlayer`
+- `furnitureDefinitionID` for purchased version-20 entries
 
-Lesson 103 adds no serialized save fields and does not increment the version.
+Version-19 purchased shelves have no definition ID. `StoreFurnitureLayout` migrates them through an explicit `legacyVersion19ShelfDefinition`, configured to the standard shelf definition. When that migrated game is saved again, the entry becomes a normal version-20 record with `standard_shelf`.
 
-`ProductStorageCondition` is static product/furniture configuration stored in Unity
-assets/scenes/prefabs, not per-save state.
+Version-18 saves remain authored-layout-only. Version 17 and older continue to use the existing authored-position fallback.
 
-This matters because a v19 save may already contain Cloud Milk in an ordinary ambient
-backroom bay. `StorageBay.RestoreState` deliberately remains permissive during load:
-existing stock is preserved, shown as needing chilled storage, can be removed, and
-cannot receive additional units while it remains in an incompatible bay.
+## Product storage conditions
 
-This migration rule prevents silent inventory deletion.
+`ProductData` owns `RequiredStorageCondition` and the shared `CanBeStoredIn(...)` compatibility rule.
 
-Likewise, shelf restore preserves legacy stock rather than deleting it solely because
-a storage-condition rule changed. New stocking actions enforce compatibility.
+Current storage conditions:
 
-## Player and physical interaction
+- Ambient
+- Chilled
 
-Scene GameObject: `Player`.
+Ambient products can use ambient or chilled equipment. Chilled products require chilled equipment.
 
-`PlayerController` owns first-person movement/camera/cursor behavior.
+Cloud Milk (`milk_cloud`) is currently Chilled.
 
-`PlayerInteraction` owns the normal physical control language:
+## Sales displays
 
-- E: primary interaction.
-- R: contextual reverse/secondary transfer.
-- F: carrying/bulk action.
-- Q: drop/cancel.
-- Hold X: selected management actions.
+`SalesShelf` owns:
 
-`PlayerCarryState` supports held-object state.
+- allowed merchandising category
+- storage condition
+- customer stand point
+- front-access rule
 
-`InteractionTargetFinder` performs crosshair target resolution.
+`ShelfSlot` owns the actual displayed physical stock and delegates storage compatibility to `ProductData`.
 
-Furniture placement uses:
+Shelf front remains local negative Z.
 
-- G: move eligible existing empty shelf.
-- R: rotate right 90°.
-- T: rotate left 90°.
-- E: confirm valid placement.
-- Q: cancel.
+The authored `Shelf_Dairy` remains the starter chilled display and keeps persistent ID:
 
-These controls remain unchanged in Lesson 103.
+`04a7290d9e214a6e8463433175f1a326`
 
-## ProductData and storage conditions — Lesson 103
+## Backroom storage
 
-`ProductData` remains the authoritative definition of an individual product.
+`StorageBay` owns backroom assignment, quantity, capacity, transfer operations, save restore, and in-world status.
+
+`StorageSlot_07` remains the starter chilled backroom bay.
+
+Lesson 104 does not yet make backroom racks purchasable. Furniture purchasing in this lesson still covers the current shelf-display family. A later generalization must not pretend `ShelfIdentity` already represents every possible furniture family.
+
+## Furniture definitions — Lesson 104
+
+New `FurnitureDefinition` ScriptableObject is the authoritative data definition for a purchasable shelf-display type.
 
 It owns:
 
-- product name/ID;
-- `ProductCategory`;
-- icon/description;
-- physical `PickupItem` prefab;
-- sales-display layout/capacity;
-- buy/sell prices;
-- progression requirements;
-- **required storage condition**.
+- stable `FurnitureID`
+- display name
+- player-facing description
+- purchase price
+- prefab reference
+- body placement half-extents and center
+- front-access half-extents and center
 
-New enum:
+Prices and prefab selection no longer live as one-off fields in `FurnitureShop` or `StoreFurnitureLayout`.
 
-`ProductStorageCondition`
+Current definitions:
 
-Current values:
+### Standard Shelf
 
-- `Ambient`
-- `Chilled`
+- ID: `standard_shelf`
+- price: £40
+- prefab: `PF_Shelf`
+- ambient display
+- current purchased prefab starts with the existing Cereal category configuration
 
-New field on each product:
+### Refrigerated Display
 
-`ProductData.RequiredStorageCondition`
+- ID: `refrigerated_display`
+- price: £80 provisional test price
+- prefab: `PF_RefrigeratedDisplay`
+- Dairy category
+- Chilled storage condition
 
-The field is per-product. Product category does **not** imply refrigeration.
+Both currently use the same blockout physical footprint because the refrigerated prefab is derived from the existing shelf geometry. The definition stores the footprint so later furniture can have genuinely different dimensions without adding furniture-specific constants to the placement controller.
 
-For example, Cloud Milk is configured as `Chilled`, but future Dairy products may be
-Ambient if that makes sense for that specific product.
+## Furniture catalog
 
-`ProductData.CanBeStoredIn(ProductStorageCondition)` is the single compatibility rule used by both retail display and backroom storage. Keeping the rule beside the product requirement avoids duplicating cold-chain logic in `ShelfSlot` and `StorageBay`.
+New `FurnitureCatalog` ScriptableObject owns the ordered list of available `FurnitureDefinition` assets.
 
-Current rule:
+`FurnitureShop` and `StoreFurnitureLayout` reference the same catalog asset. This is a shared reference to one data source, not duplicated catalog data.
 
-- Ambient products can use Ambient or Chilled equipment.
-- Chilled products require Chilled equipment.
+Current catalog order:
 
-This models chilled equipment as a capability rather than an exact-match container. No temperature simulation is introduced.
+1. Standard Shelf
+2. Refrigerated Display
 
-## Sales shelves and refrigerated display compatibility
+## FurnitureShop
 
-Prefab:
+`FurnitureShop` is now a transaction service rather than a catalog-data owner.
 
-`Assets/_Game/Prefabs/Store/PF_Shelf.prefab`
+It checks:
 
-The normal shelf front remains local negative Z.
+- configuration
+- requested definition belongs to the configured catalog
+- shop is closed and the day has not ended
+- no active customers
+- player holds nothing
+- no placement preview already active
+- player can afford the selected definition
 
-`SalesShelf` owns shelf-level merchandising rules and now includes:
+It does not contain `shelfPrice` or refrigerator price fields.
 
-- `AllowedCategory`
-- `StorageCondition`
-- `CanDisplayProduct(ProductData)`
+Money is still deducted only when valid placement is confirmed with E. Q cancels for free.
 
-Default storage condition is `Ambient`, preserving every existing shelf until a
-specific instance is deliberately configured otherwise.
+Furniture spending still does not count as `DailyStats.StockSpending`.
 
-`ShelfSlot` remains the authoritative owner of actual displayed product instances,
-assignment, capacity, transfers, customer taking, price tags and registry behavior.
+## StoreFurnitureLayout
 
-Lesson 103 changes only localized compatibility/restore/prompt sections inside the very large existing `ShelfSlot` and `StorageBay` scripts. Their unrelated stock-transfer, checkout/customer, registry and save behavior is preserved rather than rewritten.
+`StoreFurnitureLayout` continues to own persistent layout/reconstruction for the current shelf-display furniture family.
 
-Lesson 103 adds storage-condition enforcement to new stocking actions:
+It now receives a `FurnitureDefinition` when creating a purchased preview. The definition chooses the prefab.
 
-- a chilled product cannot be newly stocked into an Ambient display;
-- a Chilled display can hold both Ambient and Chilled products when category rules
-  also match;
-- category and facing-assignment rules continue to apply independently.
+Each purchased `ShelfIdentity` receives:
 
-`ShelfSlot` restore is intentionally migration-friendly. If saved stock is now
-incompatible because a rule/configuration changed, the stock is restored with a
-warning so it can be removed instead of being silently destroyed. New units cannot
-be added to that incompatible facing.
+- a runtime persistent instance ID
+- its `FurnitureDefinition`
 
-The existing `Shelf_Dairy` scene instance is the Lesson 103 prototype refrigerated
-display. It retains its current persistent ID and position; only its `SalesShelf`
-storage condition changes to `Chilled`. This avoids adding a new authored shelf and
-therefore avoids breaking the strict v19 authored-shelf save preflight.
+On version-20 load, `StoreFurnitureLayout` uses `furnitureDefinitionID` to resolve the correct definition through `FurnitureCatalog`, instantiate the correct prefab, restore the persistent shelf ID, register `ShelfSlot`s, and rebuild NavMesh before shelf inventory restoration.
 
-Verified existing scene identity:
+Authored shelves remain scene objects and are restored by their existing persistent IDs.
 
-- GameObject: `Shelf_Dairy`
-- position: approximately `(-3, 0, 4)`
-- persistent ID: `04a7290d9e214a6e8463433175f1a326`
+## ShelfIdentity
 
-The physical shelf model remains placeholder geometry. A refrigerator model is later.
+`ShelfIdentity` still owns the stable instance ID used by shelf slots.
 
-## Backroom storage and cold storage
+Lesson 104 adds a `FurnitureDefinition` reference so placement can obtain the correct footprint for both authored and purchased shelf-display furniture.
 
-Prefab:
+Authored scene assignments:
 
-`Assets/_Game/Prefabs/Store/PF_StorageRack_Backroom.prefab`
+- `Shelf_Cereal` → Standard Shelf definition
+- `Shelf_Bakery` → Standard Shelf definition
+- `Shelf_Dairy` → Refrigerated Display definition
 
-`StorageBay` remains authoritative for:
+Purchased instances receive the definition at runtime from `StoreFurnitureLayout`.
 
-- stable slot ID;
-- assigned product;
-- quantity/capacity;
-- loose-item storage/take;
-- delivery-carton merge/fill;
-- player restock-basket transfers;
-- portable carton creation;
-- save restore;
-- in-world status display.
-
-Lesson 103 adds a `StorageCondition` field to each bay.
-
-Default: `Ambient`.
-
-Compatibility calls the same `ProductData.CanBeStoredIn(...)` rule used by sales displays.
-
-One existing bay, `StorageSlot_07`, is configured as the first `Chilled` bay.
-No new storage-slot ID is introduced, so save restoration remains stable.
-
-The scene contains the existing `PF_StorageRack_Backroom` instance at approximately:
-
-`(-11.754, 0, 4)`
-
-A chilled bay can still hold an ambient product. Doing so consumes cold-storage
-capacity and is therefore a player choice rather than a technical prohibition.
-
-If a v19 save restores a chilled product into an Ambient bay, the stock is preserved,
-the bay reports that chilled storage is needed, and new units cannot be added until
-the old stock is moved.
-
-Spoilage is not active yet.
-
-## Cloud Milk — first chilled product
-
-Asset:
-
-`Assets/_Game/ScriptableObjects/Products/SO_Milk.asset`
-
-Product:
-
-- name: `Cloud Milk`
-- ID: `milk_cloud`
-- category: Dairy
-- buy price: £0.95
-- sell price: £2.10
-- required reputation: 55
-- required store level: 1
-
-Lesson 103 configures:
-
-`Required Storage Condition = Chilled`
-
-This is an individual product rule, not a Dairy-category rule.
-
-## Player restocking basket
-
-`RestockBasket` remains the player-only stock-transfer basket and must not be confused
-with customer shopping baskets.
-
-Lesson 103 does not change basket ownership or capacity.
-
-When a basket product is presented to a shelf/bay, the target's existing acceptance
-path enforces storage compatibility before transfer. The current empty-container
-candidate selection remains the existing first matching product behavior; future
-catalogue growth may justify a more sophisticated compatible-item selector.
-
-## Deliveries
-
-`OrderingTerminal` opens `OrderingUI`.
-
-`SupplierDeliveryQueue` owns pending orders and supplier timing.
-
-`DeliveryZone` owns physical receiving slots.
-
-`DeliveryBox` remains the portable carton representation.
-
-Lesson 103 does not block ordering chilled products. The player may still order Cloud
-Milk even without enough cold capacity. This is deliberate for the first rules lesson:
-equipment planning becomes visible through storage/restocking restrictions. A later
-UX pass may show equipment requirements in the catalogue before purchase.
-
-## Customers
-
-`CustomerFlow` and `CustomerController` remain unchanged.
-
-Customers:
-
-- spawn through the established traffic flow;
-- use baskets when appropriate;
-- browse registered stocked shelf slots;
-- take real physical products;
-- queue at checkout;
-- lose patience/satisfaction according to existing rules;
-- pay through `CheckoutRegister`;
-- leave with the existing shopping bag.
-
-Customers do not independently evaluate refrigeration. If a product is validly stocked
-on the correct display, customer behavior continues normally.
-
-A migrated incompatible shelf can still sell its already-restored legacy stock so it
-can naturally leave the system, but players cannot add more there.
-
-## Customer baskets
-
-`PF_CustomerBasket`, `CustomerBasketStation` and `CustomerShoppingBasket` remain visual
-carrying mechanisms.
-
-`CustomerController.carriedItems` remains the authoritative customer inventory.
-
-Lesson 103 does not modify customer-basket behavior.
-
-## Checkout
-
-`CheckoutCounter`, `CheckoutRegister`, `CheckoutFeedback` and `CheckoutQueue` remain
-the authoritative checkout pipeline.
-
-No refrigeration logic is added to checkout.
-
-Successful payment remains the point at which money/sales are awarded.
-
-## Shelf front/access behavior
-
-Normal shelf front remains local negative Z.
-
-`SalesShelf.IsWorldPositionInFront` remains the shared front-access authority.
-
-Player shelf interactions and customer taking continue to require front-side access.
-
-No Lesson 103 change alters this rule.
+The prefab assets themselves do not need to reference the ScriptableObject definition, avoiding a prefab ↔ definition circular asset dependency.
 
 ## Furniture placement
 
-`FurniturePlacementController` remains on `Player`.
+`FurniturePlacementController` remains on Player and preserves:
 
-It owns preview positioning, grid snapping, R/T rotation, E/Q confirmation/cancel,
-body collision validation, front-access footprint validation and NavMesh rebuild.
+- G move existing empty shelf-display furniture
+- R rotate right
+- T rotate left
+- E confirm
+- Q cancel
+- grid snapping
+- store-floor bounds checks
+- physical collision checks
+- visible front-access footprint
+- NavMesh rebuild after confirmation
 
-Current shelf body/access dimensions remain the Lesson 100 prototype dimensions.
+Lesson 104 changes footprint ownership. The controller now reads body/access dimensions from `ShelfIdentity.FurnitureDefinition` when available. Existing serialized placement dimensions remain fallback values for compatibility.
 
-Lesson 103 does not generalize these dimensions because the refrigerated display
-prototype reuses the existing shelf geometry.
+Preview colors remain:
 
-Different future furniture models will need per-type footprints.
+- valid: `#6FCF97`
+- invalid: `#C46B6B`
 
-## Persistent furniture
+## Refrigerated display prefab
 
-`ShelfIdentity` owns stable shelf identity.
+New prefab:
 
-`StoreFurnitureLayout` owns runtime shelf-layout persistence.
+`Assets/_Game/Prefabs/Store/PF_RefrigeratedDisplay.prefab`
 
-Current save records use `ShelfPlacementSaveData` with:
+It is derived from the current `PF_Shelf` blockout structure so all eight existing `ShelfSlot` mechanics, customer access, price tags, and placement behavior remain compatible.
 
-- `shelfID`
-- world position
-- world rotation
-- `purchasedByPlayer`
+Configuration:
 
-Version 19 recreates purchased shelves using the single configured `shelfPrefab`.
+- `SalesShelf.AllowedCategory = Dairy`
+- `SalesShelf.StorageCondition = Chilled`
 
-This is the key reason Lesson 103 does **not** add a purchasable refrigerator yet:
-the current persistence layer cannot distinguish purchased regular shelves from
-purchased refrigerated displays.
+A small non-colliding blue blockout accent differentiates it visually from a normal shelf until the art pass.
 
-## Store computer and furniture purchasing
+## Store computer UI
 
-The existing `OrderingTerminal` is the central management computer.
+`OrderingTerminal` remains the single active-management computer.
 
-`OrderingUI` remains the existing ordering interface.
+`OrderingPanel` remains 760 × 720 on the existing GameUI Canvas, whose CanvasScaler reference resolution is 1920 × 1080 with Match 0.5.
 
-`StoreComputerFurnitureUI` currently exposes Products/Furniture tabs and one regular
-shelf purchase.
+Lesson 104 cleans the layout instead of adding more manually positioned furniture controls.
 
-`FurnitureShop` currently owns the £40 regular shelf test price and transaction rule.
+The terminal uses:
 
-Money is deducted only when valid placement is confirmed.
+- title area
+- status area
+- shared two-tab row
+- one content rectangle used alternately by Products or Furniture
+- bottom Close button
 
-Cancelling placement costs nothing.
+Products retain the existing `PF_OrderingProductRow` scroll-list pattern.
 
-Furniture spending does not count as `DailyStats.StockSpending`.
+Furniture now uses a matching scroll list with `PF_FurnitureCatalogRow`. `StoreComputerFurnitureUI` dynamically instantiates one row per catalog definition. There is no dedicated `buyShelfButton` or `shelfPriceText` field anymore.
 
-Lesson 103 deliberately leaves this transaction untouched.
+## Store computer palette
+
+The Lesson 104 terminal deliberately reuses colors already present in the existing product-row UI:
+
+- primary text: `#594640`
+- secondary text: `#7A6860`
+- main panel: `#FFF4DEAE`
+- cream row/card: `#FFF9EE64`
+- action normal: `#BFE3CF`
+- action highlighted: `#D2EEE0`
+- action pressed: `#9FC8B1`
+- standard disabled: `#D8D4CC80`
+
+Active tabs use the same mint family instead of introducing a new visual language.
+
+## Furniture UI row
+
+`FurnitureCatalogRow` binds one `FurnitureDefinition` to:
+
+- furniture name
+- description
+- price
+- Buy & Place button
+
+The row never spends money directly. It raises a request back to `StoreComputerFurnitureUI`, which delegates purchase validation and transaction handling to `FurnitureShop`.
+
+## OrderingUI integration
+
+`OrderingUI` still owns product ordering and the terminal open/close/cursor lifecycle.
+
+A public `RefreshTerminalStatus()` method exposes the existing supplier-delivery status refresh so switching back from Furniture to Products restores the correct product-ordering status instead of leaving furniture text in the shared status area.
 
 ## Manager Book
 
-The Manager Book remains a portable, mostly read-only information surface.
+The Manager Book remains mostly read-only and receives no furniture purchasing controls.
 
-It owns no product-storage compatibility or spending rules.
+## Lesson 104 deliberate scope boundary
 
-No new permanent HUD is introduced for refrigeration.
+Implemented:
 
-## Lesson 103 architecture decision
+- data-driven furniture definitions
+- shared furniture catalog
+- price/prefab removal from `FurnitureShop`
+- correct prefab selection for purchased displays
+- per-definition placement footprints
+- version-20 furniture-type persistence
+- version-19 purchased-shelf migration
+- purchasable refrigerated Dairy display
+- structured furniture catalog UI
+- exact terminal layout and palette cleanup
 
-The refrigerator/cold-chain feature is split into two safe layers.
+Not implemented yet:
 
-Lesson 103 implements and validates:
+- player category configuration for a purchased standard shelf
+- purchasable backroom cold-storage rack
+- selling furniture
+- furniture delivery shipments
+- spoilage
+- electricity simulation
+- store expansion
+- employees
 
-1. per-product storage requirement;
-2. one shared compatibility rule;
-3. retail-display enforcement;
-4. backroom-storage enforcement;
-5. migration-safe existing-stock behavior;
-6. a prototype chilled Dairy display using the existing authored shelf;
-7. a prototype chilled backroom bay using an existing slot;
-8. no save-version change.
+The current purchased Standard Shelf therefore retains the existing `PF_Shelf` default Cereal category. The UI states this rather than hiding the limitation. Category configuration should be addressed intentionally rather than slipped into the purchase system.
 
-It deliberately does NOT implement:
+## Next planned lessons
 
-- a new refrigerator model;
-- refrigerator purchase UI;
-- refrigerator-specific furniture persistence;
-- per-type placement footprints;
-- spoilage timers;
-- simulated temperature;
-- electricity usage;
-- automatic prevention of chilled-product ordering.
+### Lesson 105 — simple spoilage foundation
 
-## Planned dependency order after Lesson 103
+Add a clear grace-period spoilage rule for chilled products stored incorrectly. Avoid detailed temperature simulation and preserve old saves carefully.
 
-### Lesson 104 — purchasable refrigerator and furniture-type persistence
+### Lesson 106 — purchasable backroom cold storage / furniture-family review
 
-Generalize the Lesson 102 furniture catalogue just enough to support at least:
+Before extending the catalog to storage racks, review whether shelf-specific persistence should remain separate or be generalized with a broader furniture identity. Do not force StorageBay furniture through `ShelfIdentity` merely to reuse code.
 
-- Regular Shelf
-- Refrigerated Display
+### Lesson 107 — combined daily operating expenses
 
-Add an explicit furniture-type discriminator to purchased furniture persistence,
-migrate version-19 saves safely, restore the correct prefab on load, add the second
-computer purchase option and preserve charge-on-confirm.
+Add one understandable operating-cost entry through the authoritative day/economy/report systems.
 
-This will likely require save version 20.
+### Lesson 108 — store expansion foundation
 
-The refrigerator prefab may still use blockout art, but it must carry `Chilled`
-`SalesShelf.StorageCondition`.
+Add a purchasable layout expansion with updated valid placement area, walls/floor, and navigation.
 
-### Lesson 105 — simple chilled-product spoilage
+### Lesson 109 — integrated gameplay review
 
-After correct equipment works:
-
-- introduce an understandable grace period;
-- avoid detailed temperature simulation;
-- preserve customer fairness;
-- make wrong-storage feedback clear;
-- carefully define which ownership states count toward spoilage.
-
-### Lesson 106 — combined daily operating expenses
-
-Add one understandable daily operating cost representing rent/electricity and expose
-it through the existing financial/reporting ownership.
-
-### Lesson 107 — store expansion foundation
-
-Purchase floor-space expansion through the central management computer, update valid
-placement area/walls/navigation and preserve save compatibility.
-
-### Lesson 108 — integrated gameplay review
-
-Review layout, costs, ordering, cold capacity, stock flow, customer flow, progression
-and overall pacing before employees or art-heavy work.
-
-## Engineering invariants
-
-- Do not duplicate authoritative inventory.
-- Do not derive stock ownership from mesh position.
-- Do not silently delete saved stock because a new compatibility rule was introduced.
-- Do not infer refrigeration from ProductCategory.
-- Do not let UI spend money directly.
-- Do not charge furniture until valid placement confirmation.
-- Do not count furniture investment as stock spending.
-- Do not change authored shelf IDs casually.
-- Do not add new authored shelf identities without considering strict v19 layout preflight.
-- Do not save/load during active furniture preview.
-- Do not rewrite customer/checkout systems for a storage-only feature.
-- Do not claim Unity runtime testing unless it actually occurred.
-
-End of complete Lesson 103 architecture document.
+Play through ordering, deliveries, ambient/chilled storage, furniture purchasing, save migration, customers, checkout, and progression before starting another large subsystem.

@@ -1,0 +1,23 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4f6aeb081547a9d4e88483cf5c583209, type: 3}
+  m_Name: SO_Furniture_RefrigeratedDisplay
+  m_EditorClassIdentifier: Assembly-CSharp::FurnitureDefinition
+  furnitureID: refrigerated_display
+  displayName: Refrigerated Display
+  description: "Chilled display \u2022 Dairy products."
+  purchasePrice: 80
+  prefab: {fileID: 8930667969451341194, guid: 9ffb8f97cb33bca4c942effdc6ad18bd, type: 3}
+  bodyHalfExtents: {x: 1.3, y: 1.05, z: 0.52}
+  bodyCenter: {x: 0, y: 1.1, z: 0}
+  accessHalfExtents: {x: 1.25, y: 0.75, z: 0.5}
+  accessCenter: {x: 0, y: 0.8, z: -1.02}
