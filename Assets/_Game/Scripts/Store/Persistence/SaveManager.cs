@@ -4,7 +4,7 @@ using UnityEngine;
 
 public class SaveManager : MonoBehaviour
 {
-    private const int CurrentSaveVersion = 20;
+    private const int CurrentSaveVersion = 21;
 
     [Header("Store References")] 
     [SerializeField] private StoreClock storeClock;
@@ -17,6 +17,7 @@ public class SaveManager : MonoBehaviour
     [SerializeField] private CustomerFlow customerFlow;
     [SerializeField] private ShelfRegistry shelfRegistry;
     [SerializeField] private StoreFurnitureLayout storeFurnitureLayout;
+    [SerializeField] private StoreExpansionSystem storeExpansionSystem;
     [SerializeField] private StorageRegistry storageRegistry;
     [SerializeField] private DeliveryZone deliveryZone;
     [SerializeField] private WorldItemRegistry worldItemRegistry;
@@ -47,13 +48,9 @@ public class SaveManager : MonoBehaviour
     {
         if (!HasValidConfiguration())
         {
-            LastOperationMessage =
-                "Save system is not configured.";
+            LastOperationMessage = "Save system is not configured.";
 
-            Debug.LogError(
-                LastOperationMessage,
-                this
-            );
+            Debug.LogError(LastOperationMessage, this);
 
             return false;
         }
@@ -62,8 +59,7 @@ public class SaveManager : MonoBehaviour
         
         if (!storeFurnitureLayout.TryCreateSaveData(out var shelfPlacements))
         {
-            LastOperationMessage =
-                "Cannot save: check StoreFurnitureLayout, NavMeshSurface and shelf IDs.";
+            LastOperationMessage = "Cannot save: check StoreFurnitureLayout, NavMeshSurface and shelf IDs.";
 
             Debug.LogError(LastOperationMessage, this);
             return false;
@@ -82,6 +78,8 @@ public class SaveManager : MonoBehaviour
         saveData.reputation = storeReputation.CurrentReputation;
 
         saveData.unlockedProductIDs = storeProgression.GetUnlockedProductIDs();
+
+        saveData.unlockedExpansionIDs = storeExpansionSystem.GetUnlockedExpansionIDs();
 
         saveData.shelfSlots = BuildShelfSlotSaveData();
         
@@ -797,7 +795,14 @@ public class SaveManager : MonoBehaviour
         );
 
         storeProgression.RestoreUnlockedProducts(saveData.unlockedProductIDs);
-        
+
+        // Expansion geometry must exist before furniture is reconstructed.
+        // A saved furniture item may be positioned inside expansion space.
+        storeExpansionSystem.RestoreUnlockedExpansionIDs(
+            saveData.unlockedExpansionIDs,
+            saveData.saveVersion
+        );
+
         // Restore shelf positions before rebuilding their products.
         storeFurnitureLayout.RestoreLayout(
             saveData.shelfPlacements,
@@ -1102,6 +1107,8 @@ public class SaveManager : MonoBehaviour
         if (storeReportHistory == null) return false;
         
         if (storeFurnitureLayout == null) return false;
+        
+        if (storeExpansionSystem == null) return false;
 
         return true;
     }

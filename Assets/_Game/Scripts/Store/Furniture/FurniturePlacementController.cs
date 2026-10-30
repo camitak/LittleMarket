@@ -14,7 +14,7 @@ public class FurniturePlacementController : MonoBehaviour
     [Header("Store")]
     [SerializeField] private StoreClock storeClock;
     [SerializeField] private CustomerFlow customerFlow;
-    [SerializeField] private Collider storeFloor;
+    [SerializeField] private StoreBuildArea buildArea;
     [SerializeField] private NavMeshSurface navMeshSurface;
 
     [Header("Placement")]
@@ -57,12 +57,15 @@ public class FurniturePlacementController : MonoBehaviour
     private LineRenderer accessOutline;
     private Material outlineMaterial;
 
-    private static readonly int BaseColorId = Shader.PropertyToID("_BaseColor");
+    private static readonly int BaseColorId =
+        Shader.PropertyToID("_BaseColor");
 
     public bool IsPlacementActive => selectedShelf != null;
 
     private FurnitureDefinition CurrentDefinition =>
-        selectedShelf != null ? selectedShelf.FurnitureDefinition : null;
+        selectedShelf != null
+            ? selectedShelf.FurnitureDefinition
+            : null;
 
     private Vector3 CurrentBodyHalfExtents =>
         CurrentDefinition != null
@@ -91,8 +94,11 @@ public class FurniturePlacementController : MonoBehaviour
 
         if (selectedShelf == null)
         {
-            if (Keyboard.current.gKey.wasPressedThisFrame && CanStartPlacement())
+            if (Keyboard.current.gKey.wasPressedThisFrame &&
+                CanStartPlacement())
+            {
                 TryStartPlacement();
+            }
 
             return;
         }
@@ -122,14 +128,20 @@ public class FurniturePlacementController : MonoBehaviour
 
         UpdatePreview();
 
-        if (Keyboard.current.eKey.wasPressedThisFrame && canPlace)
+        if (Keyboard.current.eKey.wasPressedThisFrame &&
+            canPlace)
+        {
             ConfirmPlacement();
+        }
     }
 
     private void LateUpdate()
     {
-        if (interactionUI == null || Cursor.lockState != CursorLockMode.Locked)
+        if (interactionUI == null ||
+            Cursor.lockState != CursorLockMode.Locked)
+        {
             return;
+        }
 
         if (selectedShelf != null)
         {
@@ -177,7 +189,7 @@ public class FurniturePlacementController : MonoBehaviour
         return playerCamera != null &&
                playerInteraction != null &&
                interactionUI != null &&
-               storeFloor != null &&
+               buildArea != null &&
                navMeshSurface != null &&
                storeClock != null &&
                customerFlow != null &&
@@ -205,14 +217,22 @@ public class FurniturePlacementController : MonoBehaviour
             QueryTriggerInteraction.Ignore
         );
 
-        Array.Sort(hits, (a, b) => a.distance.CompareTo(b.distance));
+        Array.Sort(
+            hits,
+            (a, b) => a.distance.CompareTo(b.distance)
+        );
 
         foreach (RaycastHit hit in hits)
         {
-            if (hit.collider == null || hit.collider.transform.IsChildOf(transform))
+            if (hit.collider == null ||
+                hit.collider.transform.IsChildOf(transform))
+            {
                 continue;
+            }
 
-            shelf = hit.collider.GetComponentInParent<ShelfIdentity>();
+            shelf =
+                hit.collider.GetComponentInParent<ShelfIdentity>();
+
             return shelf != null;
         }
 
@@ -224,7 +244,8 @@ public class FurniturePlacementController : MonoBehaviour
         if (shelf == null)
             return false;
 
-        ShelfSlot[] slots = shelf.GetComponentsInChildren<ShelfSlot>();
+        ShelfSlot[] slots =
+            shelf.GetComponentsInChildren<ShelfSlot>();
 
         if (slots.Length == 0)
             return false;
@@ -257,8 +278,11 @@ public class FurniturePlacementController : MonoBehaviour
 
     private void TryStartPlacement()
     {
-        if (!TryFindLookedAtShelf(out ShelfIdentity shelf) || !IsEmpty(shelf))
+        if (!TryFindLookedAtShelf(out ShelfIdentity shelf) ||
+            !IsEmpty(shelf))
+        {
             return;
+        }
 
         StartPreview(shelf, false, null);
     }
@@ -277,22 +301,33 @@ public class FurniturePlacementController : MonoBehaviour
         previewYaw = shelf.transform.eulerAngles.y;
         canPlace = false;
 
-        selectedColliders = shelf.GetComponentsInChildren<Collider>(true);
-        originallyEnabled = new bool[selectedColliders.Length];
+        selectedColliders =
+            shelf.GetComponentsInChildren<Collider>(true);
+
+        originallyEnabled =
+            new bool[selectedColliders.Length];
 
         for (int i = 0; i < selectedColliders.Length; i++)
         {
-            originallyEnabled[i] = selectedColliders[i].enabled;
+            originallyEnabled[i] =
+                selectedColliders[i].enabled;
+
             selectedColliders[i].enabled = false;
         }
 
-        selectedRenderers = shelf.GetComponentsInChildren<MeshRenderer>(true);
-        originalProperties = new MaterialPropertyBlock[selectedRenderers.Length];
+        selectedRenderers =
+            shelf.GetComponentsInChildren<MeshRenderer>(true);
+
+        originalProperties =
+            new MaterialPropertyBlock[selectedRenderers.Length];
 
         for (int i = 0; i < selectedRenderers.Length; i++)
         {
-            originalProperties[i] = new MaterialPropertyBlock();
-            selectedRenderers[i].GetPropertyBlock(originalProperties[i]);
+            originalProperties[i] =
+                new MaterialPropertyBlock();
+
+            selectedRenderers[i]
+                .GetPropertyBlock(originalProperties[i]);
         }
 
         playerInteraction.enabled = false;
@@ -311,49 +346,51 @@ public class FurniturePlacementController : MonoBehaviour
             playerCamera.transform.forward
         );
 
-        RaycastHit[] hits = Physics.RaycastAll(
-            ray,
-            previewRayDistance,
-            ~0,
-            QueryTriggerInteraction.Ignore
-        );
+        bool foundFloor =
+            buildArea.TryGetPlacementSurface(
+                ray,
+                previewRayDistance,
+                out Vector3 surfacePoint
+            );
 
-        bool foundFloor = false;
         Vector3 target = originalPosition;
 
-        foreach (RaycastHit hit in hits)
+        if (foundFloor)
         {
-            if (hit.collider != storeFloor)
-                continue;
-
             float step = Mathf.Max(0.1f, gridSize);
 
             target = new Vector3(
-                Mathf.Round(hit.point.x / step) * step,
-                storeFloor.bounds.max.y,
-                Mathf.Round(hit.point.z / step) * step
+                Mathf.Round(surfacePoint.x / step) * step,
+                surfacePoint.y,
+                Mathf.Round(surfacePoint.z / step) * step
             );
-
-            foundFloor = true;
-            break;
         }
 
-        Quaternion rotation = Quaternion.Euler(0f, previewYaw, 0f);
+        Quaternion rotation =
+            Quaternion.Euler(0f, previewYaw, 0f);
 
         if (foundFloor)
-            selectedShelf.transform.SetPositionAndRotation(target, rotation);
+        {
+            selectedShelf.transform
+                .SetPositionAndRotation(target, rotation);
+        }
 
-        canPlace = foundFloor && ValidatePlacement(target, rotation);
+        canPlace =
+            foundFloor &&
+            ValidatePlacement(target, rotation);
 
-        Color previewColor = canPlace ? validColor : invalidColor;
+        Color previewColor =
+            canPlace ? validColor : invalidColor;
 
         TintPreview(previewColor);
         UpdateAccessOutline(previewColor);
     }
 
-    private bool ValidatePlacement(Vector3 position, Quaternion rotation)
+    private bool ValidatePlacement(
+        Vector3 position,
+        Quaternion rotation)
     {
-        if (!IsFootprintOnFloor(
+        if (!buildArea.IsFootprintInside(
                 position,
                 rotation,
                 CurrentBodyCenter,
@@ -362,7 +399,7 @@ public class FurniturePlacementController : MonoBehaviour
             return false;
         }
 
-        if (!IsFootprintOnFloor(
+        if (!buildArea.IsFootprintInside(
                 position,
                 rotation,
                 CurrentAccessCenter,
@@ -394,38 +431,6 @@ public class FurniturePlacementController : MonoBehaviour
         return true;
     }
 
-    private bool IsFootprintOnFloor(
-        Vector3 position,
-        Quaternion rotation,
-        Vector3 offset,
-        Vector3 halfExtents)
-    {
-        Bounds floor = storeFloor.bounds;
-
-        float halfX = Mathf.Max(0.01f, halfExtents.x);
-        float halfZ = Mathf.Max(0.01f, halfExtents.z);
-
-        for (int x = -1; x <= 1; x += 2)
-        {
-            for (int z = -1; z <= 1; z += 2)
-            {
-                Vector3 corner =
-                    position +
-                    rotation * (offset + new Vector3(x * halfX, 0f, z * halfZ));
-
-                if (corner.x < floor.min.x ||
-                    corner.x > floor.max.x ||
-                    corner.z < floor.min.z ||
-                    corner.z > floor.max.z)
-                {
-                    return false;
-                }
-            }
-        }
-
-        return true;
-    }
-
     private bool HasBlockingCollider(
         Vector3 position,
         Quaternion rotation,
@@ -433,7 +438,8 @@ public class FurniturePlacementController : MonoBehaviour
         Vector3 halfExtents,
         bool ignorePlayer)
     {
-        Vector3 center = position + rotation * offset;
+        Vector3 center =
+            position + rotation * offset;
 
         Collider[] hits = Physics.OverlapBox(
             center,
@@ -445,8 +451,11 @@ public class FurniturePlacementController : MonoBehaviour
 
         foreach (Collider hit in hits)
         {
-            if (hit == null || hit == storeFloor)
+            if (hit == null ||
+                buildArea.IsBuildFloorCollider(hit))
+            {
                 continue;
+            }
 
             if (selectedShelf != null &&
                 hit.transform.IsChildOf(selectedShelf.transform))
@@ -454,8 +463,11 @@ public class FurniturePlacementController : MonoBehaviour
                 continue;
             }
 
-            if (ignorePlayer && hit.transform.IsChildOf(transform))
+            if (ignorePlayer &&
+                hit.transform.IsChildOf(transform))
+            {
                 continue;
+            }
 
             return true;
         }
@@ -468,20 +480,28 @@ public class FurniturePlacementController : MonoBehaviour
         if (accessOutline != null)
             return;
 
-        Shader shader = Shader.Find("Universal Render Pipeline/Unlit");
+        Shader shader =
+            Shader.Find("Universal Render Pipeline/Unlit");
 
         if (shader == null)
             shader = Shader.Find("Sprites/Default");
 
         if (shader == null)
         {
-            Debug.LogWarning("No compatible outline shader found.", this);
+            Debug.LogWarning(
+                "No compatible outline shader found.",
+                this
+            );
+
             return;
         }
 
-        GameObject outlineObject = new("FurnitureFrontAccessPreview");
+        GameObject outlineObject =
+            new("FurnitureFrontAccessPreview");
 
-        accessOutline = outlineObject.AddComponent<LineRenderer>();
+        accessOutline =
+            outlineObject.AddComponent<LineRenderer>();
+
         accessOutline.useWorldSpace = true;
         accessOutline.positionCount = 5;
         accessOutline.widthMultiplier = outlineWidth;
@@ -496,8 +516,11 @@ public class FurniturePlacementController : MonoBehaviour
 
     private void UpdateAccessOutline(Color color)
     {
-        if (accessOutline == null || selectedShelf == null)
+        if (accessOutline == null ||
+            selectedShelf == null)
+        {
             return;
+        }
 
         Vector3 half = CurrentAccessHalfExtents;
         Vector3 center = CurrentAccessCenter;
@@ -516,13 +539,15 @@ public class FurniturePlacementController : MonoBehaviour
         {
             accessOutline.SetPosition(
                 i,
-                selectedShelf.transform.TransformPoint(localCorners[i])
+                selectedShelf.transform
+                    .TransformPoint(localCorners[i])
             );
         }
 
         accessOutline.SetPosition(
             4,
-            selectedShelf.transform.TransformPoint(localCorners[0])
+            selectedShelf.transform
+                .TransformPoint(localCorners[0])
         );
 
         accessOutline.startColor = color;
@@ -560,6 +585,7 @@ public class FurniturePlacementController : MonoBehaviour
                 continue;
 
             MaterialPropertyBlock propertyBlock = new();
+
             renderer.GetPropertyBlock(propertyBlock);
             propertyBlock.SetColor(BaseColorId, color);
             renderer.SetPropertyBlock(propertyBlock);
@@ -640,7 +666,10 @@ public class FurniturePlacementController : MonoBehaviour
             for (int i = 0; i < selectedColliders.Length; i++)
             {
                 if (selectedColliders[i] != null)
-                    selectedColliders[i].enabled = originallyEnabled[i];
+                {
+                    selectedColliders[i].enabled =
+                        originallyEnabled[i];
+                }
             }
         }
 
@@ -650,9 +679,8 @@ public class FurniturePlacementController : MonoBehaviour
             {
                 if (selectedRenderers[i] != null)
                 {
-                    selectedRenderers[i].SetPropertyBlock(
-                        originalProperties[i]
-                    );
+                    selectedRenderers[i]
+                        .SetPropertyBlock(originalProperties[i]);
                 }
             }
         }

@@ -1,116 +1,62 @@
 # Little Market — System Architecture
 
-Current architecture after **Lesson 105**.
+Current architecture after **Lesson 106**.
 
 ## Project baseline
 
 Little Market is a cozy first-person grocery-store management game built with Unity 6.3, URP, the Unity Input System, Unity AI Navigation/NavMesh, C#, Rider, and GitHub `main`.
 
-Lesson 105 was designed from GitHub `main` at commit:
+Lesson 106 was designed from GitHub `main` at commit:
 
-`975425777a2d2431626e005f8a6ebfc172df441b`
+`b5aacbf76a9bfda8784fd79f8cc36fd7bc77313a`
 
 Commit message:
 
-`Lesson 104 complete - data-driven furniture catalog and refrigerated display`
+`Lesson 105 complete - flexible display requirements and store script organization`
 
-## Current design priorities
+## Current development priorities
 
-The immediate development priorities are physical store management, product/display logic, furniture, storage, expansion, customer flow, and the manual gameplay loop.
+The immediate priorities are the core physical store-management loop:
 
-Daily operating expenses are deliberately deferred to a later balancing/economy phase. They are not required for the current core-gameplay foundation.
+- products and progression
+- ordering and deliveries
+- shelf displays
+- backroom storage
+- furniture purchasing and placement
+- store expansion
+- customer shopping and checkout
+- save/load
+- later employee automation after the manual loop is mature
 
-## Script organization — Lesson 105
+Spoilage is deliberately deferred. It remains a useful future depth feature, especially for chilled products, but it is not required to establish the core management game.
 
-`Assets/_Game/Scripts/Store` is no longer treated as one flat bucket. Existing scripts are grouped into feature folders while retaining the project's current global C# namespace.
+Daily operating expenses also remain deferred to a later economy/balancing phase.
 
-Current organization introduced in Lesson 105:
+## Script organization
 
-- `Store/Core`
-    - StoreClock
-    - StoreEconomy
-    - StoreReputation
-    - DailyStats
-    - StoreDayLifecycle
-    - StoreReportHistory
-    - StoreStockOverview
-- `Store/Displays`
-    - SalesShelf
-    - ShelfSlot
-    - ShelfRegistry
-- `Store/Storage`
-    - StorageBay
-    - StorageRegistry
-- `Store/Furniture`
-    - FurnitureCatalog
-    - FurnitureDefinition
-    - FurnitureShop
-    - StoreFurnitureLayout
-    - ShelfIdentity
-    - ShelfPlacementSaveData
-- `Store/Progression`
-    - StoreProgression
-    - StoreProductCatalog
-    - StoreLevelProgression
-    - StoreGoals
-- `Store/Persistence`
-    - SaveManager
+Lesson 105 introduced feature folders beneath `Assets/_Game/Scripts/Store`.
 
-This is a folder-organization refactor only. Files are moved from inside Unity so their `.meta` GUIDs remain stable and scene/prefab references are preserved.
+Lesson 106 adds:
 
-Namespaces are intentionally not introduced in the same lesson. A namespace migration would touch many cross-feature references and deserves a separate, deliberate refactor if the project later benefits from it.
+- `Store/Expansion`
+  - `StoreExpansionDefinition`
+  - `StoreExpansionZone`
+  - `StoreExpansionSystem`
+  - `StoreBuildArea`
 
-## Product category versus display requirement
+`FurniturePlacementController` should also be moved into `Store/Furniture` because it belongs to the furniture feature. The move is performed inside Unity so its `.meta` GUID remains stable.
 
-`ProductCategory` remains product classification data:
+The project still intentionally uses the global C# namespace. Folder organization and namespace migration remain separate concerns.
 
-- Cereal
-- Dairy
-- Bakery
-- Produce
-- Drinks
-- Snacks
-- Household
+## Product classification and display requirements
 
-Category no longer determines whether a normal sales display may accept the product.
+`ProductCategory` describes what a product is.
 
-This separates two different questions:
+`ProductDisplayType` describes what physical sales display it requires.
 
-1. What kind of product is this?
-2. What kind of physical display does this product require?
+`ProductStorageCondition` describes environmental storage requirements.
 
-## ProductDisplayType — Lesson 105
-
-New enum:
-
-`ProductDisplayType`
-
-Current values:
-
-- `StandardShelf`
-- `BakeryDisplay`
-
-`ProductData` now owns `RequiredDisplayType` in addition to `RequiredStorageCondition`.
-
-Default display requirement is `StandardShelf`, preserving existing products unless explicitly configured otherwise.
-
-Current special configuration:
-
-- Sunny Loaf → `BakeryDisplay`
-- Cloud Milk → `StandardShelf` + `Chilled`
-
-Cereal products remain `StandardShelf` through the default value.
-
-The design intentionally allows products from different `ProductCategory` values to share a display when their physical display requirement and storage requirement are compatible.
-
-## ProductData compatibility
-
-`ProductData` owns two separate compatibility rules:
-
-- `CanBeDisplayedOn(ProductDisplayType)`
-- `CanBeStoredIn(ProductStorageCondition)`
-
-This keeps display form and refrigeration independent.
+These concerns remain independent.
 
 Examples:
 
@@ -118,143 +64,187 @@ Examples:
 - Cloud Milk: StandardShelf + Chilled
 - Sunny Loaf: BakeryDisplay + Ambient
 
-A future chilled drink can therefore use StandardShelf + Chilled without being classified as Dairy.
+## Sales shelves
 
-A future bakery product can require BakeryDisplay regardless of whether every product in the Bakery category needs that special presentation.
+`SalesShelf` owns display type, storage condition, customer stand point, and front-access rules.
 
-## SalesShelf
+`ShelfSlot` owns one facing assignment and the physical product instances in that facing.
 
-`SalesShelf` now owns:
-
-- `DisplayType`
-- `StorageCondition`
-- customer stand point
-- front-access rule
-
-It no longer owns one `AllowedCategory` restriction.
-
-`CanDisplayProduct(ProductData)` checks both the product's display requirement and storage requirement.
-
-Current configurations:
-
-- normal `PF_Shelf`: StandardShelf + Ambient
-- `PF_RefrigeratedDisplay`: StandardShelf + Chilled
-- authored `Shelf_Cereal`: StandardShelf + Ambient
-- authored `Shelf_Dairy`: StandardShelf + Chilled
-- authored `Shelf_Bakery`: BakeryDisplay + Ambient
-
-The historical scene names such as `Shelf_Cereal` and `Shelf_Dairy` do not imply category restrictions anymore.
-
-## ShelfSlot
-
-`ShelfSlot` remains authoritative for one product-facing assignment and its physical item instances.
-
-A shelf can mix categories **between facings**, but a single facing still represents one assigned product at a time.
-
-New stocking validation order:
-
-1. target is customer-accessible;
-2. product's required display type matches the parent display;
-3. product's storage requirement is satisfied;
-4. facing is empty or already assigned to the same product;
-5. facing has capacity.
-
-This allows, for example, multiple product categories on a normal shelf without allowing a BakeryDisplay product onto a StandardShelf.
-
-Legacy/incompatible saved stock continues to be restored rather than silently deleted. New incompatible units cannot be added, and prompts explain the required display/storage type.
-
-## RestockBasket
-
-`RestockBasket` keeps its existing physical-item ownership.
-
-Lesson 105 adds a predicate-based product lookup so an empty shelf facing can find the first product in the basket that is actually compatible with that display, rather than searching only by one category.
-
-The old category lookup overload is retained for compatibility with any existing callers, but the sales-shelf flow no longer depends on it.
-
-## Bakery display
-
-Sunny Loaf is the first product configured with:
-
-`Required Display Type = Bakery Display`
-
-The authored `Shelf_Bakery` is configured as:
-
-- Display Type = Bakery Display
-- Storage Condition = Ambient
-
-Its current physical model remains the existing shelf blockout. A future bakery-case prefab can expose the same display type without changing Sunny Loaf's product logic.
-
-## Refrigerated display
-
-The Lesson 104 refrigerated display changes conceptually from “Dairy-only fridge” to a general chilled standard-shelf display:
-
-- Display Type = StandardShelf
-- Storage Condition = Chilled
-
-This means it can hold any product whose physical display requirement is StandardShelf and whose storage requirement is satisfied.
-
-Because Chilled storage also satisfies Ambient products, putting an ambient StandardShelf product in the refrigerator is technically allowed. That is treated as a player space-management choice rather than an artificial prohibition.
-
-The furniture definition description should describe refrigeration rather than Dairy category restriction.
+A single furniture item may contain multiple product categories across different facings as long as each product is compatible with the display type and storage condition.
 
 ## Furniture system
 
-Lesson 104's data-driven furniture architecture remains unchanged:
+The Lesson 104 data-driven furniture architecture remains:
 
-- FurnitureDefinition owns furniture ID, player-facing name/description, price, prefab, and placement footprint.
-- FurnitureCatalog owns available definitions.
-- FurnitureShop owns purchase transaction rules.
-- StoreFurnitureLayout owns persistent reconstruction for the current shelf-display furniture family.
-- FurniturePlacementController reads per-definition placement footprints.
+- `FurnitureDefinition` owns furniture ID, display name, description, purchase price, prefab and placement footprint.
+- `FurnitureCatalog` owns the purchasable furniture list.
+- `FurnitureShop` owns furniture transaction rules.
+- `StoreFurnitureLayout` owns persistent shelf-display furniture reconstruction.
+- `FurniturePlacementController` owns player furniture movement/preview/confirmation.
+- `ShelfIdentity` remains the persistent identity for the current shelf-display furniture family.
 
-No save schema changes are required in Lesson 105.
+Furniture purchases still charge only when placement is confirmed. Cancelling placement remains free.
+
+## Store expansion — Lesson 106
+
+Store expansion is introduced as a separate permanent-management system rather than pretending an expansion is furniture.
+
+The first expansion is a fixed rear extension of the existing building.
+
+### StoreExpansionDefinition
+
+`StoreExpansionDefinition` is a ScriptableObject containing:
+
+- stable expansion ID
+- display name
+- description
+- purchase price
+- required Store Level
+
+The first prototype definition is:
+
+- ID: `rear_extension_01`
+- name: `Rear Store Extension`
+- price: £100 provisional implementation/test value
+- required Store Level: 1
+- description: adds a 5-metre-deep indoor strip across the rear of the store
+
+The price is intentionally provisional. Economy balancing is not the goal of Lesson 106.
+
+### StoreExpansionZone
+
+`StoreExpansionZone` is a scene component mapping one expansion definition to its physical scene geometry.
+
+It owns references to:
+
+- the `StoreExpansionDefinition`
+- the geometry root that becomes active after purchase
+- the locked barrier that blocks the area before purchase
+- the expansion floor collider used as buildable floor
+
+A zone can be locked or unlocked at runtime.
+
+The definition asset contains reusable data; the scene component contains scene-object references. This avoids storing scene references inside ScriptableObjects.
+
+### StoreExpansionSystem
+
+`StoreExpansionSystem` is the authoritative runtime owner of expansion purchase state.
+
+It validates that the expansion is configured, not already owned, the store is closed, the day has not ended, there are no active customers, Store Level requirements are met, and sufficient money is available.
+
+A confirmed expansion purchase spends money through `StoreEconomy`, unlocks the zone, disables its old barrier, activates its new geometry, synchronizes physics, and rebuilds NavMesh.
+
+Expansion spending does not count as stock spending.
+
+### StoreBuildArea
+
+Furniture placement no longer treats one `Floor` collider as the entire build authority.
+
+`StoreBuildArea` owns the original base floor collider and configured expansion zones.
+
+It answers whether a ray hit belongs to unlocked buildable floor, whether a furniture footprint is completely inside unlocked build area, and whether a collider should be ignored as floor during collision validation.
+
+This allows future expansions to add buildable floor without resizing one global floor collider.
+
+### FurniturePlacementController integration
+
+`FurniturePlacementController` references `StoreBuildArea` instead of one `storeFloor` collider.
+
+Existing controls remain:
+
+- G: move existing empty furniture
+- R: rotate right
+- T: rotate left
+- E: confirm
+- Q: cancel
+
+Existing placement rules remain: grid snapping, body collision, front-access clearance, store-closed requirement, no active customers, and NavMesh rebuild after placement.
+
+## First expansion geometry
+
+The existing store model has an original floor approximately 30 m × 10 m.
+
+Lesson 106 adds a 5 m rear extension beyond the existing `Wall_back`.
+
+Before purchase, the original `Wall_back` remains active, expansion geometry is inactive, and expansion floor is not buildable.
+
+After purchase, the original rear barrier is disabled and the new rear floor, roof extension, side-wall extensions, and new rear wall are activated.
+
+## Store computer management UI
+
+The store computer remains the centralized place for active management.
+
+The existing two-tab interface expands to:
+
+1. PRODUCTS
+2. FURNITURE
+3. EXPANSION
+
+The former `StoreComputerFurnitureUI` script is renamed to `StoreComputerManagementUI` because it now coordinates multiple management sections.
+
+The Expansion tab uses the same row/scroll-list visual language as Products and Furniture.
+
+Permanent expansion purchases require two clicks:
+
+1. `BUY EXPANSION`
+2. `CONFIRM`
+
+Switching tabs or closing/reopening the terminal cancels pending confirmation.
 
 ## Save system
 
-Current save version remains **20**.
+Current save version after Lesson 106: **21**.
 
-Product display requirements and display capabilities are static Unity asset/scene/prefab configuration rather than per-save state.
+Version 21 adds `unlockedExpansionIDs` to `StoreSaveData`.
 
-No save-version increment is required.
+On load, expansion state is restored before furniture layout reconstruction. This is important because saved furniture may physically occupy expansion space.
 
-Shelf inventory restore remains migration-friendly: if historical stock becomes incompatible due to a rule/configuration change, it is restored with a warning and can be removed rather than being deleted.
+Version 20 and older saves contain no expansion IDs and therefore load with optional expansions locked.
 
-## Store computer furniture descriptions
+## First expansion UI palette
 
-The data-driven furniture catalog remains the central purchasing UI.
+The Expansion tab reuses the established store-computer palette:
 
-Descriptions should now reflect physical capability rather than category:
+- primary text: `#594640`
+- secondary text: `#7A6860`
+- cream row/card: `#FFF9EE64`
+- action normal: `#BFE3CF`
+- highlighted: `#D2EEE0`
+- pressed: `#9FC8B1`
 
-- Standard Shelf: `Ambient shelf • General packaged products.`
-- Refrigerated Display: `Chilled shelf • For products that need refrigeration.`
+## Backroom cold storage
 
-The store computer remains the single active-management location.
+The existing authored backroom rack and chilled StorageSlot_07 remain unchanged.
 
-## Manager Book
+Purchasable backroom racks are still deferred. Before implementing them, the project should review whether shelf-display furniture and storage furniture should share a broader persistent furniture identity.
 
-The Manager Book remains primarily read-only and gains no controls from Lesson 105.
+## Spoilage
 
-## Immediate roadmap after Lesson 105
+Spoilage is deliberately deferred until the major management systems are established.
 
-### Lesson 106 — simple spoilage foundation
+The existing storage-condition architecture remains ready for it, so it can be added later without redesigning product/display fundamentals.
 
-Introduce a clear grace-period spoilage rule for chilled products stored incorrectly. Avoid detailed temperature simulation and preserve existing saves carefully.
+## Immediate roadmap after Lesson 106
 
-### Lesson 107 — purchasable backroom cold storage / furniture identity review
+### Lesson 107 — broader furniture identity / purchasable backroom storage
 
-Review whether shelf-display and storage furniture should share a broader persistent `FurnitureIdentity` before making storage racks purchasable. Do not force `StorageBay` furniture through `ShelfIdentity` merely for code reuse.
+Start with a regression pass on the new expansion, then review a broader furniture identity and add purchasable StorageBay furniture without forcing storage racks through shelf-specific persistence.
 
-### Lesson 108 — store expansion foundation
+### Lesson 108 — employee foundation
 
-Introduce purchasable floor-space expansion and ensure placement boundaries, floor/walls, navigation, and save behavior agree.
+Begin the first employee system after the manual ordering, receiving, storage, restocking, furniture, expansion, customer and checkout loops are reliable.
 
-### Lesson 109 — integrated gameplay review
+A simple restocker is the likely first employee because the player already understands that workflow manually.
 
-Play through ordering, delivery, storage, refrigeration, display requirements, furniture purchasing, save/load, customers, checkout, and progression before another major subsystem.
+### Lesson 109 — integrated progression and space-management review
+
+Review furniture capacity, backroom capacity, expansion pacing, product progression, customer navigation, and save/load before adding another major management subsystem.
 
 ### Later development
 
-- employees after the manual gameplay loop is mature;
-- deeper furniture variety and specialized displays;
-- economic balancing and daily operating expenses;
-- art/polish passes after the relevant gameplay foundations are stable.
+- spoilage/perishables
+- deeper specialized displays
+- additional expansion tiers
+- furniture selling/recovery
+- operating expenses and economy balancing
+- art and polish passes

@@ -16,10 +16,12 @@ public class StoreSaveData
 
     public List<string> unlockedProductIDs = new();
 
+    // Version 21.
+    public List<string> unlockedExpansionIDs = new();
+
     public List<ShelfSlotSaveData> shelfSlots;
 
-    // Version 18: position/rotation keyed by existing ShelfIdentity.PersistentID.
-    // The shelfSlots list above remains the only saved shelf-stock authority.
+    // Version 18: position/rotation keyed by ShelfIdentity.PersistentID.
     public List<ShelfPlacementSaveData> shelfPlacements = new();
 
     public List<StorageSlotSaveData> storageSlots;
