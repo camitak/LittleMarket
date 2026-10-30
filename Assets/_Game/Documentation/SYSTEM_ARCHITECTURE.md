@@ -1,331 +1,260 @@
 # Little Market — System Architecture
 
-Current architecture after **Lesson 104**.
+Current architecture after **Lesson 105**.
 
 ## Project baseline
 
 Little Market is a cozy first-person grocery-store management game built with Unity 6.3, URP, the Unity Input System, Unity AI Navigation/NavMesh, C#, Rider, and GitHub `main`.
 
-The player physically orders, receives, stores, carries, restocks, arranges, and sells products. The persistent HUD stays minimal. The existing store computer is the central place for active management; the Manager Book remains primarily read-only.
+Lesson 105 was designed from GitHub `main` at commit:
 
-Lesson 104 was designed from GitHub `main` at commit:
-
-`24c653756ecd4221d33ad11fa5b093b225e087c5`
+`975425777a2d2431626e005f8a6ebfc172df441b`
 
 Commit message:
 
-`Lesson 103 complete - shared chilled storage rules and cold-chain prototype`
+`Lesson 104 complete - data-driven furniture catalog and refrigerated display`
 
-## Core authority rules
+## Current design priorities
 
-- `StoreEconomy` owns money.
-- `StoreClock` owns day/time/open-state rules.
-- `CustomerFlow` owns active customer flow.
-- `StoreProgression` owns product unlocks.
-- `ProductData` owns individual product data and storage requirements.
-- `ShelfSlot` owns displayed product instances and facing assignments.
-- `StorageBay` owns backroom quantity storage.
-- `StoreFurnitureLayout` owns persistent shelf-display layout and reconstruction.
-- `FurnitureShop` owns purchase transaction rules but does not own furniture prices or prefabs.
-- `SaveManager` owns serialization and migration orchestration.
+The immediate development priorities are physical store management, product/display logic, furniture, storage, expansion, customer flow, and the manual gameplay loop.
 
-## Save system
+Daily operating expenses are deliberately deferred to a later balancing/economy phase. They are not required for the current core-gameplay foundation.
 
-Current save version after Lesson 104: **20**.
+## Script organization — Lesson 105
 
-Version history relevant to furniture:
+`Assets/_Game/Scripts/Store` is no longer treated as one flat bucket. Existing scripts are grouped into feature folders while retaining the project's current global C# namespace.
 
-- v18: authored shelf positions and rotations.
-- v19: purchased shelf records via `purchasedByPlayer`.
-- v20: purchased furniture records also store a stable `furnitureDefinitionID`.
+Current organization introduced in Lesson 105:
 
-`ShelfPlacementSaveData` contains:
+- `Store/Core`
+    - StoreClock
+    - StoreEconomy
+    - StoreReputation
+    - DailyStats
+    - StoreDayLifecycle
+    - StoreReportHistory
+    - StoreStockOverview
+- `Store/Displays`
+    - SalesShelf
+    - ShelfSlot
+    - ShelfRegistry
+- `Store/Storage`
+    - StorageBay
+    - StorageRegistry
+- `Store/Furniture`
+    - FurnitureCatalog
+    - FurnitureDefinition
+    - FurnitureShop
+    - StoreFurnitureLayout
+    - ShelfIdentity
+    - ShelfPlacementSaveData
+- `Store/Progression`
+    - StoreProgression
+    - StoreProductCatalog
+    - StoreLevelProgression
+    - StoreGoals
+- `Store/Persistence`
+    - SaveManager
 
-- `shelfID`
-- world `position`
-- world `rotation`
-- `purchasedByPlayer`
-- `furnitureDefinitionID` for purchased version-20 entries
+This is a folder-organization refactor only. Files are moved from inside Unity so their `.meta` GUIDs remain stable and scene/prefab references are preserved.
 
-Version-19 purchased shelves have no definition ID. `StoreFurnitureLayout` migrates them through an explicit `legacyVersion19ShelfDefinition`, configured to the standard shelf definition. When that migrated game is saved again, the entry becomes a normal version-20 record with `standard_shelf`.
+Namespaces are intentionally not introduced in the same lesson. A namespace migration would touch many cross-feature references and deserves a separate, deliberate refactor if the project later benefits from it.
 
-Version-18 saves remain authored-layout-only. Version 17 and older continue to use the existing authored-position fallback.
+## Product category versus display requirement
 
-## Product storage conditions
+`ProductCategory` remains product classification data:
 
-`ProductData` owns `RequiredStorageCondition` and the shared `CanBeStoredIn(...)` compatibility rule.
+- Cereal
+- Dairy
+- Bakery
+- Produce
+- Drinks
+- Snacks
+- Household
 
-Current storage conditions:
+Category no longer determines whether a normal sales display may accept the product.
 
-- Ambient
-- Chilled
+This separates two different questions:
 
-Ambient products can use ambient or chilled equipment. Chilled products require chilled equipment.
+1. What kind of product is this?
+2. What kind of physical display does this product require?
 
-Cloud Milk (`milk_cloud`) is currently Chilled.
+## ProductDisplayType — Lesson 105
 
-## Sales displays
+New enum:
 
-`SalesShelf` owns:
+`ProductDisplayType`
 
-- allowed merchandising category
-- storage condition
+Current values:
+
+- `StandardShelf`
+- `BakeryDisplay`
+
+`ProductData` now owns `RequiredDisplayType` in addition to `RequiredStorageCondition`.
+
+Default display requirement is `StandardShelf`, preserving existing products unless explicitly configured otherwise.
+
+Current special configuration:
+
+- Sunny Loaf → `BakeryDisplay`
+- Cloud Milk → `StandardShelf` + `Chilled`
+
+Cereal products remain `StandardShelf` through the default value.
+
+The design intentionally allows products from different `ProductCategory` values to share a display when their physical display requirement and storage requirement are compatible.
+
+## ProductData compatibility
+
+`ProductData` owns two separate compatibility rules:
+
+- `CanBeDisplayedOn(ProductDisplayType)`
+- `CanBeStoredIn(ProductStorageCondition)`
+
+This keeps display form and refrigeration independent.
+
+Examples:
+
+- cereal: StandardShelf + Ambient
+- Cloud Milk: StandardShelf + Chilled
+- Sunny Loaf: BakeryDisplay + Ambient
+
+A future chilled drink can therefore use StandardShelf + Chilled without being classified as Dairy.
+
+A future bakery product can require BakeryDisplay regardless of whether every product in the Bakery category needs that special presentation.
+
+## SalesShelf
+
+`SalesShelf` now owns:
+
+- `DisplayType`
+- `StorageCondition`
 - customer stand point
 - front-access rule
 
-`ShelfSlot` owns the actual displayed physical stock and delegates storage compatibility to `ProductData`.
+It no longer owns one `AllowedCategory` restriction.
 
-Shelf front remains local negative Z.
+`CanDisplayProduct(ProductData)` checks both the product's display requirement and storage requirement.
 
-The authored `Shelf_Dairy` remains the starter chilled display and keeps persistent ID:
+Current configurations:
 
-`04a7290d9e214a6e8463433175f1a326`
+- normal `PF_Shelf`: StandardShelf + Ambient
+- `PF_RefrigeratedDisplay`: StandardShelf + Chilled
+- authored `Shelf_Cereal`: StandardShelf + Ambient
+- authored `Shelf_Dairy`: StandardShelf + Chilled
+- authored `Shelf_Bakery`: BakeryDisplay + Ambient
 
-## Backroom storage
+The historical scene names such as `Shelf_Cereal` and `Shelf_Dairy` do not imply category restrictions anymore.
 
-`StorageBay` owns backroom assignment, quantity, capacity, transfer operations, save restore, and in-world status.
+## ShelfSlot
 
-`StorageSlot_07` remains the starter chilled backroom bay.
+`ShelfSlot` remains authoritative for one product-facing assignment and its physical item instances.
 
-Lesson 104 does not yet make backroom racks purchasable. Furniture purchasing in this lesson still covers the current shelf-display family. A later generalization must not pretend `ShelfIdentity` already represents every possible furniture family.
+A shelf can mix categories **between facings**, but a single facing still represents one assigned product at a time.
 
-## Furniture definitions — Lesson 104
+New stocking validation order:
 
-New `FurnitureDefinition` ScriptableObject is the authoritative data definition for a purchasable shelf-display type.
+1. target is customer-accessible;
+2. product's required display type matches the parent display;
+3. product's storage requirement is satisfied;
+4. facing is empty or already assigned to the same product;
+5. facing has capacity.
 
-It owns:
+This allows, for example, multiple product categories on a normal shelf without allowing a BakeryDisplay product onto a StandardShelf.
 
-- stable `FurnitureID`
-- display name
-- player-facing description
-- purchase price
-- prefab reference
-- body placement half-extents and center
-- front-access half-extents and center
+Legacy/incompatible saved stock continues to be restored rather than silently deleted. New incompatible units cannot be added, and prompts explain the required display/storage type.
 
-Prices and prefab selection no longer live as one-off fields in `FurnitureShop` or `StoreFurnitureLayout`.
+## RestockBasket
 
-Current definitions:
+`RestockBasket` keeps its existing physical-item ownership.
 
-### Standard Shelf
+Lesson 105 adds a predicate-based product lookup so an empty shelf facing can find the first product in the basket that is actually compatible with that display, rather than searching only by one category.
 
-- ID: `standard_shelf`
-- price: £40
-- prefab: `PF_Shelf`
-- ambient display
-- current purchased prefab starts with the existing Cereal category configuration
+The old category lookup overload is retained for compatibility with any existing callers, but the sales-shelf flow no longer depends on it.
 
-### Refrigerated Display
+## Bakery display
 
-- ID: `refrigerated_display`
-- price: £80 provisional test price
-- prefab: `PF_RefrigeratedDisplay`
-- Dairy category
-- Chilled storage condition
+Sunny Loaf is the first product configured with:
 
-Both currently use the same blockout physical footprint because the refrigerated prefab is derived from the existing shelf geometry. The definition stores the footprint so later furniture can have genuinely different dimensions without adding furniture-specific constants to the placement controller.
+`Required Display Type = Bakery Display`
 
-## Furniture catalog
+The authored `Shelf_Bakery` is configured as:
 
-New `FurnitureCatalog` ScriptableObject owns the ordered list of available `FurnitureDefinition` assets.
+- Display Type = Bakery Display
+- Storage Condition = Ambient
 
-`FurnitureShop` and `StoreFurnitureLayout` reference the same catalog asset. This is a shared reference to one data source, not duplicated catalog data.
+Its current physical model remains the existing shelf blockout. A future bakery-case prefab can expose the same display type without changing Sunny Loaf's product logic.
 
-Current catalog order:
+## Refrigerated display
 
-1. Standard Shelf
-2. Refrigerated Display
+The Lesson 104 refrigerated display changes conceptually from “Dairy-only fridge” to a general chilled standard-shelf display:
 
-## FurnitureShop
+- Display Type = StandardShelf
+- Storage Condition = Chilled
 
-`FurnitureShop` is now a transaction service rather than a catalog-data owner.
+This means it can hold any product whose physical display requirement is StandardShelf and whose storage requirement is satisfied.
 
-It checks:
+Because Chilled storage also satisfies Ambient products, putting an ambient StandardShelf product in the refrigerator is technically allowed. That is treated as a player space-management choice rather than an artificial prohibition.
 
-- configuration
-- requested definition belongs to the configured catalog
-- shop is closed and the day has not ended
-- no active customers
-- player holds nothing
-- no placement preview already active
-- player can afford the selected definition
+The furniture definition description should describe refrigeration rather than Dairy category restriction.
 
-It does not contain `shelfPrice` or refrigerator price fields.
+## Furniture system
 
-Money is still deducted only when valid placement is confirmed with E. Q cancels for free.
+Lesson 104's data-driven furniture architecture remains unchanged:
 
-Furniture spending still does not count as `DailyStats.StockSpending`.
+- FurnitureDefinition owns furniture ID, player-facing name/description, price, prefab, and placement footprint.
+- FurnitureCatalog owns available definitions.
+- FurnitureShop owns purchase transaction rules.
+- StoreFurnitureLayout owns persistent reconstruction for the current shelf-display furniture family.
+- FurniturePlacementController reads per-definition placement footprints.
 
-## StoreFurnitureLayout
+No save schema changes are required in Lesson 105.
 
-`StoreFurnitureLayout` continues to own persistent layout/reconstruction for the current shelf-display furniture family.
+## Save system
 
-It now receives a `FurnitureDefinition` when creating a purchased preview. The definition chooses the prefab.
+Current save version remains **20**.
 
-Each purchased `ShelfIdentity` receives:
+Product display requirements and display capabilities are static Unity asset/scene/prefab configuration rather than per-save state.
 
-- a runtime persistent instance ID
-- its `FurnitureDefinition`
+No save-version increment is required.
 
-On version-20 load, `StoreFurnitureLayout` uses `furnitureDefinitionID` to resolve the correct definition through `FurnitureCatalog`, instantiate the correct prefab, restore the persistent shelf ID, register `ShelfSlot`s, and rebuild NavMesh before shelf inventory restoration.
+Shelf inventory restore remains migration-friendly: if historical stock becomes incompatible due to a rule/configuration change, it is restored with a warning and can be removed rather than being deleted.
 
-Authored shelves remain scene objects and are restored by their existing persistent IDs.
+## Store computer furniture descriptions
 
-## ShelfIdentity
+The data-driven furniture catalog remains the central purchasing UI.
 
-`ShelfIdentity` still owns the stable instance ID used by shelf slots.
+Descriptions should now reflect physical capability rather than category:
 
-Lesson 104 adds a `FurnitureDefinition` reference so placement can obtain the correct footprint for both authored and purchased shelf-display furniture.
+- Standard Shelf: `Ambient shelf • General packaged products.`
+- Refrigerated Display: `Chilled shelf • For products that need refrigeration.`
 
-Authored scene assignments:
-
-- `Shelf_Cereal` → Standard Shelf definition
-- `Shelf_Bakery` → Standard Shelf definition
-- `Shelf_Dairy` → Refrigerated Display definition
-
-Purchased instances receive the definition at runtime from `StoreFurnitureLayout`.
-
-The prefab assets themselves do not need to reference the ScriptableObject definition, avoiding a prefab ↔ definition circular asset dependency.
-
-## Furniture placement
-
-`FurniturePlacementController` remains on Player and preserves:
-
-- G move existing empty shelf-display furniture
-- R rotate right
-- T rotate left
-- E confirm
-- Q cancel
-- grid snapping
-- store-floor bounds checks
-- physical collision checks
-- visible front-access footprint
-- NavMesh rebuild after confirmation
-
-Lesson 104 changes footprint ownership. The controller now reads body/access dimensions from `ShelfIdentity.FurnitureDefinition` when available. Existing serialized placement dimensions remain fallback values for compatibility.
-
-Preview colors remain:
-
-- valid: `#6FCF97`
-- invalid: `#C46B6B`
-
-## Refrigerated display prefab
-
-New prefab:
-
-`Assets/_Game/Prefabs/Store/PF_RefrigeratedDisplay.prefab`
-
-It is derived from the current `PF_Shelf` blockout structure so all eight existing `ShelfSlot` mechanics, customer access, price tags, and placement behavior remain compatible.
-
-Configuration:
-
-- `SalesShelf.AllowedCategory = Dairy`
-- `SalesShelf.StorageCondition = Chilled`
-
-A small non-colliding blue blockout accent differentiates it visually from a normal shelf until the art pass.
-
-## Store computer UI
-
-`OrderingTerminal` remains the single active-management computer.
-
-`OrderingPanel` remains 760 × 720 on the existing GameUI Canvas, whose CanvasScaler reference resolution is 1920 × 1080 with Match 0.5.
-
-Lesson 104 cleans the layout instead of adding more manually positioned furniture controls.
-
-The terminal uses:
-
-- title area
-- status area
-- shared two-tab row
-- one content rectangle used alternately by Products or Furniture
-- bottom Close button
-
-Products retain the existing `PF_OrderingProductRow` scroll-list pattern.
-
-Furniture now uses a matching scroll list with `PF_FurnitureCatalogRow`. `StoreComputerFurnitureUI` dynamically instantiates one row per catalog definition. There is no dedicated `buyShelfButton` or `shelfPriceText` field anymore.
-
-## Store computer palette
-
-The Lesson 104 terminal deliberately reuses colors already present in the existing product-row UI:
-
-- primary text: `#594640`
-- secondary text: `#7A6860`
-- main panel: `#FFF4DEAE`
-- cream row/card: `#FFF9EE64`
-- action normal: `#BFE3CF`
-- action highlighted: `#D2EEE0`
-- action pressed: `#9FC8B1`
-- standard disabled: `#D8D4CC80`
-
-Active tabs use the same mint family instead of introducing a new visual language.
-
-## Furniture UI row
-
-`FurnitureCatalogRow` binds one `FurnitureDefinition` to:
-
-- furniture name
-- description
-- price
-- Buy & Place button
-
-The row never spends money directly. It raises a request back to `StoreComputerFurnitureUI`, which delegates purchase validation and transaction handling to `FurnitureShop`.
-
-## OrderingUI integration
-
-`OrderingUI` still owns product ordering and the terminal open/close/cursor lifecycle.
-
-A public `RefreshTerminalStatus()` method exposes the existing supplier-delivery status refresh so switching back from Furniture to Products restores the correct product-ordering status instead of leaving furniture text in the shared status area.
+The store computer remains the single active-management location.
 
 ## Manager Book
 
-The Manager Book remains mostly read-only and receives no furniture purchasing controls.
+The Manager Book remains primarily read-only and gains no controls from Lesson 105.
 
-## Lesson 104 deliberate scope boundary
+## Immediate roadmap after Lesson 105
 
-Implemented:
+### Lesson 106 — simple spoilage foundation
 
-- data-driven furniture definitions
-- shared furniture catalog
-- price/prefab removal from `FurnitureShop`
-- correct prefab selection for purchased displays
-- per-definition placement footprints
-- version-20 furniture-type persistence
-- version-19 purchased-shelf migration
-- purchasable refrigerated Dairy display
-- structured furniture catalog UI
-- exact terminal layout and palette cleanup
+Introduce a clear grace-period spoilage rule for chilled products stored incorrectly. Avoid detailed temperature simulation and preserve existing saves carefully.
 
-Not implemented yet:
+### Lesson 107 — purchasable backroom cold storage / furniture identity review
 
-- player category configuration for a purchased standard shelf
-- purchasable backroom cold-storage rack
-- selling furniture
-- furniture delivery shipments
-- spoilage
-- electricity simulation
-- store expansion
-- employees
-
-The current purchased Standard Shelf therefore retains the existing `PF_Shelf` default Cereal category. The UI states this rather than hiding the limitation. Category configuration should be addressed intentionally rather than slipped into the purchase system.
-
-## Next planned lessons
-
-### Lesson 105 — simple spoilage foundation
-
-Add a clear grace-period spoilage rule for chilled products stored incorrectly. Avoid detailed temperature simulation and preserve old saves carefully.
-
-### Lesson 106 — purchasable backroom cold storage / furniture-family review
-
-Before extending the catalog to storage racks, review whether shelf-specific persistence should remain separate or be generalized with a broader furniture identity. Do not force StorageBay furniture through `ShelfIdentity` merely to reuse code.
-
-### Lesson 107 — combined daily operating expenses
-
-Add one understandable operating-cost entry through the authoritative day/economy/report systems.
+Review whether shelf-display and storage furniture should share a broader persistent `FurnitureIdentity` before making storage racks purchasable. Do not force `StorageBay` furniture through `ShelfIdentity` merely for code reuse.
 
 ### Lesson 108 — store expansion foundation
 
-Add a purchasable layout expansion with updated valid placement area, walls/floor, and navigation.
+Introduce purchasable floor-space expansion and ensure placement boundaries, floor/walls, navigation, and save behavior agree.
 
 ### Lesson 109 — integrated gameplay review
 
-Play through ordering, deliveries, ambient/chilled storage, furniture purchasing, save migration, customers, checkout, and progression before starting another large subsystem.
+Play through ordering, delivery, storage, refrigeration, display requirements, furniture purchasing, save/load, customers, checkout, and progression before another major subsystem.
+
+### Later development
+
+- employees after the manual gameplay loop is mature;
+- deeper furniture variety and specialized displays;
+- economic balancing and daily operating expenses;
+- art/polish passes after the relevant gameplay foundations are stable.

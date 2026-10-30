@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::FurnitureDefinition
   furnitureID: refrigerated_display
   displayName: Refrigerated Display
-  description: "Chilled display \u2022 Dairy products."
+  description: "Chilled shelf \u2022 For products that need refrigeration."
   purchasePrice: 80
   prefab: {fileID: 8930667969451341194, guid: 9ffb8f97cb33bca4c942effdc6ad18bd, type: 3}
   bodyHalfExtents: {x: 1.3, y: 1.05, z: 0.52}

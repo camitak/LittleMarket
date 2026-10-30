@@ -287,6 +287,27 @@ public class RestockBasket :
         return items[0].GetProductData();
     }
     
+    public ProductData GetFirstProductData(System.Predicate<ProductData> predicate)
+    {
+        if (predicate == null)
+            return null;
+
+        for (int i = 0; i < items.Count; i++)
+        {
+            PickupItem item = items[i];
+
+            if (item == null)
+                continue;
+
+            ProductData product = item.GetProductData();
+
+            if (product != null && predicate(product))
+                return product;
+        }
+
+        return null;
+    }
+    
     public ProductData GetFirstProductData(ProductCategory category)
     {
         for (int i = 0; i < items.Count; i++)

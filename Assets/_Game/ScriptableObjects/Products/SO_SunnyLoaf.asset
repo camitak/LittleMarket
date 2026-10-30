@@ -18,6 +18,8 @@ MonoBehaviour:
   icon: {fileID: 0}
   description: A cheerful golden loaf baked fresh for the neighbourhood.
   worldPrefab: {fileID: 4631704347769127167, guid: 7b18ffeb8aeeb6b4a80318a53e63e960, type: 3}
+  requiredDisplayType: 1
+  requiredStorageCondition: 0
   shelfColumns: 1
   shelfVerticalLayers: 1
   shelfDepthRows: 3

@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::FurnitureDefinition
   furnitureID: standard_shelf
   displayName: Standard Shelf
-  description: "Ambient display \u2022 Current Cereal setup."
+  description: "Ambient shelf \u2022 General packaged products."
   purchasePrice: 40
   prefab: {fileID: 8930667969451341194, guid: b2ab179c58af96d479747fad85aed525, type: 3}
   bodyHalfExtents: {x: 1.3, y: 1.05, z: 0.52}
