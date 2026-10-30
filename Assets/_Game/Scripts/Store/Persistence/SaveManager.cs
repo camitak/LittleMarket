@@ -4,9 +4,10 @@ using UnityEngine;
 
 public class SaveManager : MonoBehaviour
 {
-    private const int CurrentSaveVersion = 21;
+    private const int CurrentSaveVersion = 1;
+    private const string SaveFileName = "little_market_dev_v2_save.json";
 
-    [Header("Store References")] 
+    [Header("Store References")]
     [SerializeField] private StoreClock storeClock;
     [SerializeField] private StoreEconomy storeEconomy;
     [SerializeField] private StoreReputation storeReputation;
@@ -23,25 +24,22 @@ public class SaveManager : MonoBehaviour
     [SerializeField] private WorldItemRegistry worldItemRegistry;
     [SerializeField] private StoreReportHistory storeReportHistory;
 
-    [Header("Delivery")] 
+    [Header("Delivery")]
     [SerializeField] private DeliveryBox deliveryBoxPrefab;
     [SerializeField] private SupplierDeliveryQueue supplierDeliveryQueue;
 
-    [Header("Player")] 
+    [Header("Player")]
     [SerializeField] private PlayerInteraction playerInteraction;
     [SerializeField] private RestockBasket restockBasket;
 
     public string LastOperationMessage { get; private set; } = "";
 
-    public bool HasSaveFile =>
-        File.Exists(
-            SavePath
-        );
+    public bool HasSaveFile => File.Exists(SavePath);
 
     private string SavePath =>
         Path.Combine(
             Application.persistentDataPath,
-            "little_market_save.json"
+            SaveFileName
         );
 
     public bool SaveGame()
@@ -49,85 +47,56 @@ public class SaveManager : MonoBehaviour
         if (!HasValidConfiguration())
         {
             LastOperationMessage = "Save system is not configured.";
-
             Debug.LogError(LastOperationMessage, this);
 
             return false;
         }
 
-        if (!CanUseSaveSystemNow()) return false;
-        
-        if (!storeFurnitureLayout.TryCreateSaveData(out var shelfPlacements))
+        if (!CanUseSaveSystemNow())
+            return false;
+
+        if (!storeFurnitureLayout.TryCreateSaveData(
+                out List<FurniturePlacementSaveData> furniturePlacements))
         {
-            LastOperationMessage = "Cannot save: check StoreFurnitureLayout, NavMeshSurface and shelf IDs.";
+            LastOperationMessage =
+                "Cannot save: check furniture identities and definitions.";
 
             Debug.LogError(LastOperationMessage, this);
+
             return false;
         }
 
-        var saveData = new StoreSaveData();
+        StoreSaveData saveData = new()
+        {
+            saveVersion = CurrentSaveVersion,
+            day = storeClock.CurrentDay,
+            currentMinutes = storeClock.CurrentMinutes,
+            money = storeEconomy.CurrentMoney,
+            reputation = storeReputation.CurrentReputation,
+            unlockedProductIDs = storeProgression.GetUnlockedProductIDs(),
+            unlockedExpansionIDs = storeExpansionSystem.GetUnlockedExpansionIDs(),
+            shelfSlots = BuildShelfSlotSaveData(),
+            furniturePlacements = furniturePlacements,
+            storageSlots = BuildStorageSlotSaveData(),
+            deliveries = BuildDeliverySaveData(),
+            pendingDeliveries = supplierDeliveryQueue.CreateSaveData(),
+            dailyStats = dailyStats.CreateSaveData(),
+            looseProducts = BuildLooseProductSaveData(),
+            goalRewards = storeGoals.CreateSaveData(),
+            storeLevel = storeLevelProgression.CreateSaveData(),
+            dailyReports = storeReportHistory.CreateSaveData()
+        };
 
-        saveData.saveVersion = CurrentSaveVersion;
+        string json =
+            JsonUtility.ToJson(saveData, true);
 
-        saveData.day = storeClock.CurrentDay;
-
-        saveData.currentMinutes = storeClock.CurrentMinutes;
-
-        saveData.money = storeEconomy.CurrentMoney;
-
-        saveData.reputation = storeReputation.CurrentReputation;
-
-        saveData.unlockedProductIDs = storeProgression.GetUnlockedProductIDs();
-
-        saveData.unlockedExpansionIDs = storeExpansionSystem.GetUnlockedExpansionIDs();
-
-        saveData.shelfSlots = BuildShelfSlotSaveData();
-        
-        saveData.shelfPlacements = shelfPlacements;
-
-        saveData.storageSlots = BuildStorageSlotSaveData();
-
-        saveData.deliveries = BuildDeliverySaveData();
-        
-        saveData.pendingDeliveries = supplierDeliveryQueue.CreateSaveData();
-
-        saveData.dailyStats = dailyStats.CreateSaveData();
-
-        saveData.looseProducts = BuildLooseProductSaveData();
-
-        saveData.goalRewards = storeGoals.CreateSaveData();
-
-        saveData.storeLevel = storeLevelProgression.CreateSaveData();
-        
-        saveData.dailyReports = storeReportHistory.CreateSaveData();
-
-        var json =
-            JsonUtility.ToJson(
-                saveData,
-                true
-            );
-
-        File.WriteAllText(
-            SavePath,
-            json
-        );
+        File.WriteAllText(SavePath, json);
 
         LastOperationMessage = "Game saved successfully.";
 
         Debug.Log(
-            "Little Market saved "
-            + "(version "
-            + CurrentSaveVersion
-            + ") at "
-            + GetClockDebugText(
-                saveData.currentMinutes
-            )
-            + ". Loose products: "
-            + saveData.looseProducts.Count
-            + ". Store Level: "
-            + storeLevelProgression.CurrentLevel
-            + ".\n"
-            + SavePath
+            $"Little Market saved development schema {CurrentSaveVersion} " +
+            $"at {GetClockDebugText(saveData.currentMinutes)}.\n{SavePath}"
         );
 
         return true;
@@ -137,86 +106,65 @@ public class SaveManager : MonoBehaviour
     {
         if (!HasValidConfiguration())
         {
-            LastOperationMessage =
-                "Save system is not configured.";
-
-            Debug.LogError(
-                LastOperationMessage,
-                this
-            );
+            LastOperationMessage = "Save system is not configured.";
+            Debug.LogError(LastOperationMessage, this);
 
             return false;
         }
 
-        if (!CanUseSaveSystemNow()) return false;
+        if (!CanUseSaveSystemNow())
+            return false;
 
-        if (!File.Exists(
-                SavePath
-            ))
+        if (!File.Exists(SavePath))
         {
-            LastOperationMessage =
-                "No saved game exists yet.";
-
-            Debug.LogWarning(
-                LastOperationMessage
-            );
+            LastOperationMessage = "No saved game exists yet.";
+            Debug.LogWarning(LastOperationMessage);
 
             return false;
         }
 
-        var json =
-            File.ReadAllText(
-                SavePath
-            );
-
-        var saveData =
-            JsonUtility.FromJson<
-                StoreSaveData
-            >(
-                json
-            );
+        string json = File.ReadAllText(SavePath);
+        StoreSaveData saveData =
+            JsonUtility.FromJson<StoreSaveData>(json);
 
         if (saveData == null)
         {
             LastOperationMessage =
                 "The save file could not be read.";
 
-            Debug.LogError(
-                LastOperationMessage
-            );
+            Debug.LogError(LastOperationMessage);
 
             return false;
         }
-        
-        if (!storeFurnitureLayout.CanRestoreSaveData(
-                saveData.shelfPlacements,
-                saveData.saveVersion))
+
+        if (saveData.saveVersion != CurrentSaveVersion)
         {
             LastOperationMessage =
-                "Cannot load: saved furniture layout does not match scene shelves.";
+                "This save belongs to a different development build. Start a new save for this build.";
 
-            Debug.LogError(LastOperationMessage, this);
+            Debug.LogWarning(LastOperationMessage);
+
             return false;
         }
 
-        ApplySaveData(
-            saveData
-        );
+        if (!storeFurnitureLayout.CanRestoreSaveData(
+                saveData.furniturePlacements))
+        {
+            LastOperationMessage =
+                "Cannot load: saved furniture layout does not match the current store.";
 
-        LastOperationMessage =
-            "Game loaded successfully.";
+            Debug.LogError(LastOperationMessage, this);
+
+            return false;
+        }
+
+        ApplySaveData(saveData);
+
+        LastOperationMessage = "Game loaded successfully.";
 
         Debug.Log(
-            "Little Market save loaded. "
-            + "Save version: "
-            + saveData.saveVersion
-            + ". Current time: "
-            + GetClockDebugText(
-                storeClock.CurrentMinutes
-            )
-            + ". Store Level: "
-            + storeLevelProgression.CurrentLevel
-            + "."
+            $"Little Market save loaded. Schema {saveData.saveVersion}. " +
+            $"Time {GetClockDebugText(storeClock.CurrentMinutes)}."
         );
 
         return true;
@@ -224,17 +172,14 @@ public class SaveManager : MonoBehaviour
 
     private List<ShelfSlotSaveData> BuildShelfSlotSaveData()
     {
-        List<ShelfSlotSaveData> savedSlots =
-            new List<ShelfSlotSaveData>();
+        List<ShelfSlotSaveData> savedSlots = new();
 
         for (int i = 0; i < shelfRegistry.RegisteredSlotCount; i++)
         {
             ShelfSlot slot = shelfRegistry.GetRegisteredSlot(i);
 
             if (slot == null || !slot.IsAssigned)
-            {
                 continue;
-            }
 
             ProductData product = slot.AssignedProduct;
 
@@ -245,309 +190,69 @@ public class SaveManager : MonoBehaviour
                 continue;
             }
 
-            ShelfSlotSaveData slotSaveData = new ShelfSlotSaveData
+            savedSlots.Add(new ShelfSlotSaveData
             {
                 slotID = slot.SlotID,
                 productID = product.ProductID,
                 quantity = slot.StoredItemCount
-            };
-
-            savedSlots.Add(slotSaveData);
+            });
         }
 
         return savedSlots;
     }
 
-    private List<StorageSlotSaveData>
-        BuildStorageSlotSaveData()
+    private List<StorageSlotSaveData> BuildStorageSlotSaveData()
     {
-        var savedSlots =
-            new List<StorageSlotSaveData>();
+        List<StorageSlotSaveData> savedSlots = new();
 
-        for (var i = 0;
-             i < storageRegistry.RegisteredSlotCount;
-             i++)
+        for (int i = 0; i < storageRegistry.RegisteredSlotCount; i++)
         {
-            var bay =
-                storageRegistry.GetRegisteredSlot(
-                    i
-                );
+            StorageBay bay =
+                storageRegistry.GetRegisteredSlot(i);
 
-            if (bay == null ||
-                !bay.IsAssigned)
+            if (bay == null || !bay.IsAssigned)
                 continue;
 
-            var product =
-                bay.AssignedProduct;
+            ProductData product = bay.AssignedProduct;
 
-            if (product == null) continue;
-
-            if (string.IsNullOrWhiteSpace(
-                    bay.SlotID
-                ))
+            if (product == null ||
+                string.IsNullOrWhiteSpace(bay.SlotID) ||
+                string.IsNullOrWhiteSpace(product.ProductID))
+            {
                 continue;
+            }
 
-            if (string.IsNullOrWhiteSpace(
-                    product.ProductID
-                ))
-                continue;
-
-            var slotSaveData =
-                new StorageSlotSaveData();
-
-            slotSaveData.slotID =
-                bay.SlotID;
-
-            slotSaveData.productID =
-                product.ProductID;
-
-            slotSaveData.quantity =
-                bay.Quantity;
-
-            savedSlots.Add(
-                slotSaveData
-            );
+            savedSlots.Add(new StorageSlotSaveData
+            {
+                slotID = bay.SlotID,
+                productID = product.ProductID,
+                quantity = bay.Quantity
+            });
         }
 
         return savedSlots;
     }
 
     private void RestoreStorageInventory(
-        List<StorageSlotSaveData> savedSlots,
-        int saveVersion
-    )
+        List<StorageSlotSaveData> savedSlots)
     {
         ClearCurrentStorageInventory();
 
-        if (savedSlots == null) return;
+        if (savedSlots == null)
+            return;
 
-        for (var i = 0;
-             i < savedSlots.Count;
-             i++)
+        foreach (StorageSlotSaveData savedSlot in savedSlots)
         {
-            var slotSaveData =
-                savedSlots[i];
+            if (savedSlot == null)
+                continue;
 
-            if (slotSaveData == null) continue;
-
-            var bay =
-                storageRegistry.FindSlotByID(
-                    slotSaveData.slotID
-                );
+            StorageBay bay =
+                storageRegistry.FindSlotByID(savedSlot.slotID);
 
             if (bay == null)
             {
                 Debug.LogWarning(
-                    "Saved Storage Bay '"
-                    + slotSaveData.slotID
-                    + "' does not exist "
-                    + "in the current scene."
-                );
-
-                continue;
-            }
-
-            var product =
-                storeProgression
-                    .FindCatalogProductByID(
-                        slotSaveData.productID
-                    );
-
-            if (product == null)
-            {
-                Debug.LogWarning(
-                    "Saved storage product ID '"
-                    + slotSaveData.productID
-                    + "' does not exist "
-                    + "in the current catalog."
-                );
-
-                continue;
-            }
-
-            /*
-             * Before Version 12, each storage slot
-             * represented exactly one product.
-             */
-            var restoredQuantity =
-                saveVersion >= 12
-                    ? Mathf.Max(
-                        0,
-                        slotSaveData.quantity
-                    )
-                    : 1;
-
-            bay.RestoreState(
-                product,
-                restoredQuantity
-            );
-        }
-    }
-
-    private void ClearCurrentStorageInventory()
-    {
-        for (var i = 0;
-             i < storageRegistry.RegisteredSlotCount;
-             i++)
-        {
-            var bay =
-                storageRegistry.GetRegisteredSlot(
-                    i
-                );
-
-            if (bay == null) continue;
-
-            bay.ClearForLoad();
-        }
-    }
-
-    private List<DeliveryBoxSaveData>
-        BuildDeliverySaveData()
-    {
-        var savedDeliveries =
-            new List<DeliveryBoxSaveData>();
-
-        var allBoxes =
-            FindObjectsByType<
-                DeliveryBox
-            >(
-                FindObjectsSortMode.None
-            );
-
-        for (var i = 0;
-             i < allBoxes.Length;
-             i++)
-        {
-            var delivery =
-                allBoxes[i];
-
-            if (delivery == null) continue;
-
-            var product =
-                delivery.ProductData;
-
-            if (product == null ||
-                string.IsNullOrWhiteSpace(
-                    product.ProductID
-                ))
-                continue;
-
-            var deliverySaveData =
-                new DeliveryBoxSaveData();
-
-            /*
-             * >= 0 = original DeliveryZone order
-             * -1   = portable loose carton
-             */
-            deliverySaveData.slotIndex =
-                deliveryZone.GetSlotIndex(
-                    delivery
-                );
-
-            deliverySaveData.productID =
-                product.ProductID;
-
-            deliverySaveData.quantity =
-                delivery.RemainingQuantity;
-
-            deliverySaveData.capacity =
-                delivery.Capacity;
-
-            deliverySaveData.isOpen =
-                delivery.IsOpen;
-
-            deliverySaveData.hasWorldTransform =
-                true;
-
-            deliverySaveData.position =
-                delivery.transform.position;
-
-            deliverySaveData.rotation =
-                delivery.transform.rotation;
-
-            savedDeliveries.Add(
-                deliverySaveData
-            );
-        }
-
-        return savedDeliveries;
-    }
-
-    private List<LooseProductSaveData>
-        BuildLooseProductSaveData()
-    {
-        List<LooseProductSaveData> savedProducts = new();
-
-        for (var i = 0;
-             i < worldItemRegistry.RegisteredItemCount;
-             i++)
-        {
-            PickupItem item =
-                worldItemRegistry.GetRegisteredItem(
-                    i
-                );
-
-            if (item == null) continue;
-
-            if (!item.IsLooseWorldItem) continue;
-
-            var productData =
-                item.GetProductData();
-
-            if (productData == null) continue;
-
-            if (string.IsNullOrWhiteSpace(
-                    productData.ProductID
-                ))
-                continue;
-
-            LooseProductSaveData productSaveData =
-                new LooseProductSaveData();
-
-            productSaveData.productID =
-                productData.ProductID;
-
-            productSaveData.position =
-                item.transform.position;
-
-            productSaveData.rotation =
-                item.transform.rotation;
-
-            savedProducts.Add(
-                productSaveData
-            );
-        }
-
-        return savedProducts;
-    }
-
-    private void RestoreShelfInventory(
-        List<ShelfSlotSaveData> savedSlots
-    )
-    {
-        ClearCurrentShelfInventory();
-
-        if (savedSlots == null)
-        {
-            return;
-        }
-
-        for (int i = 0; i < savedSlots.Count; i++)
-        {
-            ShelfSlotSaveData slotSaveData = savedSlots[i];
-
-            if (slotSaveData == null)
-            {
-                continue;
-            }
-
-            ShelfSlot slot =
-                shelfRegistry.FindSlotByID(slotSaveData.slotID);
-
-            if (slot == null)
-            {
-                Debug.LogWarning(
-                    $"Saved ShelfSlot '{slotSaveData.slotID}' does not exist in the current scene."
+                    $"Saved StorageBay '{savedSlot.slotID}' does not exist."
                 );
 
                 continue;
@@ -555,217 +260,291 @@ public class SaveManager : MonoBehaviour
 
             ProductData product =
                 storeProgression.FindCatalogProductByID(
-                    slotSaveData.productID
+                    savedSlot.productID
                 );
 
             if (product == null)
             {
                 Debug.LogWarning(
-                    $"Saved product ID '{slotSaveData.productID}' does not exist in the current catalog."
+                    $"Saved storage product '{savedSlot.productID}' does not exist."
                 );
 
                 continue;
             }
 
-            int quantity = Mathf.Max(0, slotSaveData.quantity);
+            bay.RestoreState(
+                product,
+                Mathf.Max(0, savedSlot.quantity)
+            );
+        }
+    }
 
-            bool restored = slot.RestoreProduct(product, quantity);
+    private void ClearCurrentStorageInventory()
+    {
+        for (int i = 0; i < storageRegistry.RegisteredSlotCount; i++)
+        {
+            StorageBay bay =
+                storageRegistry.GetRegisteredSlot(i);
+
+            if (bay != null)
+                bay.ClearForLoad();
+        }
+    }
+
+    private List<DeliveryBoxSaveData> BuildDeliverySaveData()
+    {
+        List<DeliveryBoxSaveData> savedDeliveries = new();
+
+        DeliveryBox[] boxes = FindObjectsByType<DeliveryBox>();
+
+        foreach (DeliveryBox delivery in boxes)
+        {
+            if (delivery == null)
+                continue;
+
+            ProductData product = delivery.ProductData;
+
+            if (product == null ||
+                string.IsNullOrWhiteSpace(product.ProductID))
+            {
+                continue;
+            }
+
+            savedDeliveries.Add(new DeliveryBoxSaveData
+            {
+                slotIndex = deliveryZone.GetSlotIndex(delivery),
+                productID = product.ProductID,
+                quantity = delivery.RemainingQuantity,
+                capacity = delivery.Capacity,
+                isOpen = delivery.IsOpen,
+                hasWorldTransform = true,
+                position = delivery.transform.position,
+                rotation = delivery.transform.rotation
+            });
+        }
+
+        return savedDeliveries;
+    }
+
+    private List<LooseProductSaveData> BuildLooseProductSaveData()
+    {
+        List<LooseProductSaveData> savedProducts = new();
+
+        for (int i = 0; i < worldItemRegistry.RegisteredItemCount; i++)
+        {
+            PickupItem item =
+                worldItemRegistry.GetRegisteredItem(i);
+
+            if (item == null || !item.IsLooseWorldItem)
+                continue;
+
+            ProductData product = item.GetProductData();
+
+            if (product == null ||
+                string.IsNullOrWhiteSpace(product.ProductID))
+            {
+                continue;
+            }
+
+            savedProducts.Add(new LooseProductSaveData
+            {
+                productID = product.ProductID,
+                position = item.transform.position,
+                rotation = item.transform.rotation
+            });
+        }
+
+        return savedProducts;
+    }
+
+    private void RestoreShelfInventory(
+        List<ShelfSlotSaveData> savedSlots)
+    {
+        ClearCurrentShelfInventory();
+
+        if (savedSlots == null)
+            return;
+
+        foreach (ShelfSlotSaveData savedSlot in savedSlots)
+        {
+            if (savedSlot == null)
+                continue;
+
+            ShelfSlot slot =
+                shelfRegistry.FindSlotByID(savedSlot.slotID);
+
+            if (slot == null)
+            {
+                Debug.LogWarning(
+                    $"Saved ShelfSlot '{savedSlot.slotID}' does not exist."
+                );
+
+                continue;
+            }
+
+            ProductData product =
+                storeProgression.FindCatalogProductByID(
+                    savedSlot.productID
+                );
+
+            if (product == null)
+            {
+                Debug.LogWarning(
+                    $"Saved product '{savedSlot.productID}' does not exist."
+                );
+
+                continue;
+            }
+
+            bool restored = slot.RestoreProduct(
+                product,
+                Mathf.Max(0, savedSlot.quantity)
+            );
 
             if (!restored)
             {
                 Debug.LogWarning(
-                    $"Could not restore product '{slotSaveData.productID}' into ShelfSlot '{slotSaveData.slotID}'."
+                    $"Could not restore '{savedSlot.productID}' into '{savedSlot.slotID}'."
                 );
             }
         }
     }
 
     private void RestoreDeliveryZone(
-        List<DeliveryBoxSaveData> savedDeliveries
-    )
+        List<DeliveryBoxSaveData> savedDeliveries)
     {
-        /*
-         * Destroy loose cartons created from storage
-         * before rebuilding the save state.
-         */
-        var existingBoxes =
-            FindObjectsByType<
-                DeliveryBox
-            >(
-                FindObjectsSortMode.None
-            );
+        DeliveryBox[] existingBoxes = FindObjectsByType<DeliveryBox>();
 
-        for (var i = 0;
-             i < existingBoxes.Length;
-             i++)
+        foreach (DeliveryBox existingBox in existingBoxes)
         {
-            var existingBox =
-                existingBoxes[i];
-
-            if (existingBox == null) continue;
-
-            if (deliveryZone.GetSlotIndex(
-                    existingBox
-                ) >= 0)
+            if (existingBox == null)
                 continue;
 
-            Destroy(
-                existingBox.gameObject
-            );
+            if (deliveryZone.GetSlotIndex(existingBox) >= 0)
+                continue;
+
+            Destroy(existingBox.gameObject);
         }
 
-        /*
-         * This clears the boxes owned by actual
-         * delivery slots and resets their references.
-         */
-        deliveryZone
-            .ClearAllDeliveriesForLoad();
+        deliveryZone.ClearAllDeliveriesForLoad();
 
-        if (savedDeliveries == null) return;
+        if (savedDeliveries == null)
+            return;
 
-        for (var i = 0;
-             i < savedDeliveries.Count;
-             i++)
+        foreach (DeliveryBoxSaveData savedDelivery in savedDeliveries)
         {
-            var deliverySaveData =
-                savedDeliveries[i];
+            if (savedDelivery == null)
+                continue;
 
-            if (deliverySaveData == null) continue;
-
-            var product =
-                storeProgression
-                    .FindCatalogProductByID(
-                        deliverySaveData.productID
-                    );
+            ProductData product =
+                storeProgression.FindCatalogProductByID(
+                    savedDelivery.productID
+                );
 
             if (product == null)
             {
                 Debug.LogWarning(
-                    "Saved carton product ID '"
-                    + deliverySaveData.productID
-                    + "' does not exist "
-                    + "in the current catalog."
+                    $"Saved carton product '{savedDelivery.productID}' does not exist."
                 );
 
                 continue;
             }
 
-            /*
-             * Normal ordered delivery.
-             */
-            if (deliverySaveData.slotIndex >= 0)
+            if (savedDelivery.slotIndex >= 0)
             {
-                var restored =
-                    deliveryZone.TryRestoreDelivery(
-                        deliveryBoxPrefab,
-                        deliverySaveData.slotIndex,
-                        product,
-                        deliverySaveData.quantity,
-                        deliverySaveData.capacity,
-                        deliverySaveData.isOpen,
-                        out var restoredDelivery
-                    );
+                bool restored = deliveryZone.TryRestoreDelivery(
+                    deliveryBoxPrefab,
+                    savedDelivery.slotIndex,
+                    product,
+                    savedDelivery.quantity,
+                    savedDelivery.capacity,
+                    savedDelivery.isOpen,
+                    out DeliveryBox restoredDelivery
+                );
 
                 if (restored &&
                     restoredDelivery != null &&
-                    deliverySaveData.hasWorldTransform)
+                    savedDelivery.hasWorldTransform)
+                {
                     restoredDelivery.RestoreWorldTransform(
-                        deliverySaveData.position,
-                        deliverySaveData.rotation
+                        savedDelivery.position,
+                        savedDelivery.rotation
                     );
+                }
 
                 if (!restored)
+                {
                     Debug.LogWarning(
-                        "Could not restore delivery "
-                        + "in slot "
-                        + deliverySaveData.slotIndex
-                        + " for product '"
-                        + deliverySaveData.productID
-                        + "'."
+                        $"Could not restore delivery slot {savedDelivery.slotIndex}."
                     );
+                }
 
                 continue;
             }
 
-            /*
-             * Version 13 portable carton.
-             *
-             * It is intentionally NOT registered to a
-             * delivery slot.
-             */
-            if (!deliverySaveData.hasWorldTransform) continue;
+            if (!savedDelivery.hasWorldTransform)
+                continue;
 
-            var looseCarton =
-                Instantiate(
-                    deliveryBoxPrefab,
-                    deliverySaveData.position,
-                    deliverySaveData.rotation
-                );
+            DeliveryBox looseCarton = Instantiate(
+                deliveryBoxPrefab,
+                savedDelivery.position,
+                savedDelivery.rotation
+            );
 
             looseCarton.RestoreState(
                 product,
-                deliverySaveData.quantity,
-                deliverySaveData.capacity,
-                deliverySaveData.isOpen
+                savedDelivery.quantity,
+                savedDelivery.capacity,
+                savedDelivery.isOpen
             );
 
             looseCarton.RestoreWorldTransform(
-                deliverySaveData.position,
-                deliverySaveData.rotation
+                savedDelivery.position,
+                savedDelivery.rotation
             );
         }
     }
 
     private void RestoreLooseProducts(
-        List<LooseProductSaveData> savedProducts
-    )
+        List<LooseProductSaveData> savedProducts)
     {
-        worldItemRegistry
-            .ClearLooseWorldItemsForLoad();
+        worldItemRegistry.ClearLooseWorldItemsForLoad();
 
-        if (savedProducts == null) return;
+        if (savedProducts == null)
+            return;
 
-        for (var i = 0;
-             i < savedProducts.Count;
-             i++)
+        foreach (LooseProductSaveData savedProduct in savedProducts)
         {
-            LooseProductSaveData productSaveData =
-                savedProducts[i];
+            if (savedProduct == null)
+                continue;
 
-            if (productSaveData == null) continue;
+            ProductData product =
+                storeProgression.FindCatalogProductByID(
+                    savedProduct.productID
+                );
 
-            var productData =
-                storeProgression
-                    .FindCatalogProductByID(
-                        productSaveData.productID
-                    );
-
-            if (productData == null)
+            if (product == null)
             {
                 Debug.LogWarning(
-                    "Saved loose product ID '"
-                    + productSaveData.productID
-                    + "' does not exist "
-                    + "in the current catalog."
+                    $"Saved loose product '{savedProduct.productID}' does not exist."
                 );
 
                 continue;
             }
 
             bool restored =
-                worldItemRegistry
-                    .RestoreLooseProduct(
-                        productData,
-                        productSaveData.position,
-                        productSaveData.rotation
-                    );
+                worldItemRegistry.RestoreLooseProduct(
+                    product,
+                    savedProduct.position,
+                    savedProduct.rotation
+                );
 
             if (!restored)
+            {
                 Debug.LogWarning(
-                    "Could not restore loose product '"
-                    + productSaveData.productID
-                    + "'."
+                    $"Could not restore loose product '{savedProduct.productID}'."
                 );
+            }
         }
     }
 
@@ -773,206 +552,62 @@ public class SaveManager : MonoBehaviour
     {
         for (int i = 0; i < shelfRegistry.RegisteredSlotCount; i++)
         {
-            ShelfSlot slot = shelfRegistry.GetRegisteredSlot(i);
+            ShelfSlot slot =
+                shelfRegistry.GetRegisteredSlot(i);
 
             if (slot != null)
-            {
                 slot.ClearForLoad();
-            }
         }
     }
 
-    private void ApplySaveData(
-        StoreSaveData saveData
-    )
+    private void ApplySaveData(StoreSaveData saveData)
     {
-        storeEconomy.SetMoney(
-            saveData.money
+        storeEconomy.SetMoney(saveData.money);
+        storeReputation.SetReputation(saveData.reputation);
+
+        storeProgression.RestoreUnlockedProducts(
+            saveData.unlockedProductIDs
         );
 
-        storeReputation.SetReputation(
-            saveData.reputation
-        );
-
-        storeProgression.RestoreUnlockedProducts(saveData.unlockedProductIDs);
-
-        // Expansion geometry must exist before furniture is reconstructed.
-        // A saved furniture item may be positioned inside expansion space.
         storeExpansionSystem.RestoreUnlockedExpansionIDs(
-            saveData.unlockedExpansionIDs,
-            saveData.saveVersion
+            saveData.unlockedExpansionIDs
         );
 
-        // Restore shelf positions before rebuilding their products.
         storeFurnitureLayout.RestoreLayout(
-            saveData.shelfPlacements,
-            saveData.saveVersion
+            saveData.furniturePlacements
         );
 
-        if (saveData.saveVersion >= 2)
-        {
-            RestoreShelfInventory(saveData.shelfSlots);
-        }
-        else
-        {
-            ClearCurrentShelfInventory();
+        RestoreShelfInventory(saveData.shelfSlots);
+        RestoreDeliveryZone(saveData.deliveries);
+        RestoreLooseProducts(saveData.looseProducts);
 
-            Debug.Log(
-                "Older progression save loaded. "
-                + "Shelf inventory was not restored "
-                + "because that save predates "
-                + "inventory persistence."
-            );
-        }
-
-        if (saveData.saveVersion >= 3)
-        {
-            RestoreDeliveryZone(saveData.deliveries);
-        }
-        else
-        {
-            deliveryZone.ClearAllDeliveriesForLoad();
-
-            Debug.Log(
-                "Older save loaded. Delivery boxes "
-                + "were not restored because that "
-                + "save predates delivery persistence."
-            );
-        }
-
-        if (saveData.saveVersion >= 6)
-        {
-            RestoreLooseProducts(saveData.looseProducts);
-        }
-        else
-        {
-            worldItemRegistry.ClearLooseWorldItemsForLoad();
-
-            Debug.Log(
-                "Older save loaded. Loose products "
-                + "were cleared because that save "
-                + "predates loose-product persistence."
-            );
-        }
-
-        if (saveData.saveVersion >= 5 && saveData.dailyStats != null)
-        {
-            dailyStats.RestoreFromSaveData(saveData.dailyStats);
-        }
-        else
-        {
-            dailyStats.ResetForNewDay();
-
-            Debug.Log(
-                "Older save loaded. Daily statistics "
-                + "were reset because that save "
-                + "predates daily-stat persistence."
-            );
-        }
-
-        if (saveData.saveVersion >= 7 && saveData.goalRewards != null)
-        {
-            storeGoals.RestoreFromSaveData(saveData.goalRewards);
-        }
-        else
-        {
-            storeGoals.ResetForNewDay();
-
-            Debug.Log(
-                "Older save loaded. Daily goal reward "
-                + "claim state was reset because that "
-                + "save predates goal-reward persistence."
-            );
-        }
-
-        if (saveData.saveVersion >= 8 && saveData.storeLevel != null)
-        {
-            storeLevelProgression.RestoreFromSaveData(saveData.storeLevel);
-        }
-        else
-        {
-            storeLevelProgression.RestoreFromSaveData(null);
-
-            Debug.Log(
-                "Older save loaded. Store Level "
-                + "started at Level 1 because that "
-                + "save predates Store Level progression."
-            );
-        }
+        dailyStats.RestoreFromSaveData(saveData.dailyStats);
+        storeGoals.RestoreFromSaveData(saveData.goalRewards);
+        storeLevelProgression.RestoreFromSaveData(saveData.storeLevel);
 
         storeProgression.RefreshUnlocks();
 
-        if (saveData.saveVersion >= 4)
-        {
-            storeClock.LoadState(
-                saveData.day,
-                saveData.currentMinutes
-            );
-        }
-        else
-        {
-            storeClock.LoadDay(saveData.day);
+        storeClock.LoadState(
+            saveData.day,
+            saveData.currentMinutes
+        );
 
-            Debug.Log(
-                "Older save loaded. Exact clock time "
-                + "was not available, so the day "
-                + "started at the configured start time."
-            );
-        }
-        
-        if (saveData.saveVersion >= 16)
-        {
-            supplierDeliveryQueue.RestoreFromSaveData(
-                saveData.pendingDeliveries
-            );
-        }
-        else
-        {
-            supplierDeliveryQueue.ClearPendingOrders();
+        supplierDeliveryQueue.RestoreFromSaveData(
+            saveData.pendingDeliveries
+        );
 
-            Debug.Log(
-                "Older save loaded. There were no saved pending supplier deliveries."
-            );
-        }
+        RestoreStorageInventory(saveData.storageSlots);
 
-        if (saveData.saveVersion >= 9)
-        {
-            RestoreStorageInventory(
-                saveData.storageSlots,
-                saveData.saveVersion
-            );
-        }
-        else
-        {
-            ClearCurrentStorageInventory();
-
-            Debug.Log(
-                "Older save loaded. Back-room storage "
-                + "was cleared because that save predates "
-                + "storage persistence."
-            );
-        }
-        
-        
-        if (saveData.saveVersion >= 17)
-        {
-            storeReportHistory.RestoreFromSaveData(saveData.dailyReports);
-        }
-        else
-        {
-            storeReportHistory.RestoreFromSaveData(null);
-
-            Debug.Log(
-                "Older save loaded. Historical day reports begin with version 17."
-            );
-        }
+        storeReportHistory.RestoreFromSaveData(
+            saveData.dailyReports
+        );
 
         customerFlow.ResetForNewDay();
     }
 
     private bool CanUseSaveSystemNow()
     {
-        var furniturePlacement =
+        FurniturePlacementController furniturePlacement =
             FindAnyObjectByType<FurniturePlacementController>();
 
         if (furniturePlacement != null &&
@@ -987,129 +622,96 @@ public class SaveManager : MonoBehaviour
 
         if (storeClock.HasDayEnded)
         {
-            LastOperationMessage = "Start the next day before saving or loading.";
+            LastOperationMessage =
+                "Start the next day before saving or loading.";
 
             Debug.LogWarning(LastOperationMessage);
-
             return false;
         }
 
         if (customerFlow.ActiveCustomerCount > 0)
         {
-            LastOperationMessage = "Wait until all customers have left.";
+            LastOperationMessage =
+                "Wait until all customers have left.";
 
             Debug.LogWarning(LastOperationMessage);
-
             return false;
         }
 
-        var heldBasket = playerInteraction.GetHeldRestockBasket();
+        RestockBasket heldBasket =
+            playerInteraction.GetHeldRestockBasket();
 
         if (heldBasket != null)
         {
-            if (heldBasket.ItemCount > 0)
-                LastOperationMessage =
-                    "Empty and put down the restock "
-                    + "basket before saving or loading.";
-            else
-                LastOperationMessage =
-                    "Put down the restock basket "
-                    + "before saving or loading.";
+            LastOperationMessage = heldBasket.ItemCount > 0
+                ? "Empty and put down the restock basket before saving or loading."
+                : "Put down the restock basket before saving or loading.";
 
             Debug.LogWarning(LastOperationMessage);
-
             return false;
         }
 
         if (restockBasket.ItemCount > 0)
         {
             LastOperationMessage =
-                "Empty the restock basket before "
-                + "saving or loading.";
+                "Empty the restock basket before saving or loading.";
 
             Debug.LogWarning(LastOperationMessage);
-
             return false;
         }
 
-        var heldDeliveryBox = playerInteraction.GetHeldDeliveryBox();
-
-        if (heldDeliveryBox != null)
+        if (playerInteraction.GetHeldDeliveryBox() != null)
         {
             LastOperationMessage =
-                "Put down the delivery box before "
-                + "saving or loading.";
+                "Put down the delivery box before saving or loading.";
 
             Debug.LogWarning(LastOperationMessage);
-
             return false;
         }
 
         if (playerInteraction.GetHeldItem() != null)
         {
-            LastOperationMessage = "Put away the item in your hands first.";
+            LastOperationMessage =
+                "Put away the item in your hands first.";
 
             Debug.LogWarning(LastOperationMessage);
-
             return false;
         }
 
         return true;
     }
 
-    private string GetClockDebugText(float totalMinutes)
+    private static string GetClockDebugText(float totalMinutes)
     {
-        var wholeMinutes = Mathf.FloorToInt(totalMinutes);
+        int wholeMinutes =
+            Mathf.FloorToInt(totalMinutes);
 
-        var hours = wholeMinutes / 60;
+        int hours = wholeMinutes / 60;
+        int minutes = wholeMinutes % 60;
 
-        var minutes = wholeMinutes % 60;
-
-        return hours.ToString("00")
-               + ":"
-               + minutes.ToString("00");
+        return $"{hours:00}:{minutes:00}";
     }
 
     private bool HasValidConfiguration()
     {
-        if (storeClock == null) return false;
-
-        if (storeEconomy == null) return false;
-
-        if (storeReputation == null) return false;
-
-        if (storeProgression == null) return false;
-
-        if (dailyStats == null) return false;
-
-        if (storeGoals == null) return false;
-
-        if (storeLevelProgression == null) return false;
-
-        if (customerFlow == null) return false;
-
-        if (shelfRegistry == null) return false;
-
-        if (deliveryZone == null) return false;
-        
-        if (supplierDeliveryQueue == null) return false;
-
-        if (worldItemRegistry == null) return false;
-
-        if (deliveryBoxPrefab == null) return false;
-
-        if (playerInteraction == null) return false;
-
-        if (storageRegistry == null) return false;
-
-        if (restockBasket == null) return false;
-        
-        if (storeReportHistory == null) return false;
-        
-        if (storeFurnitureLayout == null) return false;
-        
-        if (storeExpansionSystem == null) return false;
-
-        return true;
+        return storeClock != null &&
+               storeEconomy != null &&
+               storeReputation != null &&
+               storeProgression != null &&
+               dailyStats != null &&
+               storeGoals != null &&
+               storeLevelProgression != null &&
+               customerFlow != null &&
+               shelfRegistry != null &&
+               storeFurnitureLayout != null &&
+               storeExpansionSystem != null &&
+               storageRegistry != null &&
+               deliveryZone != null &&
+               worldItemRegistry != null &&
+               storeReportHistory != null &&
+               deliveryBoxPrefab != null &&
+               supplierDeliveryQueue != null &&
+               playerInteraction != null &&
+               restockBasket != null;
     }
 }

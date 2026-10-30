@@ -1,6 +1,5 @@
 using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.Serialization;
 
 public class ShelfSlot :
     MonoBehaviour,
@@ -11,25 +10,10 @@ public class ShelfSlot :
 {
     [Header("Identity")]
     [SerializeField] private string localSlotKey = "";
-
-    [FormerlySerializedAs("slotID")]
-    [SerializeField, HideInInspector]
-    private string legacySlotID = "";
-
-    // Retained only for very old ShelfSlot setups that have no parent SalesShelf.
-    [FormerlySerializedAs("allowedCategory")]
-    [SerializeField, HideInInspector]
-    private ProductCategory fallbackAllowedCategory = ProductCategory.Cereal;
-
-    [FormerlySerializedAs("acceptedProduct")]
     [SerializeField] private ProductData assignedProduct;
 
     [Header("Placement")]
     [SerializeField] private Transform displayOrigin;
-
-    [FormerlySerializedAs("customerStandPoint")]
-    [SerializeField, HideInInspector]
-    private Transform fallbackCustomerStandPoint;
 
     [Header("Access")]
     [SerializeField] private bool customerAccessible = true;
@@ -38,35 +22,43 @@ public class ShelfSlot :
 
     private ShelfRegistry registeredShelfRegistry;
     private ShelfPriceTag priceTag;
-    private ShelfIdentity shelfIdentity;
+    private FurnitureIdentity furnitureIdentity;
     private SalesShelf salesShelf;
 
     public string SlotID
     {
         get
         {
-            if (shelfIdentity == null)
-                shelfIdentity = GetComponentInParent<ShelfIdentity>();
-
-            if (shelfIdentity != null &&
-                !string.IsNullOrWhiteSpace(shelfIdentity.PersistentID) &&
-                !string.IsNullOrWhiteSpace(localSlotKey))
+            if (furnitureIdentity == null)
             {
-                return $"{shelfIdentity.PersistentID}:{localSlotKey}";
+                furnitureIdentity =
+                    GetComponentInParent<FurnitureIdentity>();
             }
 
-            return legacySlotID;
+            if (furnitureIdentity == null ||
+                string.IsNullOrWhiteSpace(furnitureIdentity.PersistentID) ||
+                string.IsNullOrWhiteSpace(localSlotKey))
+            {
+                return "";
+            }
+
+            return
+                $"{furnitureIdentity.PersistentID}:{localSlotKey}";
         }
     }
 
-    public string LegacySlotID => legacySlotID;
     public bool CustomerAccessible => customerAccessible;
     public bool IsAssigned => assignedProduct != null;
     public ProductData AssignedProduct => assignedProduct;
     public bool HasStoredItem => StoredItemCount > 0;
     public int StoredItemCount => storedItems.Count;
-    public int Capacity => assignedProduct != null ? assignedProduct.SalesShelfCapacity : 0;
-    public bool IsFull => IsAssigned && StoredItemCount >= Capacity;
+    public int Capacity => assignedProduct != null
+        ? assignedProduct.SalesShelfCapacity
+        : 0;
+
+    public bool IsFull =>
+        IsAssigned && StoredItemCount >= Capacity;
+
     public float ManagementHoldDuration => 0.6f;
 
     public ProductDisplayType DisplayType =>
@@ -79,21 +71,15 @@ public class ShelfSlot :
             ? salesShelf.StorageCondition
             : ProductStorageCondition.Ambient;
 
-    public Transform CustomerStandPoint
-    {
-        get
-        {
-            if (salesShelf != null && salesShelf.CustomerStandPoint != null)
-                return salesShelf.CustomerStandPoint;
-
-            return fallbackCustomerStandPoint;
-        }
-    }
+    public Transform CustomerStandPoint =>
+        salesShelf != null
+            ? salesShelf.CustomerStandPoint
+            : null;
 
     private void Awake()
     {
         priceTag = GetComponentInChildren<ShelfPriceTag>(true);
-        shelfIdentity = GetComponentInParent<ShelfIdentity>();
+        furnitureIdentity = GetComponentInParent<FurnitureIdentity>();
         salesShelf = GetComponentInParent<SalesShelf>();
     }
 
@@ -125,16 +111,9 @@ public class ShelfSlot :
 
     private bool IsProductCompatibleWithDisplay(ProductData productData)
     {
-        if (productData == null)
-            return false;
-
-        if (salesShelf != null)
-            return salesShelf.CanDisplayProduct(productData);
-
-        // Backward-compatible behavior for any legacy orphan ShelfSlot.
-        return productData.Category == fallbackAllowedCategory &&
-               productData.CanBeDisplayedOn(ProductDisplayType.StandardShelf) &&
-               productData.CanBeStoredIn(ProductStorageCondition.Ambient);
+        return productData != null &&
+               salesShelf != null &&
+               salesShelf.CanDisplayProduct(productData);
     }
 
     public bool CanAcceptProduct(ProductData productData)
@@ -927,12 +906,6 @@ public class ShelfSlot :
     {
         if (product == null)
             return "";
-
-        if (salesShelf == null &&
-            product.Category != fallbackAllowedCategory)
-        {
-            return $"This legacy shelf is for {fallbackAllowedCategory}";
-        }
 
         if (!product.CanBeDisplayedOn(DisplayType))
         {

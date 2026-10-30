@@ -62,7 +62,9 @@ public class StoreExpansionSystem : MonoBehaviour
             storeClock.HasDayEnded ||
             customerFlow.ActiveCustomerCount > 0)
         {
-            reason = "Expand the store while it is closed and empty.";
+            reason =
+                "Expand the store while it is closed and empty.";
+
             return false;
         }
 
@@ -73,6 +75,7 @@ public class StoreExpansionSystem : MonoBehaviour
         {
             reason =
                 $"Requires Store Level {definition.RequiredStoreLevel}.";
+
             return false;
         }
 
@@ -81,6 +84,7 @@ public class StoreExpansionSystem : MonoBehaviour
         {
             reason =
                 $"Not enough money. Need £{definition.PurchasePrice:0.00}.";
+
             return false;
         }
 
@@ -136,12 +140,12 @@ public class StoreExpansionSystem : MonoBehaviour
         }
 
         unlockedIDs.Sort();
+
         return unlockedIDs;
     }
 
     public void RestoreUnlockedExpansionIDs(
-        List<string> unlockedIDs,
-        int saveVersion)
+        List<string> unlockedIDs)
     {
         if (expansionZones == null)
             return;
@@ -152,8 +156,7 @@ public class StoreExpansionSystem : MonoBehaviour
                 zone.SetUnlocked(false);
         }
 
-        // Version 20 and older had no store expansion state.
-        if (saveVersion < 21 || unlockedIDs == null)
+        if (unlockedIDs == null)
         {
             Physics.SyncTransforms();
             return;
@@ -169,7 +172,7 @@ public class StoreExpansionSystem : MonoBehaviour
             if (zone == null)
             {
                 Debug.LogWarning(
-                    $"Saved expansion '{expansionID}' does not exist in the current scene.",
+                    $"Saved expansion '{expansionID}' does not exist.",
                     this
                 );
 
@@ -180,9 +183,6 @@ public class StoreExpansionSystem : MonoBehaviour
         }
 
         Physics.SyncTransforms();
-
-        // StoreFurnitureLayout restores immediately after this during load
-        // and rebuilds NavMesh once all furniture is back in place.
     }
 
     private StoreExpansionZone FindZoneByID(string expansionID)

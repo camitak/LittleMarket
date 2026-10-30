@@ -7,35 +7,23 @@ public class StoreSaveData
     public int saveVersion;
 
     public int day = 1;
-
     public float currentMinutes = 480f;
-
     public float money = 100f;
-
     public float reputation = 50f;
 
     public List<string> unlockedProductIDs = new();
-
-    // Version 21.
     public List<string> unlockedExpansionIDs = new();
 
-    public List<ShelfSlotSaveData> shelfSlots;
+    public List<ShelfSlotSaveData> shelfSlots = new();
+    public List<FurniturePlacementSaveData> furniturePlacements = new();
+    public List<StorageSlotSaveData> storageSlots = new();
 
-    // Version 18: position/rotation keyed by ShelfIdentity.PersistentID.
-    public List<ShelfPlacementSaveData> shelfPlacements = new();
-
-    public List<StorageSlotSaveData> storageSlots;
-
-    public List<DeliveryBoxSaveData> deliveries;
-
+    public List<DeliveryBoxSaveData> deliveries = new();
     public List<PendingDeliverySaveData> pendingDeliveries = new();
 
     public DailyStatsSaveData dailyStats;
-
-    public List<LooseProductSaveData> looseProducts;
-
+    public List<LooseProductSaveData> looseProducts = new();
     public StoreGoalsSaveData goalRewards;
-
     public StoreLevelSaveData storeLevel;
 
     public List<DailyReportData> dailyReports = new();

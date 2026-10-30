@@ -1,250 +1,267 @@
 # Little Market — System Architecture
 
-Current architecture after **Lesson 106**.
+Current architecture after **Lesson 107 — Modular Store Shell & Spatial Baseline Reset**.
 
 ## Project baseline
 
 Little Market is a cozy first-person grocery-store management game built with Unity 6.3, URP, the Unity Input System, Unity AI Navigation/NavMesh, C#, Rider, and GitHub `main`.
 
-Lesson 106 was designed from GitHub `main` at commit:
+Lesson 107 was designed from GitHub `main` at commit:
 
-`b5aacbf76a9bfda8784fd79f8cc36fd7bc77313a`
+`a1df97a592bee9626b4217f9343de2ee1abc0e48`
 
 Commit message:
 
-`Lesson 105 complete - flexible display requirements and store script organization`
+`Lesson 106 complete - persistent store expansion foundation`
 
-## Current development priorities
+## Pre-release compatibility policy — Lesson 107
 
-The immediate priorities are the core physical store-management loop:
+Little Market is still in active prototype/pre-release development.
 
-- products and progression
-- ordering and deliveries
-- shelf displays
-- backroom storage
-- furniture purchasing and placement
-- store expansion
-- customer shopping and checkout
-- save/load
-- later employee automation after the manual loop is mature
+Compatibility is now treated deliberately:
 
-Spoilage is deliberately deferred. It remains a useful future depth feature, especially for chilled products, but it is not required to establish the core management game.
+- released player saves must be migrated carefully;
+- prototype saves do not automatically deserve permanent compatibility;
+- obsolete prototype assumptions should be removed when they make the architecture worse;
+- compatibility code must have a current product reason to exist.
 
-Daily operating expenses also remain deferred to a later economy/balancing phase.
+Lesson 107 intentionally starts a new development save baseline instead of migrating the old prototype spatial coordinates.
 
-## Script organization
+The old `little_market_save.json` file is not consumed by the new baseline. The new development save filename is:
 
-Lesson 105 introduced feature folders beneath `Assets/_Game/Scripts/Store`.
+`little_market_dev_v2_save.json`
 
-Lesson 106 adds:
+The new baseline save schema starts at version `1` and currently requires an exact schema-version match.
 
-- `Store/Expansion`
-  - `StoreExpansionDefinition`
-  - `StoreExpansionZone`
-  - `StoreExpansionSystem`
-  - `StoreBuildArea`
+## Spatial contract
 
-`FurniturePlacementController` should also be moved into `Store/Furniture` because it belongs to the furniture feature. The move is performed inside Unity so its `.meta` GUID remains stable.
+From Lesson 107 forward:
 
-The project still intentionally uses the global C# namespace. Folder organization and namespace migration remain separate concerns.
+- 1 Unity unit = 1 metre.
+- StoreBuilding root position = `(0, 0, 0)`.
+- StoreBuilding root rotation = `(0, 0, 0)`.
+- StoreBuilding root scale = `(1, 1, 1)`.
+- X = storefront left/right.
+- Y = vertical.
+- Z = front/back.
+- negative Z = street/customer front.
+- positive Z = rear/receiving side.
+- structural planning grid = 2 m.
+- furniture placement grid = 0.5 m.
+- floor walking surface = Y 0.
+- interior wall height = 3.2 m.
+- wall thickness = 0.20 m.
+- structural floor/ceiling thickness = 0.20 m.
 
-## Product classification and display requirements
+These coordinates are now the long-term gameplay spatial baseline. Future modeled assets should fit this contract rather than changing gameplay coordinates.
 
-`ProductCategory` describes what a product is.
+## Starter building
 
-`ProductDisplayType` describes what physical sales display it requires.
+The starter building is 16 m × 10 m.
 
-`ProductStorageCondition` describes environmental storage requirements.
+### Sales floor
 
-These concerns remain independent.
+Bounds: X -4 to +8, Z -5 to +5.
 
-Examples:
+Dimensions: 12 m × 10 m = 120 m².
 
-- cereal: StandardShelf + Ambient
-- Cloud Milk: StandardShelf + Chilled
-- Sunny Loaf: BakeryDisplay + Ambient
+### Backroom
 
-## Sales shelves
+Bounds: X -8 to -4, Z -5 to +5.
 
-`SalesShelf` owns display type, storage condition, customer stand point, and front-access rules.
+Dimensions: 4 m × 10 m = 40 m².
 
-`ShelfSlot` owns one facing assignment and the physical product instances in that facing.
+The starter store therefore has a 3:1 sales-floor-to-backroom area ratio.
 
-A single furniture item may contain multiple product categories across different facings as long as each product is compatible with the display type and storage condition.
+The sales floor and backroom are side by side so they can expand independently.
 
-## Furniture system
+## StoreAreaType
 
-The Lesson 104 data-driven furniture architecture remains:
+New enum:
 
-- `FurnitureDefinition` owns furniture ID, display name, description, purchase price, prefab and placement footprint.
-- `FurnitureCatalog` owns the purchasable furniture list.
-- `FurnitureShop` owns furniture transaction rules.
-- `StoreFurnitureLayout` owns persistent shelf-display furniture reconstruction.
-- `FurniturePlacementController` owns player furniture movement/preview/confirmation.
-- `ShelfIdentity` remains the persistent identity for the current shelf-display furniture family.
+- `SalesFloor`
+- `Backroom`
 
-Furniture purchases still charge only when placement is confirmed. Cancelling placement remains free.
+This is gameplay data, not merely a visual label.
 
-## Store expansion — Lesson 106
+Current display furniture uses SalesFloor. Future storage-rack furniture will use Backroom.
 
-Store expansion is introduced as a separate permanent-management system rather than pretending an expansion is furniture.
+## StoreBuildZone
 
-The first expansion is a fixed rear extension of the existing building.
+`StoreBuildZone` represents one physical floor collider that is currently available for furniture placement.
 
-### StoreExpansionDefinition
+It owns area type, floor Collider, available-at-start state, and runtime IsAvailable state.
 
-`StoreExpansionDefinition` is a ScriptableObject containing:
+Base sales-floor and backroom zones are available from the start. Expansion zones become available only after purchase.
 
-- stable expansion ID
-- display name
-- description
-- purchase price
-- required Store Level
+## StoreBuildArea refactor
 
-The first prototype definition is:
+`StoreBuildArea` no longer knows about a special base floor plus expansion floors.
 
-- ID: `rear_extension_01`
-- name: `Rear Store Extension`
-- price: £100 provisional implementation/test value
-- required Store Level: 1
-- description: adds a 5-metre-deep indoor strip across the rear of the store
+Instead it owns an array of `StoreBuildZone` objects.
 
-The price is intentionally provisional. Economy balancing is not the goal of Lesson 106.
+It can raycast onto available floor for a requested StoreAreaType, validate a furniture footprint against the union of available zones of that area, and identify floor colliders that should not count as placement obstructions.
 
-### StoreExpansionZone
+## FurnitureDefinition refactor
 
-`StoreExpansionZone` is a scene component mapping one expansion definition to its physical scene geometry.
+`FurnitureDefinition` now owns a `StoreAreaType PlacementArea` and a `FurnitureIdentity` prefab in addition to its existing data.
 
-It owns references to:
+Existing sales-display definitions use SalesFloor.
 
-- the `StoreExpansionDefinition`
-- the geometry root that becomes active after purchase
-- the locked barrier that blocks the area before purchase
-- the expansion floor collider used as buildable floor
+## FurnitureIdentity
 
-A zone can be locked or unlocked at runtime.
+`ShelfIdentity` is renamed/generalized to `FurnitureIdentity`.
 
-The definition asset contains reusable data; the scene component contains scene-object references. This avoids storing scene references inside ScriptableObjects.
+It owns FurnitureDefinition and stable persistent instance ID.
 
-### StoreExpansionSystem
+This removes a shelf-specific persistence assumption before backroom furniture is introduced.
 
-`StoreExpansionSystem` is the authoritative runtime owner of expansion purchase state.
+## FurniturePlacementSaveData
 
-It validates that the expansion is configured, not already owned, the store is closed, the day has not ended, there are no active customers, Store Level requirements are met, and sufficient money is available.
+`ShelfPlacementSaveData` is replaced by `FurniturePlacementSaveData`.
 
-A confirmed expansion purchase spends money through `StoreEconomy`, unlocks the zone, disables its old barrier, activates its new geometry, synchronizes physics, and rebuilds NavMesh.
+Fields:
 
-Expansion spending does not count as stock spending.
+- furnitureID
+- furnitureDefinitionID
+- position
+- rotation
 
-### StoreBuildArea
+The old `purchasedByPlayer` field is removed because authored furniture can be recognized from authored persistent IDs.
 
-Furniture placement no longer treats one `Floor` collider as the entire build authority.
+Old version-19/version-20 furniture migration logic is removed.
 
-`StoreBuildArea` owns the original base floor collider and configured expansion zones.
+## StoreFurnitureLayout
 
-It answers whether a ray hit belongs to unlocked buildable floor, whether a furniture footprint is completely inside unlocked build area, and whether a collider should be ignored as floor during collision validation.
+`StoreFurnitureLayout` now works with `FurnitureIdentity`.
 
-This allows future expansions to add buildable floor without resizing one global floor collider.
+It captures authored furniture IDs/poses, creates purchased previews, saves poses, reconstructs purchased furniture from furnitureDefinitionID, restores authored furniture by stable ID, retires runtime furniture not present in a loaded save, and rebuilds NavMesh.
 
-### FurniturePlacementController integration
+Prototype save-version migration branches and `legacyVersion19ShelfDefinition` are removed.
 
-`FurniturePlacementController` references `StoreBuildArea` instead of one `storeFloor` collider.
+## Furniture placement
 
-Existing controls remain:
+`FurniturePlacementController` now works with `FurnitureIdentity` and reads the required StoreAreaType from FurnitureDefinition.
 
-- G: move existing empty furniture
-- R: rotate right
-- T: rotate left
-- E: confirm
-- Q: cancel
+Controls remain G move, R rotate right, T rotate left, E confirm, Q cancel.
 
-Existing placement rules remain: grid snapping, body collision, front-access clearance, store-closed requirement, no active customers, and NavMesh rebuild after placement.
+Empty checks understand both ShelfSlot stock and StorageBay quantities in preparation for backroom furniture.
 
-## First expansion geometry
+## Front-of-store layout
 
-The existing store model has an original floor approximately 30 m × 10 m.
+Customer front wall is at Z approximately -5.1.
 
-Lesson 106 adds a 5 m rear extension beyond the existing `Wall_back`.
+Two 2 m openings are reserved:
 
-Before purchase, the original `Wall_back` remains active, expansion geometry is inactive, and expansion floor is not buildable.
+- exit centered around X -1.8;
+- entrance centered around X +5.8.
 
-After purchase, the original rear barrier is disabled and the new rear floor, roof extension, side-wall extensions, and new rear wall are activated.
+The front ~3 m of the sales floor is reserved as service/circulation space for entrance, baskets, checkout, queue, and exit.
 
-## Store computer management UI
+## Backroom circulation
 
-The store computer remains the centralized place for active management.
+The sales/backroom partition is at X -4.
 
-The existing two-tab interface expands to:
+A 1.4 m staff opening is placed in the rear half of the partition.
 
-1. PRODUCTS
-2. FURNITURE
-3. EXPANSION
+The backroom rear wall has a 2.4 m receiving opening centered around X -6.
 
-The former `StoreComputerFurnitureUI` script is renamed to `StoreComputerManagementUI` because it now coordinates multiple management sections.
+Future flow:
 
-The Expansion tab uses the same row/scroll-list visual language as Products and Furniture.
+receiving exterior → receiving door → DeliveryZone → storage → staff opening → sales floor.
 
-Permanent expansion purchases require two clicks:
+The Store Computer and player restock BasketStation belong in the backroom.
 
-1. `BUY EXPANSION`
-2. `CONFIRM`
+## Expansion layout
 
-Switching tabs or closing/reopening the terminal cancels pending confirmation.
+### Sales Floor Expansion I
 
-## Save system
+Bounds: X +8 to +12, Z -5 to +5.
 
-Current save version after Lesson 106: **21**.
+Adds 4 m × 10 m = 40 m².
 
-Version 21 adds `unlockedExpansionIDs` to `StoreSaveData`.
+Area type: SalesFloor.
 
-On load, expansion state is restored before furniture layout reconstruction. This is important because saved furniture may physically occupy expansion space.
+Expansion ID: `sales_floor_01`.
 
-Version 20 and older saves contain no expansion IDs and therefore load with optional expansions locked.
+### Backroom Expansion I
 
-## First expansion UI palette
+Bounds: X -12 to -8, Z -5 to +5.
 
-The Expansion tab reuses the established store-computer palette:
+Adds 4 m × 10 m = 40 m².
 
-- primary text: `#594640`
-- secondary text: `#7A6860`
-- cream row/card: `#FFF9EE64`
-- action normal: `#BFE3CF`
-- highlighted: `#D2EEE0`
-- pressed: `#9FC8B1`
+Area type: Backroom.
 
-## Backroom cold storage
+Expansion ID: `backroom_01`.
 
-The existing authored backroom rack and chilled StorageSlot_07 remain unchanged.
+The old Lesson-106 `rear_extension_01` geometry and asset are removed.
 
-Purchasable backroom racks are still deferred. Before implementing them, the project should review whether shelf-display furniture and storage furniture should share a broader persistent furniture identity.
+## StoreExpansionZone refactor
 
-## Spoilage
+`StoreExpansionZone` references a StoreBuildZone rather than a raw build-floor collider.
 
-Spoilage is deliberately deferred until the major management systems are established.
+Unlocking disables its boundary barrier, activates its geometry root, and marks its StoreBuildZone available.
 
-The existing storage-condition architecture remains ready for it, so it can be added later without redesigning product/display fundamentals.
+## StoreExpansionSystem compatibility cleanup
 
-## Immediate roadmap after Lesson 106
+`RestoreUnlockedExpansionIDs(List<string>)` now restores only the current development schema.
 
-### Lesson 107 — broader furniture identity / purchasable backroom storage
+Old save-version branches are intentionally removed.
 
-Start with a regression pass on the new expansion, then review a broader furniture identity and add purchasable StorageBay furniture without forcing storage racks through shelf-specific persistence.
+## Save system — development baseline v2
 
-### Lesson 108 — employee foundation
+New save filename: `little_market_dev_v2_save.json`.
 
-Begin the first employee system after the manual ordering, receiving, storage, restocking, furniture, expansion, customer and checkout loops are reliable.
+Current schema version: `1`.
 
-A simple restocker is the likely first employee because the player already understands that workflow manually.
+The schema uses `List<FurniturePlacementSaveData> furniturePlacements`.
 
-### Lesson 109 — integrated progression and space-management review
+Load requires an exact schema-version match.
 
-Review furniture capacity, backroom capacity, expansion pacing, product progression, customer navigation, and save/load before adding another major management subsystem.
+Historical migration branches for prototype versions 2–21 are removed.
 
-### Later development
+The old save remains on disk unless manually deleted, but the game no longer reads it.
 
-- spoilage/perishables
-- deeper specialized displays
-- additional expansion tiers
-- furniture selling/recovery
-- operating expenses and economy balancing
-- art and polish passes
+## Restore order
+
+1. economy
+2. reputation
+3. unlocked products
+4. unlocked expansions / geometry
+5. furniture layout
+6. shelf inventory
+7. deliveries
+8. loose products
+9. daily stats
+10. goal reward state
+11. Store Level
+12. progression refresh
+13. clock
+14. pending supplier deliveries
+15. backroom storage inventory
+16. report history
+17. customer flow reset
+
+## Modeling contract
+
+Lesson-107 cubes are structural blockout proxies, not final art.
+
+Future production models should use metres, fit the fixed gameplay dimensions, keep prefab roots at scale 1, replace visual meshes without changing room bounds, and preserve door/opening locations unless a deliberate gameplay redesign is made.
+
+## Deferred
+
+Still deferred: spoilage, operating expenses, polished building art, additional expansion tiers, employee automation, and purchasable storage racks.
+
+## Roadmap
+
+### Lesson 108 — general furniture persistence and purchasable backroom storage
+
+Extend the generic FurnitureIdentity/StoreFurnitureLayout path to StorageBay furniture and add the first purchasable ambient/chilled backroom rack definitions.
+
+### Lesson 109 — expansion progression and space-management review
+
+Validate independent SalesFloor and Backroom expansion purchases, area restrictions, customer flow, storage capacity, navigation, and save/load.
+
+### Lesson 110 — first employee foundation
+
+Begin the first employee system after the manual workflow and spatial architecture are stable. A restocker remains the preferred first employee.

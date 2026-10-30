@@ -3,69 +3,60 @@ using UnityEngine;
 
 public class ShelfRegistry : MonoBehaviour
 {
-    private List<ShelfSlot> registeredSlots = new();
+    private readonly List<ShelfSlot> registeredSlots = new();
 
     public int RegisteredSlotCount => registeredSlots.Count;
 
     public void RegisterSlot(ShelfSlot shelfSlot)
     {
-        if (shelfSlot == null) return;
+        if (shelfSlot == null)
+            return;
 
-        if (registeredSlots.Contains(
-                shelfSlot
-            ))
+        if (registeredSlots.Contains(shelfSlot))
             return;
 
         if (string.IsNullOrWhiteSpace(shelfSlot.SlotID))
         {
             Debug.LogError(
-                "ShelfSlot '"
-                + shelfSlot.gameObject.name
-                + "' has no Slot ID.",
+                $"ShelfSlot '{shelfSlot.gameObject.name}' has no Slot ID.",
                 shelfSlot
             );
 
             return;
         }
 
-        var existingSlot =
-            FindSlotByID(
-                shelfSlot.SlotID
-            );
+        ShelfSlot existingSlot =
+            FindSlotByID(shelfSlot.SlotID);
 
         if (existingSlot != null &&
             existingSlot != shelfSlot)
         {
             Debug.LogError(
-                "Duplicate ShelfSlot ID '"
-                + shelfSlot.SlotID
-                + "'. Every shelf slot must "
-                + "have a unique stable ID.",
+                $"Duplicate ShelfSlot ID '{shelfSlot.SlotID}'. Every shelf slot must have a unique stable ID.",
                 shelfSlot
             );
 
             return;
         }
 
-        registeredSlots.Add(
-            shelfSlot
-        );
+        registeredSlots.Add(shelfSlot);
     }
 
     public void UnregisterSlot(ShelfSlot shelfSlot)
     {
-        if (shelfSlot == null) return;
+        if (shelfSlot == null)
+            return;
 
-        registeredSlots.Remove(
-            shelfSlot
-        );
+        registeredSlots.Remove(shelfSlot);
     }
 
     public ShelfSlot GetRegisteredSlot(int index)
     {
         if (index < 0 ||
             index >= registeredSlots.Count)
+        {
             return null;
+        }
 
         return registeredSlots[index];
     }
@@ -73,28 +64,14 @@ public class ShelfRegistry : MonoBehaviour
     public ShelfSlot FindSlotByID(string slotID)
     {
         if (string.IsNullOrWhiteSpace(slotID))
-        {
             return null;
-        }
 
-        // First try the current automatic identity.
         for (int i = 0; i < registeredSlots.Count; i++)
         {
             ShelfSlot slot = registeredSlots[i];
 
-            if (slot != null && slot.SlotID == slotID)
-            {
-                return slot;
-            }
-        }
-
-        // Compatibility with Version 14 and older manually
-        // assigned shelf IDs.
-        for (int i = 0; i < registeredSlots.Count; i++)
-        {
-            ShelfSlot slot = registeredSlots[i];
-
-            if (slot != null && slot.LegacySlotID == slotID)
+            if (slot != null &&
+                slot.SlotID == slotID)
             {
                 return slot;
             }
@@ -105,34 +82,26 @@ public class ShelfRegistry : MonoBehaviour
 
     public bool TryFindStockedSlot(
         ProductData productData,
-        out ShelfSlot foundSlot
-    )
+        out ShelfSlot foundSlot)
     {
         foundSlot = null;
 
-        if (productData == null) return false;
+        if (productData == null)
+            return false;
 
-        for (var i = 0;
-             i < registeredSlots.Count;
-             i++)
+        for (int i = 0; i < registeredSlots.Count; i++)
         {
-            var slot =
-                registeredSlots[i];
+            ShelfSlot slot = registeredSlots[i];
 
-            if (slot == null) continue;
-
-            if (!slot.isActiveAndEnabled) continue;
-
-            if (slot.CustomerStandPoint == null) continue;
-
-            if (!slot.ContainsProduct(
-                    productData
-                ))
+            if (slot == null ||
+                !slot.isActiveAndEnabled ||
+                slot.CustomerStandPoint == null ||
+                !slot.ContainsProduct(productData))
+            {
                 continue;
+            }
 
-            foundSlot =
-                slot;
-
+            foundSlot = slot;
             return true;
         }
 

@@ -6,13 +6,13 @@ using UnityEditor;
 #endif
 
 [DisallowMultipleComponent]
-public class ShelfIdentity : MonoBehaviour
+public class FurnitureIdentity : MonoBehaviour
 {
     [Header("Furniture")]
     [SerializeField] private FurnitureDefinition furnitureDefinition;
 
     [Header("Persistent Identity")]
-    [Tooltip("Generated automatically for each scene shelf; do not change manually.")]
+    [Tooltip("Generated automatically for authored scene furniture; do not change manually.")]
     [SerializeField] private string persistentID = "";
 
     public string PersistentID => persistentID;
@@ -22,7 +22,11 @@ public class ShelfIdentity : MonoBehaviour
     {
         if (string.IsNullOrWhiteSpace(newID))
         {
-            Debug.LogError("A runtime shelf needs a non-empty ID.", this);
+            Debug.LogError(
+                "A runtime furniture instance needs a non-empty ID.",
+                this
+            );
+
             return;
         }
 
@@ -33,7 +37,11 @@ public class ShelfIdentity : MonoBehaviour
     {
         if (definition == null)
         {
-            Debug.LogError("A furniture instance needs a valid FurnitureDefinition.", this);
+            Debug.LogError(
+                "A furniture instance needs a valid FurnitureDefinition.",
+                this
+            );
+
             return;
         }
 
@@ -67,12 +75,12 @@ public class ShelfIdentity : MonoBehaviour
         if (string.IsNullOrWhiteSpace(persistentID))
             return false;
 
-        ShelfIdentity[] identities = FindObjectsByType<ShelfIdentity>(
-            FindObjectsInactive.Include,
-            FindObjectsSortMode.None
-        );
+        FurnitureIdentity[] identities =
+            FindObjectsByType<FurnitureIdentity>(
+                FindObjectsInactive.Include
+            );
 
-        foreach (ShelfIdentity other in identities)
+        foreach (FurnitureIdentity other in identities)
         {
             if (other == null || other == this)
                 continue;

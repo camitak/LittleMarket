@@ -1,7 +1,5 @@
 using UnityEngine;
 
-// Owns furniture purchase transaction rules.
-// Furniture data such as price, prefab and footprint lives in FurnitureDefinition.
 [DisallowMultipleComponent]
 public class FurnitureShop : MonoBehaviour
 {
@@ -18,14 +16,19 @@ public class FurnitureShop : MonoBehaviour
     [SerializeField] private PlayerInteraction playerInteraction;
     [SerializeField] private FurniturePlacementController placementController;
 
-    public int CatalogCount => furnitureCatalog != null ? furnitureCatalog.Count : 0;
+    public int CatalogCount =>
+        furnitureCatalog != null ? furnitureCatalog.Count : 0;
 
     public FurnitureDefinition GetCatalogItem(int index)
     {
-        return furnitureCatalog != null ? furnitureCatalog.GetAt(index) : null;
+        return furnitureCatalog != null
+            ? furnitureCatalog.GetAt(index)
+            : null;
     }
 
-    public bool CanBeginPurchase(FurnitureDefinition definition, out string reason)
+    public bool CanBeginPurchase(
+        FurnitureDefinition definition,
+        out string reason)
     {
         if (furnitureCatalog == null ||
             storeEconomy == null ||
@@ -39,7 +42,8 @@ public class FurnitureShop : MonoBehaviour
             return false;
         }
 
-        if (definition == null || !furnitureCatalog.Contains(definition))
+        if (definition == null ||
+            !furnitureCatalog.Contains(definition))
         {
             reason = "This furniture is not part of the current catalog.";
             return false;
@@ -51,16 +55,20 @@ public class FurnitureShop : MonoBehaviour
             return false;
         }
 
-        if (storeClock.IsStoreOpen || storeClock.HasDayEnded ||
+        if (storeClock.IsStoreOpen ||
+            storeClock.HasDayEnded ||
             customerFlow.ActiveCustomerCount > 0)
         {
             reason = "Buy furniture while the store is closed and empty.";
             return false;
         }
 
-        if (playerInteraction.HasAnythingHeld || placementController.IsPlacementActive)
+        if (playerInteraction.HasAnythingHeld ||
+            placementController.IsPlacementActive)
         {
-            reason = "Put down carried items and finish existing placement first.";
+            reason =
+                "Put down carried items and finish existing placement first.";
+
             return false;
         }
 
@@ -74,21 +82,32 @@ public class FurnitureShop : MonoBehaviour
         return true;
     }
 
-    public bool TryBeginPurchase(FurnitureDefinition definition, out string reason)
+    public bool TryBeginPurchase(
+        FurnitureDefinition definition,
+        out string reason)
     {
         if (!CanBeginPurchase(definition, out reason))
             return false;
 
-        if (!storeFurnitureLayout.TryCreatePreviewFurniture(definition, out ShelfIdentity furniture))
+        if (!storeFurnitureLayout.TryCreatePreviewFurniture(
+                definition,
+                out FurnitureIdentity furniture))
         {
-            reason = $"Could not create {definition.DisplayName}. Check the furniture catalog and prefab.";
+            reason =
+                $"Could not create {definition.DisplayName}. Check the furniture catalog and prefab.";
+
             return false;
         }
 
-        if (!placementController.BeginPurchasedFurniturePreview(furniture, this))
+        if (!placementController.BeginPurchasedFurniturePreview(
+                furniture,
+                this))
         {
             storeFurnitureLayout.DiscardUnconfirmedFurniture(furniture);
-            reason = "Couldn't start furniture placement. Make sure the Game view is active.";
+
+            reason =
+                "Couldn't start furniture placement. Make sure the Game view is active.";
+
             return false;
         }
 
@@ -109,9 +128,13 @@ public class FurnitureShop : MonoBehaviour
         return storeEconomy.TrySpend(definition.PurchasePrice);
     }
 
-    public void CancelPurchase(ShelfIdentity previewFurniture)
+    public void CancelPurchase(FurnitureIdentity previewFurniture)
     {
         if (storeFurnitureLayout != null)
-            storeFurnitureLayout.DiscardUnconfirmedFurniture(previewFurniture);
+        {
+            storeFurnitureLayout.DiscardUnconfirmedFurniture(
+                previewFurniture
+            );
+        }
     }
 }

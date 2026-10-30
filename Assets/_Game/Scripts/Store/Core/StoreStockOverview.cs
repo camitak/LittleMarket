@@ -18,148 +18,91 @@ public class StoreStockOverview : MonoBehaviour
 
     [SerializeField] private RestockBasket restockBasket;
 
-    public int LowStockThreshold =>
-        lowStockThreshold;
+    public int LowStockThreshold => lowStockThreshold;
 
-    public int GetShelfCount(
-        ProductData productData
-    )
+    public int GetShelfCount(ProductData productData)
     {
-        if (productData == null ||
-            shelfRegistry == null)
+        if (productData == null || shelfRegistry == null)
             return 0;
 
-        var count =
-            0;
+        var count = 0;
 
-        for (var i = 0;
-             i < shelfRegistry.RegisteredSlotCount;
-             i++)
+        for (var i = 0; i < shelfRegistry.RegisteredSlotCount; i++)
         {
-            var slot =
-                shelfRegistry.GetRegisteredSlot(
-                    i
-                );
+            var slot = shelfRegistry.GetRegisteredSlot(i);
 
             if (slot == null) continue;
 
-            count +=
-                slot.GetStoredProductCount(
-                    productData
-                );
+            count += slot.GetStoredProductCount(productData);
         }
 
         return count;
     }
 
-    public int GetStorageCount(
-        ProductData productData
-    )
+    public int GetStorageCount(ProductData productData)
     {
-        if (productData == null ||
-            storageRegistry == null)
+        if (productData == null || storageRegistry == null)
             return 0;
 
-        var count =
-            0;
+        var count = 0;
 
-        for (var i = 0;
-             i < storageRegistry.RegisteredSlotCount;
-             i++)
+        for (var i = 0; i < storageRegistry.RegisteredSlotCount; i++)
         {
-            var bay =
-                storageRegistry.GetRegisteredSlot(
-                    i
-                );
+            var bay = storageRegistry.GetRegisteredSlot(i);
 
             if (bay == null) continue;
 
-            count +=
-                bay.GetStoredProductCount(
-                    productData
-                );
+            count += bay.GetStoredProductCount(productData);
         }
 
         return count;
     }
 
-    public int GetBasketCount(
-        ProductData productData
-    )
+    public int GetBasketCount(ProductData productData)
     {
-        if (productData == null ||
-            restockBasket == null)
+        if (productData == null || restockBasket == null)
             return 0;
 
-        return restockBasket
-            .GetProductCount(
-                productData
-            );
+        return restockBasket.GetProductCount(productData);
     }
 
-    public int GetDeliveryCount(
-        ProductData productData
-    )
+    public int GetDeliveryCount(ProductData productData)
     {
         if (productData == null) return 0;
 
-        var boxes =
-            FindObjectsByType<
-                DeliveryBox
-            >(
-                FindObjectsSortMode.None
-            );
+        DeliveryBox[] boxes = FindObjectsByType<DeliveryBox>();
 
-        var count =
-            0;
+        var count = 0;
 
-        for (var i = 0;
-             i < boxes.Length;
-             i++)
+        for (var i = 0; i < boxes.Length; i++)
         {
-            var box =
-                boxes[i];
+            var box = boxes[i];
 
-            if (box == null ||
-                box.ProductData != productData)
+            if (box == null || box.ProductData != productData)
                 continue;
 
-            count +=
-                Mathf.Max(
-                    0,
-                    box.RemainingQuantity
-                );
+            count += Mathf.Max(0, box.RemainingQuantity);
         }
 
         return count;
     }
 
-    public int GetLooseCount(
-        ProductData productData
-    )
+    public int GetLooseCount(ProductData productData)
     {
-        if (productData == null ||
-            worldItemRegistry == null)
+        if (productData == null || worldItemRegistry == null)
             return 0;
 
-        var count =
-            0;
+        var count = 0;
 
-        for (var i = 0;
-             i < worldItemRegistry.RegisteredItemCount;
-             i++)
+        for (var i = 0; i < worldItemRegistry.RegisteredItemCount; i++)
         {
-            PickupItem item =
-                worldItemRegistry.GetRegisteredItem(
-                    i
-                );
+            PickupItem item = worldItemRegistry.GetRegisteredItem(i);
 
             if (item == null) continue;
 
             if (!item.IsLooseWorldItem) continue;
 
-            if (item.GetProductData()
-                != productData)
+            if (item.GetProductData() != productData)
                 continue;
 
             count++;
@@ -168,106 +111,59 @@ public class StoreStockOverview : MonoBehaviour
         return count;
     }
 
-    public int GetHeldCount(
-        ProductData productData
-    )
+    public int GetHeldCount(ProductData productData)
     {
-        if (productData == null ||
-            playerInteraction == null)
+        if (productData == null || playerInteraction == null)
             return 0;
 
-        var heldItem =
-            playerInteraction.GetHeldItem();
+        var heldItem = playerInteraction.GetHeldItem();
 
         if (heldItem == null) return 0;
 
-        if (heldItem.GetProductData()
-            != productData)
+        if (heldItem.GetProductData() != productData)
             return 0;
 
         return 1;
     }
 
-    public int GetOtherBackStockCount(
-        ProductData productData
-    )
+    public int GetOtherBackStockCount(ProductData productData)
     {
-        return GetDeliveryCount(
-                   productData
-               )
-               + GetBasketCount(
-                   productData
-               )
-               + GetLooseCount(
-                   productData
-               )
-               + GetHeldCount(
-                   productData
-               );
+        return GetDeliveryCount(productData) + GetBasketCount(productData) + GetLooseCount(productData) +
+               GetHeldCount(productData);
     }
 
-    public int GetBackStockCount(
-        ProductData productData
-    )
+    public int GetBackStockCount(ProductData productData)
     {
-        return GetStorageCount(
-                   productData
-               )
-               + GetOtherBackStockCount(
-                   productData
-               );
+        return GetStorageCount(productData) + GetOtherBackStockCount(productData);
     }
 
-    public int GetTotalStockCount(
-        ProductData productData
-    )
+    public int GetTotalStockCount(ProductData productData)
     {
-        return GetShelfCount(
-                   productData
-               )
-               + GetBackStockCount(
-                   productData
-               );
+        return GetShelfCount(productData) + GetBackStockCount(productData);
     }
 
-    public StockStatus GetStockStatus(
-        ProductData productData
-    )
+    public StockStatus GetStockStatus(ProductData productData)
     {
-        var shelfCount =
-            GetShelfCount(
-                productData
-            );
+        var shelfCount = GetShelfCount(productData);
 
-        var backStockCount =
-            GetBackStockCount(
-                productData
-            );
+        var backStockCount = GetBackStockCount(productData);
 
-        var totalStock =
-            shelfCount
-            + backStockCount;
+        var totalStock = shelfCount + backStockCount;
 
         if (totalStock <= 0) return StockStatus.OutOfStock;
 
-        if (shelfCount <= 0 &&
-            backStockCount > 0)
+        if (shelfCount <= 0 && backStockCount > 0)
             return StockStatus.Restock;
 
-        if (totalStock
-            <= lowStockThreshold)
+        if (totalStock <= lowStockThreshold)
             return StockStatus.Low;
 
         return StockStatus.Healthy;
     }
 
-    public string GetStatusLabel(
-        ProductData productData
-    )
+    public string GetStatusLabel(ProductData productData)
     {
-        switch (GetStockStatus(
-                    productData
-                ))
+        switch (GetStockStatus(productData))
         {
             case StockStatus.Low:
                 return "LOW";

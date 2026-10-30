@@ -18,14 +18,9 @@ public class FurniturePlacementController : MonoBehaviour
     [SerializeField] private NavMeshSurface navMeshSurface;
 
     [Header("Placement")]
-    [Min(1f)]
-    [SerializeField] private float grabDistance = 4f;
-
-    [Min(1f)]
-    [SerializeField] private float previewRayDistance = 18f;
-
-    [Min(0.1f)]
-    [SerializeField] private float gridSize = 0.5f;
+    [Min(1f)] [SerializeField] private float grabDistance = 4f;
+    [Min(1f)] [SerializeField] private float previewRayDistance = 18f;
+    [Min(0.1f)] [SerializeField] private float gridSize = 0.5f;
 
     [Header("Fallback Body Footprint")]
     [SerializeField] private Vector3 footprintHalfExtents = new(1.30f, 1.05f, 0.52f);
@@ -35,14 +30,13 @@ public class FurniturePlacementController : MonoBehaviour
     [SerializeField] private Vector3 accessHalfExtents = new(1.25f, 0.75f, 0.50f);
     [SerializeField] private Vector3 accessCenter = new(0f, 0.80f, -1.02f);
 
-    [Min(0.01f)]
-    [SerializeField] private float outlineWidth = 0.05f;
+    [Min(0.01f)] [SerializeField] private float outlineWidth = 0.05f;
 
     [Header("Preview Colours")]
     [SerializeField] private Color validColor = new Color32(111, 207, 151, 255);
     [SerializeField] private Color invalidColor = new Color32(196, 107, 107, 255);
 
-    private ShelfIdentity selectedShelf;
+    private FurnitureIdentity selectedFurniture;
     private Vector3 originalPosition;
     private Quaternion originalRotation;
     private float previewYaw;
@@ -60,12 +54,17 @@ public class FurniturePlacementController : MonoBehaviour
     private static readonly int BaseColorId =
         Shader.PropertyToID("_BaseColor");
 
-    public bool IsPlacementActive => selectedShelf != null;
+    public bool IsPlacementActive => selectedFurniture != null;
 
     private FurnitureDefinition CurrentDefinition =>
-        selectedShelf != null
-            ? selectedShelf.FurnitureDefinition
+        selectedFurniture != null
+            ? selectedFurniture.FurnitureDefinition
             : null;
+
+    private StoreAreaType CurrentPlacementArea =>
+        CurrentDefinition != null
+            ? CurrentDefinition.PlacementArea
+            : StoreAreaType.SalesFloor;
 
     private Vector3 CurrentBodyHalfExtents =>
         CurrentDefinition != null
@@ -92,7 +91,7 @@ public class FurniturePlacementController : MonoBehaviour
         if (Keyboard.current == null)
             return;
 
-        if (selectedShelf == null)
+        if (selectedFurniture == null)
         {
             if (Keyboard.current.gKey.wasPressedThisFrame &&
                 CanStartPlacement())
@@ -128,11 +127,8 @@ public class FurniturePlacementController : MonoBehaviour
 
         UpdatePreview();
 
-        if (Keyboard.current.eKey.wasPressedThisFrame &&
-            canPlace)
-        {
+        if (Keyboard.current.eKey.wasPressedThisFrame && canPlace)
             ConfirmPlacement();
-        }
     }
 
     private void LateUpdate()
@@ -143,7 +139,7 @@ public class FurniturePlacementController : MonoBehaviour
             return;
         }
 
-        if (selectedShelf != null)
+        if (selectedFurniture != null)
         {
             if (!canPlace)
             {
@@ -177,8 +173,8 @@ public class FurniturePlacementController : MonoBehaviour
         }
 
         if (CanStartPlacement() &&
-            TryFindLookedAtShelf(out ShelfIdentity shelf) &&
-            IsEmpty(shelf))
+            TryFindLookedAtFurniture(out FurnitureIdentity furniture) &&
+            IsEmpty(furniture))
         {
             interactionUI.ShowPrompt("[G] Move empty furniture");
         }
@@ -201,9 +197,10 @@ public class FurniturePlacementController : MonoBehaviour
                Cursor.lockState == CursorLockMode.Locked;
     }
 
-    private bool TryFindLookedAtShelf(out ShelfIdentity shelf)
+    private bool TryFindLookedAtFurniture(
+        out FurnitureIdentity furniture)
     {
-        shelf = null;
+        furniture = null;
 
         Ray ray = new(
             playerCamera.transform.position,
@@ -230,101 +227,110 @@ public class FurniturePlacementController : MonoBehaviour
                 continue;
             }
 
-            shelf =
-                hit.collider.GetComponentInParent<ShelfIdentity>();
+            furniture =
+                hit.collider.GetComponentInParent<FurnitureIdentity>();
 
-            return shelf != null;
+            return furniture != null;
         }
 
         return false;
     }
 
-    private static bool IsEmpty(ShelfIdentity shelf)
+    private static bool IsEmpty(FurnitureIdentity furniture)
     {
-        if (shelf == null)
+        if (furniture == null)
             return false;
 
-        ShelfSlot[] slots =
-            shelf.GetComponentsInChildren<ShelfSlot>();
+        bool hasManagedContents = false;
 
-        if (slots.Length == 0)
-            return false;
+        ShelfSlot[] shelfSlots =
+            furniture.GetComponentsInChildren<ShelfSlot>(true);
 
-        foreach (ShelfSlot slot in slots)
+        foreach (ShelfSlot slot in shelfSlots)
         {
+            hasManagedContents = true;
+
             if (slot.StoredItemCount > 0)
                 return false;
         }
 
-        return true;
+        StorageBay[] storageBays =
+            furniture.GetComponentsInChildren<StorageBay>(true);
+
+        foreach (StorageBay bay in storageBays)
+        {
+            hasManagedContents = true;
+
+            if (bay.Quantity > 0)
+                return false;
+        }
+
+        return hasManagedContents;
     }
 
     public bool BeginPurchasedFurniturePreview(
-        ShelfIdentity furniture,
+        FurnitureIdentity furniture,
         FurnitureShop shop)
     {
         if (furniture == null ||
             furniture.FurnitureDefinition == null ||
             shop == null ||
-            selectedShelf != null ||
+            selectedFurniture != null ||
             !CanStartPlacement())
         {
             return false;
         }
 
         StartPreview(furniture, true, shop);
+
         return true;
     }
 
     private void TryStartPlacement()
     {
-        if (!TryFindLookedAtShelf(out ShelfIdentity shelf) ||
-            !IsEmpty(shelf))
+        if (!TryFindLookedAtFurniture(out FurnitureIdentity furniture) ||
+            !IsEmpty(furniture))
         {
             return;
         }
 
-        StartPreview(shelf, false, null);
+        StartPreview(furniture, false, null);
     }
 
     private void StartPreview(
-        ShelfIdentity shelf,
+        FurnitureIdentity furniture,
         bool purchased,
         FurnitureShop shop)
     {
-        selectedShelf = shelf;
+        selectedFurniture = furniture;
         isNewFurniturePurchase = purchased;
         pendingPurchase = shop;
 
-        originalPosition = shelf.transform.position;
-        originalRotation = shelf.transform.rotation;
-        previewYaw = shelf.transform.eulerAngles.y;
+        originalPosition = furniture.transform.position;
+        originalRotation = furniture.transform.rotation;
+        previewYaw = furniture.transform.eulerAngles.y;
         canPlace = false;
 
         selectedColliders =
-            shelf.GetComponentsInChildren<Collider>(true);
+            furniture.GetComponentsInChildren<Collider>(true);
 
-        originallyEnabled =
-            new bool[selectedColliders.Length];
+        originallyEnabled = new bool[selectedColliders.Length];
 
         for (int i = 0; i < selectedColliders.Length; i++)
         {
-            originallyEnabled[i] =
-                selectedColliders[i].enabled;
-
+            originallyEnabled[i] = selectedColliders[i].enabled;
             selectedColliders[i].enabled = false;
         }
 
         selectedRenderers =
-            shelf.GetComponentsInChildren<MeshRenderer>(true);
+            furniture.GetComponentsInChildren<MeshRenderer>(true);
 
         originalProperties =
             new MaterialPropertyBlock[selectedRenderers.Length];
 
         for (int i = 0; i < selectedRenderers.Length; i++)
         {
-            originalProperties[i] =
-                new MaterialPropertyBlock();
+            originalProperties[i] = new MaterialPropertyBlock();
 
             selectedRenderers[i]
                 .GetPropertyBlock(originalProperties[i]);
@@ -338,7 +344,7 @@ public class FurniturePlacementController : MonoBehaviour
 
     private void UpdatePreview()
     {
-        if (selectedShelf == null)
+        if (selectedFurniture == null)
             return;
 
         Ray ray = new(
@@ -346,12 +352,12 @@ public class FurniturePlacementController : MonoBehaviour
             playerCamera.transform.forward
         );
 
-        bool foundFloor =
-            buildArea.TryGetPlacementSurface(
-                ray,
-                previewRayDistance,
-                out Vector3 surfacePoint
-            );
+        bool foundFloor = buildArea.TryGetPlacementSurface(
+            ray,
+            previewRayDistance,
+            CurrentPlacementArea,
+            out Vector3 surfacePoint
+        );
 
         Vector3 target = originalPosition;
 
@@ -371,8 +377,10 @@ public class FurniturePlacementController : MonoBehaviour
 
         if (foundFloor)
         {
-            selectedShelf.transform
-                .SetPositionAndRotation(target, rotation);
+            selectedFurniture.transform.SetPositionAndRotation(
+                target,
+                rotation
+            );
         }
 
         canPlace =
@@ -394,7 +402,8 @@ public class FurniturePlacementController : MonoBehaviour
                 position,
                 rotation,
                 CurrentBodyCenter,
-                CurrentBodyHalfExtents))
+                CurrentBodyHalfExtents,
+                CurrentPlacementArea))
         {
             return false;
         }
@@ -403,7 +412,8 @@ public class FurniturePlacementController : MonoBehaviour
                 position,
                 rotation,
                 CurrentAccessCenter,
-                CurrentAccessHalfExtents))
+                CurrentAccessHalfExtents,
+                CurrentPlacementArea))
         {
             return false;
         }
@@ -457,8 +467,8 @@ public class FurniturePlacementController : MonoBehaviour
                 continue;
             }
 
-            if (selectedShelf != null &&
-                hit.transform.IsChildOf(selectedShelf.transform))
+            if (selectedFurniture != null &&
+                hit.transform.IsChildOf(selectedFurniture.transform))
             {
                 continue;
             }
@@ -517,7 +527,7 @@ public class FurniturePlacementController : MonoBehaviour
     private void UpdateAccessOutline(Color color)
     {
         if (accessOutline == null ||
-            selectedShelf == null)
+            selectedFurniture == null)
         {
             return;
         }
@@ -539,14 +549,14 @@ public class FurniturePlacementController : MonoBehaviour
         {
             accessOutline.SetPosition(
                 i,
-                selectedShelf.transform
+                selectedFurniture.transform
                     .TransformPoint(localCorners[i])
             );
         }
 
         accessOutline.SetPosition(
             4,
-            selectedShelf.transform
+            selectedFurniture.transform
                 .TransformPoint(localCorners[0])
         );
 
@@ -629,12 +639,12 @@ public class FurniturePlacementController : MonoBehaviour
 
     private void CancelPlacement()
     {
-        if (selectedShelf == null)
+        if (selectedFurniture == null)
             return;
 
         if (isNewFurniturePurchase)
         {
-            ShelfIdentity preview = selectedShelf;
+            FurnitureIdentity preview = selectedFurniture;
             FurnitureShop shop = pendingPurchase;
 
             FinishPreview(false);
@@ -650,12 +660,12 @@ public class FurniturePlacementController : MonoBehaviour
 
     private void FinishPreview(bool restorePosition)
     {
-        if (selectedShelf == null)
+        if (selectedFurniture == null)
             return;
 
         if (restorePosition)
         {
-            selectedShelf.transform.SetPositionAndRotation(
+            selectedFurniture.transform.SetPositionAndRotation(
                 originalPosition,
                 originalRotation
             );
@@ -687,7 +697,7 @@ public class FurniturePlacementController : MonoBehaviour
 
         DestroyAccessOutline();
 
-        selectedShelf = null;
+        selectedFurniture = null;
         isNewFurniturePurchase = false;
         pendingPurchase = null;
         selectedColliders = null;

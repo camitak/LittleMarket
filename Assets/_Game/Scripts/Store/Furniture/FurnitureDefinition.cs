@@ -13,7 +13,10 @@ public class FurnitureDefinition : ScriptableObject
 
     [Header("Purchase")]
     [Min(0f)] [SerializeField] private float purchasePrice = 40f;
-    [SerializeField] private ShelfIdentity prefab;
+    [SerializeField] private FurnitureIdentity prefab;
+
+    [Header("Placement")]
+    [SerializeField] private StoreAreaType placementArea = StoreAreaType.SalesFloor;
 
     [Header("Placement - Body")]
     [SerializeField] private Vector3 bodyHalfExtents = new(1.30f, 1.05f, 0.52f);
@@ -27,7 +30,8 @@ public class FurnitureDefinition : ScriptableObject
     public string DisplayName => displayName;
     public string Description => description;
     public float PurchasePrice => Mathf.Max(0f, purchasePrice);
-    public ShelfIdentity Prefab => prefab;
+    public FurnitureIdentity Prefab => prefab;
+    public StoreAreaType PlacementArea => placementArea;
 
     public Vector3 BodyHalfExtents => bodyHalfExtents;
     public Vector3 BodyCenter => bodyCenter;

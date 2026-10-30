@@ -4,15 +4,12 @@ using UnityEngine;
 [DisallowMultipleComponent]
 public class StoreBuildArea : MonoBehaviour
 {
-    [Header("Base Store")]
-    [SerializeField] private Collider baseFloor;
-
-    [Header("Expansion Zones")]
-    [SerializeField] private StoreExpansionZone[] expansionZones;
+    [SerializeField] private StoreBuildZone[] buildZones;
 
     public bool TryGetPlacementSurface(
         Ray ray,
         float maxDistance,
+        StoreAreaType requiredArea,
         out Vector3 surfacePoint)
     {
         surfacePoint = Vector3.zero;
@@ -28,11 +25,14 @@ public class StoreBuildArea : MonoBehaviour
 
         foreach (RaycastHit hit in hits)
         {
-            if (!IsBuildFloorCollider(hit.collider))
+            StoreBuildZone zone = FindAvailableZone(hit.collider);
+
+            if (zone == null || zone.AreaType != requiredArea)
                 continue;
 
             surfacePoint = hit.point;
             surfacePoint.y = hit.collider.bounds.max.y;
+
             return true;
         }
 
@@ -43,14 +43,12 @@ public class StoreBuildArea : MonoBehaviour
         Vector3 position,
         Quaternion rotation,
         Vector3 offset,
-        Vector3 halfExtents)
+        Vector3 halfExtents,
+        StoreAreaType requiredArea)
     {
         float halfX = Mathf.Max(0.01f, halfExtents.x);
         float halfZ = Mathf.Max(0.01f, halfExtents.z);
 
-        // Nine samples instead of only four corners.
-        // This also handles furniture crossing the seam between two
-        // contiguous unlocked floor zones.
         for (int x = -1; x <= 1; x++)
         {
             for (int z = -1; z <= 1; z++)
@@ -61,10 +59,9 @@ public class StoreBuildArea : MonoBehaviour
                     z * halfZ
                 );
 
-                Vector3 worldSample =
-                    position + rotation * localSample;
+                Vector3 worldSample = position + rotation * localSample;
 
-                if (!ContainsHorizontalPoint(worldSample))
+                if (!ContainsHorizontalPoint(worldSample, requiredArea))
                     return false;
             }
         }
@@ -74,63 +71,62 @@ public class StoreBuildArea : MonoBehaviour
 
     public bool IsBuildFloorCollider(Collider candidate)
     {
-        if (candidate == null)
+        return FindAvailableZone(candidate) != null;
+    }
+
+    private bool ContainsHorizontalPoint(
+        Vector3 worldPoint,
+        StoreAreaType requiredArea)
+    {
+        if (buildZones == null)
             return false;
 
-        if (candidate == baseFloor)
-            return true;
-
-        if (expansionZones == null)
-            return false;
-
-        foreach (StoreExpansionZone zone in expansionZones)
+        foreach (StoreBuildZone zone in buildZones)
         {
-            if (zone == null || !zone.IsUnlocked)
+            if (zone == null ||
+                !zone.IsAvailable ||
+                zone.AreaType != requiredArea)
+            {
                 continue;
+            }
 
-            if (candidate == zone.BuildFloor)
+            Collider floor = zone.FloorCollider;
+
+            if (floor == null ||
+                !floor.enabled ||
+                !floor.gameObject.activeInHierarchy)
+            {
+                continue;
+            }
+
+            Bounds bounds = floor.bounds;
+
+            if (worldPoint.x >= bounds.min.x &&
+                worldPoint.x <= bounds.max.x &&
+                worldPoint.z >= bounds.min.z &&
+                worldPoint.z <= bounds.max.z)
+            {
                 return true;
+            }
         }
 
         return false;
     }
 
-    private bool ContainsHorizontalPoint(Vector3 worldPoint)
+    private StoreBuildZone FindAvailableZone(Collider candidate)
     {
-        if (ContainsPoint(baseFloor, worldPoint))
-            return true;
+        if (candidate == null || buildZones == null)
+            return null;
 
-        if (expansionZones == null)
-            return false;
-
-        foreach (StoreExpansionZone zone in expansionZones)
+        foreach (StoreBuildZone zone in buildZones)
         {
-            if (zone == null || !zone.IsUnlocked)
+            if (zone == null || !zone.IsAvailable)
                 continue;
 
-            if (ContainsPoint(zone.BuildFloor, worldPoint))
-                return true;
+            if (zone.FloorCollider == candidate)
+                return zone;
         }
 
-        return false;
-    }
-
-    private static bool ContainsPoint(
-        Collider floor,
-        Vector3 worldPoint)
-    {
-        if (floor == null ||
-            !floor.enabled ||
-            !floor.gameObject.activeInHierarchy)
-        {
-            return false;
-        }
-
-        Bounds bounds = floor.bounds;
-
-        return worldPoint.x >= bounds.min.x &&
-               worldPoint.x <= bounds.max.x &&
-               worldPoint.z >= bounds.min.z &&
-               worldPoint.z <= bounds.max.z;
+        return null;
     }
 }
