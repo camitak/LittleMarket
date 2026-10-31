@@ -2,10 +2,18 @@ using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
-public class StorageBay : MonoBehaviour, IInteractable, ISecondaryInteractable, ICarryInteractable,
-    IManagementInteractable, IRepeatableInteractable
+public class StorageBay :
+    MonoBehaviour,
+    IInteractable,
+    ISecondaryInteractable,
+    ICarryInteractable,
+    IManagementInteractable,
+    IRepeatableInteractable,
+    IFurnitureRuntimeParticipant,
+    IFurnitureMoveConstraint
 {
-    [Header("Identity")] [SerializeField] private string slotID = "";
+    [Header("Identity")]
+    [SerializeField] private string localBayKey = "";
 
     [Header("Storage")] 
     [SerializeField] private ProductStorageCondition storageCondition = ProductStorageCondition.Ambient;
@@ -26,6 +34,7 @@ public class StorageBay : MonoBehaviour, IInteractable, ISecondaryInteractable, 
     private int quantity;
 
     private StorageRegistry registeredStorageRegistry;
+    private FurnitureIdentity furnitureIdentity;
 
     private static readonly Color32 EmptyColor = new(122, 104, 96, 255);
 
@@ -37,7 +46,27 @@ public class StorageBay : MonoBehaviour, IInteractable, ISecondaryInteractable, 
 
     private static readonly Color32 HealthyColor = new(111, 207, 151, 255);
 
-    public string SlotID => slotID;
+    public string SlotID
+    {
+        get
+        {
+            if (furnitureIdentity == null)
+            {
+                furnitureIdentity =
+                    GetComponentInParent<FurnitureIdentity>();
+            }
+
+            if (furnitureIdentity == null ||
+                string.IsNullOrWhiteSpace(furnitureIdentity.PersistentID) ||
+                string.IsNullOrWhiteSpace(localBayKey))
+            {
+                return "";
+            }
+
+            return
+                $"{furnitureIdentity.PersistentID}:{localBayKey}";
+        }
+    }
 
     public ProductData AssignedProduct => assignedProduct;
 
@@ -53,18 +82,33 @@ public class StorageBay : MonoBehaviour, IInteractable, ISecondaryInteractable, 
 
     private void Awake()
     {
+        furnitureIdentity =
+            GetComponentInParent<FurnitureIdentity>();
+
         quantity = Mathf.Clamp(quantity, 0, Capacity);
 
         RefreshDisplay();
     }
-
-    private void Start()
+    
+    private void OnDestroy()
     {
-        registeredStorageRegistry = FindAnyObjectByType<StorageRegistry>();
+        UnregisterFurnitureRuntime();
+    }
+    
+    public void RegisterFurnitureRuntime()
+    {
+        if (registeredStorageRegistry != null)
+            return;
+
+        registeredStorageRegistry =
+            FindAnyObjectByType<StorageRegistry>();
 
         if (registeredStorageRegistry == null)
         {
-            Debug.LogError("StorageBay '" + gameObject.name + "' could not find a StorageRegistry.", this);
+            Debug.LogError(
+                $"StorageBay '{gameObject.name}' could not find a StorageRegistry.",
+                this
+            );
 
             return;
         }
@@ -72,11 +116,25 @@ public class StorageBay : MonoBehaviour, IInteractable, ISecondaryInteractable, 
         registeredStorageRegistry.Register(this);
     }
 
-    private void OnDestroy()
+    public void UnregisterFurnitureRuntime()
     {
-        if (registeredStorageRegistry == null) return;
+        if (registeredStorageRegistry == null)
+            return;
 
         registeredStorageRegistry.Unregister(this);
+        registeredStorageRegistry = null;
+    }
+
+    public bool CanMoveFurniture(out string reason)
+    {
+        if (quantity > 0)
+        {
+            reason = "Empty the storage rack before moving it.";
+            return false;
+        }
+
+        reason = "";
+        return true;
     }
 
     public bool CanAcceptProduct(ProductData productData)

@@ -4,7 +4,7 @@ using UnityEngine;
 
 public class SaveManager : MonoBehaviour
 {
-    private const int CurrentSaveVersion = 1;
+    private const int CurrentSaveVersion = 2;
     private const string SaveFileName = "little_market_dev_v2_save.json";
 
     [Header("Store References")]

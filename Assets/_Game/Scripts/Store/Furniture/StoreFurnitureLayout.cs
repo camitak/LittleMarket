@@ -12,9 +12,6 @@ public class StoreFurnitureLayout : MonoBehaviour
     [Header("Furniture Catalog")]
     [SerializeField] private FurnitureCatalog furnitureCatalog;
 
-    [Header("Shelf Registration")]
-    [SerializeField] private ShelfRegistry shelfRegistry;
-
     private readonly Dictionary<string, Pose> authoredPositions = new();
     private readonly HashSet<FurnitureIdentity> pendingRemoval = new();
 
@@ -22,8 +19,11 @@ public class StoreFurnitureLayout : MonoBehaviour
 
     private void Awake()
     {
-        if (!TryFindFurniture(out Dictionary<string, FurnitureIdentity> furniture))
+        if (!TryFindFurniture(
+                out Dictionary<string, FurnitureIdentity> furniture))
+        {
             return;
+        }
 
         foreach (KeyValuePair<string, FurnitureIdentity> entry in furniture)
         {
@@ -46,9 +46,9 @@ public class StoreFurnitureLayout : MonoBehaviour
 
         if (!capturedAuthoredLayout ||
             navMeshSurface == null ||
-            shelfRegistry == null ||
             !IsCatalogDefinitionUsable(definition) ||
-            !TryFindFurniture(out Dictionary<string, FurnitureIdentity> existing))
+            !TryFindFurniture(
+                out Dictionary<string, FurnitureIdentity> existing))
         {
             return false;
         }
@@ -69,12 +69,16 @@ public class StoreFurnitureLayout : MonoBehaviour
 
         furniture.AssignRuntimeID(id);
         furniture.AssignFurnitureDefinition(definition);
-        furniture.gameObject.name = $"Purchased_{definition.FurnitureID}";
+        furniture.SetRuntimeActive(false);
+
+        furniture.gameObject.name =
+            $"Purchased_{definition.FurnitureID}";
 
         return true;
     }
 
-    public void DiscardUnconfirmedFurniture(FurnitureIdentity furniture)
+    public void DiscardUnconfirmedFurniture(
+        FurnitureIdentity furniture)
     {
         if (furniture == null)
             return;
@@ -91,10 +95,10 @@ public class StoreFurnitureLayout : MonoBehaviour
         entries = new List<FurniturePlacementSaveData>();
 
         if (navMeshSurface == null ||
-            shelfRegistry == null ||
             furnitureCatalog == null ||
             !capturedAuthoredLayout ||
-            !TryFindFurniture(out Dictionary<string, FurnitureIdentity> furniture))
+            !TryFindFurniture(
+                out Dictionary<string, FurnitureIdentity> furniture))
         {
             return false;
         }
@@ -102,7 +106,8 @@ public class StoreFurnitureLayout : MonoBehaviour
         foreach (KeyValuePair<string, FurnitureIdentity> entry in furniture)
         {
             FurnitureIdentity identity = entry.Value;
-            FurnitureDefinition definition = identity.FurnitureDefinition;
+            FurnitureDefinition definition =
+                identity.FurnitureDefinition;
 
             if (!IsCatalogDefinitionUsable(definition))
             {
@@ -137,9 +142,9 @@ public class StoreFurnitureLayout : MonoBehaviour
     {
         if (!capturedAuthoredLayout ||
             navMeshSurface == null ||
-            shelfRegistry == null ||
             furnitureCatalog == null ||
-            !TryFindFurniture(out Dictionary<string, FurnitureIdentity> current))
+            !TryFindFurniture(
+                out Dictionary<string, FurnitureIdentity> current))
         {
             return false;
         }
@@ -150,7 +155,11 @@ public class StoreFurnitureLayout : MonoBehaviour
         foreach (string id in authoredPositions.Keys)
         {
             if (!current.ContainsKey(id))
-                return Fail($"Authored furniture '{id}' is missing from the scene.");
+            {
+                return Fail(
+                    $"Authored furniture '{id}' is missing from the scene."
+                );
+            }
         }
 
         HashSet<string> seenIDs = new();
@@ -162,7 +171,9 @@ public class StoreFurnitureLayout : MonoBehaviour
                 string.IsNullOrWhiteSpace(entry.furnitureID) ||
                 !seenIDs.Add(entry.furnitureID))
             {
-                return Fail("Saved furniture identities are missing or duplicated.");
+                return Fail(
+                    "Saved furniture identities are missing or duplicated."
+                );
             }
 
             if (authoredPositions.ContainsKey(entry.furnitureID))
@@ -189,16 +200,24 @@ public class StoreFurnitureLayout : MonoBehaviour
         return true;
     }
 
-    public void RestoreLayout(List<FurniturePlacementSaveData> entries)
+    public void RestoreLayout(
+        List<FurniturePlacementSaveData> entries)
     {
         if (!CanRestoreSaveData(entries))
         {
-            Debug.LogError("Furniture layout restore aborted.", this);
+            Debug.LogError(
+                "Furniture layout restore aborted.",
+                this
+            );
+
             return;
         }
 
-        if (!TryFindFurniture(out Dictionary<string, FurnitureIdentity> current))
+        if (!TryFindFurniture(
+                out Dictionary<string, FurnitureIdentity> current))
+        {
             return;
+        }
 
         foreach (KeyValuePair<string, FurnitureIdentity> pair in current)
         {
@@ -210,10 +229,12 @@ public class StoreFurnitureLayout : MonoBehaviour
         {
             if (authoredPositions.ContainsKey(entry.furnitureID))
             {
-                current[entry.furnitureID].transform.SetPositionAndRotation(
-                    entry.position,
-                    entry.rotation
-                );
+                current[entry.furnitureID]
+                    .transform
+                    .SetPositionAndRotation(
+                        entry.position,
+                        entry.rotation
+                    );
 
                 continue;
             }
@@ -238,9 +259,11 @@ public class StoreFurnitureLayout : MonoBehaviour
 
             purchased.AssignRuntimeID(entry.furnitureID);
             purchased.AssignFurnitureDefinition(definition);
-            purchased.gameObject.name = $"Purchased_{definition.FurnitureID}";
 
-            RegisterShelfSlots(purchased);
+            purchased.gameObject.name =
+                $"Purchased_{definition.FurnitureID}";
+
+            purchased.SetRuntimeActive(true);
         }
 
         Physics.SyncTransforms();
@@ -253,8 +276,11 @@ public class StoreFurnitureLayout : MonoBehaviour
     {
         definition = null;
 
-        if (entry == null || furnitureCatalog == null)
+        if (entry == null ||
+            furnitureCatalog == null)
+        {
             return false;
+        }
 
         if (!furnitureCatalog.TryGetByID(
                 entry.furnitureDefinitionID,
@@ -266,7 +292,8 @@ public class StoreFurnitureLayout : MonoBehaviour
         return IsCatalogDefinitionUsable(definition);
     }
 
-    private bool IsCatalogDefinitionUsable(FurnitureDefinition definition)
+    private bool IsCatalogDefinitionUsable(
+        FurnitureDefinition definition)
     {
         return furnitureCatalog != null &&
                definition != null &&
@@ -274,28 +301,16 @@ public class StoreFurnitureLayout : MonoBehaviour
                definition.IsConfigured;
     }
 
-    private void RegisterShelfSlots(FurnitureIdentity furniture)
+    private void RetireFurniture(
+        FurnitureIdentity furniture)
     {
-        if (furniture == null)
+        if (furniture == null ||
+            pendingRemoval.Contains(furniture))
+        {
             return;
+        }
 
-        ShelfSlot[] slots =
-            furniture.GetComponentsInChildren<ShelfSlot>(true);
-
-        foreach (ShelfSlot slot in slots)
-            shelfRegistry.RegisterSlot(slot);
-    }
-
-    private void RetireFurniture(FurnitureIdentity furniture)
-    {
-        if (furniture == null || pendingRemoval.Contains(furniture))
-            return;
-
-        ShelfSlot[] slots =
-            furniture.GetComponentsInChildren<ShelfSlot>(true);
-
-        foreach (ShelfSlot slot in slots)
-            shelfRegistry.UnregisterSlot(slot);
+        furniture.SetRuntimeActive(false);
 
         pendingRemoval.Add(furniture);
 
@@ -306,7 +321,8 @@ public class StoreFurnitureLayout : MonoBehaviour
     private bool TryFindFurniture(
         out Dictionary<string, FurnitureIdentity> furniture)
     {
-        furniture = new Dictionary<string, FurnitureIdentity>();
+        furniture =
+            new Dictionary<string, FurnitureIdentity>();
 
         FurnitureIdentity[] found =
             FindObjectsByType<FurnitureIdentity>(

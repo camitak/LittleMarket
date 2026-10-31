@@ -174,7 +174,7 @@ public class FurniturePlacementController : MonoBehaviour
 
         if (CanStartPlacement() &&
             TryFindLookedAtFurniture(out FurnitureIdentity furniture) &&
-            IsEmpty(furniture))
+            furniture.CanMoveFurniture(out _))
         {
             interactionUI.ShowPrompt("[G] Move empty furniture");
         }
@@ -227,45 +227,17 @@ public class FurniturePlacementController : MonoBehaviour
                 continue;
             }
 
-            furniture =
+            FurnitureIdentity candidate =
                 hit.collider.GetComponentInParent<FurnitureIdentity>();
 
-            return furniture != null;
+            if (candidate == null)
+                continue;
+
+            furniture = candidate;
+            return true;
         }
 
         return false;
-    }
-
-    private static bool IsEmpty(FurnitureIdentity furniture)
-    {
-        if (furniture == null)
-            return false;
-
-        bool hasManagedContents = false;
-
-        ShelfSlot[] shelfSlots =
-            furniture.GetComponentsInChildren<ShelfSlot>(true);
-
-        foreach (ShelfSlot slot in shelfSlots)
-        {
-            hasManagedContents = true;
-
-            if (slot.StoredItemCount > 0)
-                return false;
-        }
-
-        StorageBay[] storageBays =
-            furniture.GetComponentsInChildren<StorageBay>(true);
-
-        foreach (StorageBay bay in storageBays)
-        {
-            hasManagedContents = true;
-
-            if (bay.Quantity > 0)
-                return false;
-        }
-
-        return hasManagedContents;
     }
 
     public bool BeginPurchasedFurniturePreview(
@@ -288,11 +260,14 @@ public class FurniturePlacementController : MonoBehaviour
 
     private void TryStartPlacement()
     {
-        if (!TryFindLookedAtFurniture(out FurnitureIdentity furniture) ||
-            !IsEmpty(furniture))
+        if (!TryFindLookedAtFurniture(
+                out FurnitureIdentity furniture))
         {
             return;
         }
+
+        if (!furniture.CanMoveFurniture(out _))
+            return;
 
         StartPreview(furniture, false, null);
     }
@@ -624,6 +599,8 @@ public class FurniturePlacementController : MonoBehaviour
 
                 return;
             }
+
+            selectedFurniture.SetRuntimeActive(true);
         }
 
         FinishPreview(false);

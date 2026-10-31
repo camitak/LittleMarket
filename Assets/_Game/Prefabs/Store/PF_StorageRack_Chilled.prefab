@@ -552,7 +552,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 475f55e88bb6d764f880c8f7f8b5f4fe, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::StorageBay
-  slotID: StorageSlot_07
+  localBayKey: 07
   storageCondition: 1
   capacity: 12
   cartonPrefab: {fileID: 2451739325236826120, guid: d6fd02bc723a5674ebd36140829485fc, type: 3}
@@ -1937,7 +1937,7 @@ MeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: 5e45ddf10181a5144b03d9b843b86d7e, type: 2}
+  - {fileID: 2100000, guid: 9b655587f0604434a89744c4440d7776, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -2081,8 +2081,9 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 3291202639147095468}
+  - component: {fileID: 3259921114249044854}
   m_Layer: 0
-  m_Name: PF_StorageRack_Backroom
+  m_Name: PF_StorageRack_Chilled
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -2117,6 +2118,20 @@ Transform:
   - {fileID: 4426677268321875515}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &3259921114249044854
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2301185408672823042}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: db2493a44af972047a120610e033c971, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::FurnitureIdentity
+  furnitureDefinition: {fileID: 11400000, guid: 9c18549bec1042a43a523be0ed3e969a, type: 2}
+  persistentID: 
 --- !u!1 &2331759564877960375
 GameObject:
   m_ObjectHideFlags: 0
@@ -2184,8 +2199,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 475f55e88bb6d764f880c8f7f8b5f4fe, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::StorageBay
-  slotID: StorageSlot_06
-  storageCondition: 0
+  localBayKey: 06
+  storageCondition: 1
   capacity: 12
   cartonPrefab: {fileID: 2451739325236826120, guid: d6fd02bc723a5674ebd36140829485fc, type: 3}
   portableCartonCapacity: 4
@@ -2372,8 +2387,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 475f55e88bb6d764f880c8f7f8b5f4fe, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::StorageBay
-  slotID: StorageSlot_05
-  storageCondition: 0
+  localBayKey: 05
+  storageCondition: 1
   capacity: 12
   cartonPrefab: {fileID: 2451739325236826120, guid: d6fd02bc723a5674ebd36140829485fc, type: 3}
   portableCartonCapacity: 4
@@ -4248,8 +4263,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 475f55e88bb6d764f880c8f7f8b5f4fe, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::StorageBay
-  slotID: StorageSlot_01
-  storageCondition: 0
+  localBayKey: 01
+  storageCondition: 1
   capacity: 12
   cartonPrefab: {fileID: 2451739325236826120, guid: d6fd02bc723a5674ebd36140829485fc, type: 3}
   portableCartonCapacity: 4
@@ -4399,8 +4414,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 475f55e88bb6d764f880c8f7f8b5f4fe, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::StorageBay
-  slotID: StorageSlot_03
-  storageCondition: 0
+  localBayKey: 03
+  storageCondition: 1
   capacity: 12
   cartonPrefab: {fileID: 2451739325236826120, guid: d6fd02bc723a5674ebd36140829485fc, type: 3}
   portableCartonCapacity: 4
@@ -5352,8 +5367,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 475f55e88bb6d764f880c8f7f8b5f4fe, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::StorageBay
-  slotID: StorageSlot_04
-  storageCondition: 0
+  localBayKey: 04
+  storageCondition: 1
   capacity: 12
   cartonPrefab: {fileID: 2451739325236826120, guid: d6fd02bc723a5674ebd36140829485fc, type: 3}
   portableCartonCapacity: 4
@@ -5503,8 +5518,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 475f55e88bb6d764f880c8f7f8b5f4fe, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::StorageBay
-  slotID: StorageSlot_02
-  storageCondition: 0
+  localBayKey: 02
+  storageCondition: 1
   capacity: 12
   cartonPrefab: {fileID: 2451739325236826120, guid: d6fd02bc723a5674ebd36140829485fc, type: 3}
   portableCartonCapacity: 4
@@ -7149,8 +7164,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 475f55e88bb6d764f880c8f7f8b5f4fe, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::StorageBay
-  slotID: StorageSlot_08
-  storageCondition: 0
+  localBayKey: 08
+  storageCondition: 1
   capacity: 12
   cartonPrefab: {fileID: 2451739325236826120, guid: d6fd02bc723a5674ebd36140829485fc, type: 3}
   portableCartonCapacity: 4

@@ -1,0 +1,24 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4f6aeb081547a9d4e88483cf5c583209, type: 3}
+  m_Name: SO_Furniture_AmbientStorageRack
+  m_EditorClassIdentifier: Assembly-CSharp::FurnitureDefinition
+  furnitureID: storage_rack_ambient
+  displayName: Ambient Storage Rack
+  description: "Backroom rack \u2022 8 ambient storage bays."
+  purchasePrice: 60
+  prefab: {fileID: 3259921114249044854, guid: 95bfb5590d5914a419c06f3d376bd716, type: 3}
+  placementArea: 1
+  bodyHalfExtents: {x: 1.22, y: 0.82, z: 0.3}
+  bodyCenter: {x: 0, y: 0.8, z: 0}
+  accessHalfExtents: {x: 1.15, y: 0.75, z: 0.5}
+  accessCenter: {x: 0, y: 0.75, z: -0.8}

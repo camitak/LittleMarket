@@ -6,7 +6,9 @@ public class ShelfSlot :
     IInteractable,
     ISecondaryInteractable,
     IManagementInteractable,
-    IRepeatableInteractable
+    IRepeatableInteractable,
+    IFurnitureRuntimeParticipant,
+    IFurnitureMoveConstraint
 {
     [Header("Identity")]
     [SerializeField] private string localSlotKey = "";
@@ -85,13 +87,36 @@ public class ShelfSlot :
 
     private void Start()
     {
-        RegisterWithCorrectRegistry();
         RefreshPriceTag();
     }
 
     private void OnDestroy()
     {
+        UnregisterFurnitureRuntime();
+    }
+
+    public void RegisterFurnitureRuntime()
+    {
+        RegisterWithCorrectRegistry();
+    }
+
+    public void UnregisterFurnitureRuntime()
+    {
         UnregisterFromCurrentRegistry();
+    }
+
+    public bool CanMoveFurniture(out string reason)
+    {
+        RemoveNullEntries();
+
+        if (StoredItemCount > 0)
+        {
+            reason = "Empty the shelf before moving it.";
+            return false;
+        }
+
+        reason = "";
+        return true;
     }
 
     public bool IsActorAtShelfFront(Vector3 worldPosition)
@@ -952,11 +977,12 @@ public class ShelfSlot :
 
     private void RegisterWithCorrectRegistry()
     {
-        if (!customerAccessible)
+        if (!customerAccessible || registeredShelfRegistry != null)
+        {
             return;
+        }
 
-        registeredShelfRegistry =
-            Object.FindAnyObjectByType<ShelfRegistry>();
+        registeredShelfRegistry = Object.FindAnyObjectByType<ShelfRegistry>();
 
         if (registeredShelfRegistry == null)
         {
