@@ -87,7 +87,7 @@ public class StoreComputerManagementUI : MonoBehaviour
         pendingExpansionConfirmation = null;
 
         SetPanelState(StoreComputerTab.Furniture);
-        RebuildFurnitureRows();
+        RebuildFurnitureRows(true);
 
         if (orderStatusText != null)
         {
@@ -101,7 +101,7 @@ public class StoreComputerManagementUI : MonoBehaviour
         pendingExpansionConfirmation = null;
 
         SetPanelState(StoreComputerTab.Expansion);
-        RebuildExpansionRows();
+        RebuildExpansionRows(true);
 
         if (orderStatusText != null)
         {
@@ -152,7 +152,7 @@ public class StoreComputerManagementUI : MonoBehaviour
         }
     }
 
-    private void RebuildFurnitureRows()
+    private void RebuildFurnitureRows(bool resetScroll)
     {
         ClearFurnitureRows();
 
@@ -179,9 +179,15 @@ public class StoreComputerManagementUI : MonoBehaviour
             row.Configure(definition, BuyFurniture);
             spawnedFurnitureRows.Add(row);
         }
+
+        RefreshDynamicScroll(
+            furnitureScrollView,
+            furnitureListContent,
+            resetScroll
+        );
     }
 
-    private void RebuildExpansionRows()
+    private void RebuildExpansionRows(bool resetScroll)
     {
         ClearExpansionRows();
 
@@ -218,6 +224,51 @@ public class StoreComputerManagementUI : MonoBehaviour
 
             spawnedExpansionRows.Add(row);
         }
+
+        RefreshDynamicScroll(
+            expansionScrollView,
+            expansionListContent,
+            resetScroll
+        );
+    }
+    
+    private void RefreshDynamicScroll(
+        GameObject scrollViewObject,
+        Transform content,
+        bool resetToTop)
+    {
+        if (scrollViewObject == null ||
+            content is not RectTransform contentRect)
+        {
+            return;
+        }
+
+        ScrollRect scrollRect =
+            scrollViewObject.GetComponent<ScrollRect>();
+
+        if (scrollRect == null)
+            return;
+
+        float previousPosition =
+            scrollRect.verticalNormalizedPosition;
+
+        if (float.IsNaN(previousPosition))
+            previousPosition = 1f;
+
+        Canvas.ForceUpdateCanvases();
+
+        LayoutRebuilder.ForceRebuildLayoutImmediate(
+            contentRect
+        );
+
+        Canvas.ForceUpdateCanvases();
+
+        scrollRect.StopMovement();
+
+        scrollRect.verticalNormalizedPosition =
+            resetToTop
+                ? 1f
+                : Mathf.Clamp01(previousPosition);
     }
 
     private void ClearFurnitureRows()
@@ -297,8 +348,7 @@ public class StoreComputerManagementUI : MonoBehaviour
             return;
         }
 
-        StoreExpansionDefinition definition =
-            zone.Definition;
+        StoreExpansionDefinition definition = zone.Definition;
 
         if (pendingExpansionConfirmation != zone)
         {
@@ -310,7 +360,7 @@ public class StoreComputerManagementUI : MonoBehaviour
                     $"{definition.DisplayName} is permanent and costs £{definition.PurchasePrice:0.00}. Click CONFIRM to purchase.";
             }
 
-            RebuildExpansionRows();
+            RebuildExpansionRows(false);
             return;
         }
 
@@ -325,7 +375,7 @@ public class StoreComputerManagementUI : MonoBehaviour
         if (orderStatusText != null)
             orderStatusText.text = reason;
 
-        RebuildExpansionRows();
+        RebuildExpansionRows(false);
 
         if (!purchased)
             return;

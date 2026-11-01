@@ -22,6 +22,11 @@ public class FurniturePlacementController : MonoBehaviour
     [Min(1f)] [SerializeField] private float previewRayDistance = 18f;
     [Min(0.1f)] [SerializeField] private float gridSize = 0.5f;
 
+    [Header("Furniture Snapping")]
+    [Min(0f)] [SerializeField] private float furnitureSnapDistance = 0.35f;
+    [Min(0f)] [SerializeField] private float furnitureSnapGap = 0.05f;
+    [Min(0f)] [SerializeField] private float alignmentSnapDistance = 0.30f;
+
     [Header("Fallback Body Footprint")]
     [SerializeField] private Vector3 footprintHalfExtents = new(1.30f, 1.05f, 0.52f);
     [SerializeField] private Vector3 footprintCenter = new(0f, 1.10f, 0f);
@@ -37,24 +42,31 @@ public class FurniturePlacementController : MonoBehaviour
     [SerializeField] private Color invalidColor = new Color32(196, 107, 107, 255);
 
     private FurnitureIdentity selectedFurniture;
+    private FurnitureIdentity[] snapCandidates;
+
     private Vector3 originalPosition;
     private Quaternion originalRotation;
+
     private float previewYaw;
     private bool canPlace;
     private bool isNewFurniturePurchase;
+
     private FurnitureShop pendingPurchase;
 
     private Collider[] selectedColliders;
     private bool[] originallyEnabled;
+
     private MeshRenderer[] selectedRenderers;
     private MaterialPropertyBlock[] originalProperties;
+
     private LineRenderer accessOutline;
     private Material outlineMaterial;
 
     private static readonly int BaseColorId =
         Shader.PropertyToID("_BaseColor");
 
-    public bool IsPlacementActive => selectedFurniture != null;
+    public bool IsPlacementActive =>
+        selectedFurniture != null;
 
     private FurnitureDefinition CurrentDefinition =>
         selectedFurniture != null
@@ -120,15 +132,24 @@ public class FurniturePlacementController : MonoBehaviour
         }
 
         if (Keyboard.current.rKey.wasPressedThisFrame)
-            previewYaw = Mathf.Repeat(previewYaw + 90f, 360f);
+        {
+            previewYaw =
+                Mathf.Repeat(previewYaw + 90f, 360f);
+        }
 
         if (Keyboard.current.tKey.wasPressedThisFrame)
-            previewYaw = Mathf.Repeat(previewYaw - 90f, 360f);
+        {
+            previewYaw =
+                Mathf.Repeat(previewYaw - 90f, 360f);
+        }
 
         UpdatePreview();
 
-        if (Keyboard.current.eKey.wasPressedThisFrame && canPlace)
+        if (Keyboard.current.eKey.wasPressedThisFrame &&
+            canPlace)
+        {
             ConfirmPlacement();
+        }
     }
 
     private void LateUpdate()
@@ -152,11 +173,13 @@ public class FurniturePlacementController : MonoBehaviour
 
             if (isNewFurniturePurchase)
             {
-                FurnitureDefinition definition = CurrentDefinition;
+                FurnitureDefinition definition =
+                    CurrentDefinition;
 
-                string priceText = definition != null
-                    ? $"£{definition.PurchasePrice:0.00}"
-                    : "purchase";
+                string priceText =
+                    definition != null
+                        ? $"£{definition.PurchasePrice:0.00}"
+                        : "purchase";
 
                 interactionUI.ShowPrompt(
                     $"[E] Buy & place {priceText}  |  [R] Right  [T] Left  |  [Q] Cancel (free)"
@@ -173,10 +196,13 @@ public class FurniturePlacementController : MonoBehaviour
         }
 
         if (CanStartPlacement() &&
-            TryFindLookedAtFurniture(out FurnitureIdentity furniture) &&
+            TryFindLookedAtFurniture(
+                out FurnitureIdentity furniture) &&
             furniture.CanMoveFurniture(out _))
         {
-            interactionUI.ShowPrompt("[G] Move empty furniture");
+            interactionUI.ShowPrompt(
+                "[G] Move empty furniture"
+            );
         }
     }
 
@@ -253,7 +279,11 @@ public class FurniturePlacementController : MonoBehaviour
             return false;
         }
 
-        StartPreview(furniture, true, shop);
+        StartPreview(
+            furniture,
+            true,
+            shop
+        );
 
         return true;
     }
@@ -269,7 +299,11 @@ public class FurniturePlacementController : MonoBehaviour
         if (!furniture.CanMoveFurniture(out _))
             return;
 
-        StartPreview(furniture, false, null);
+        StartPreview(
+            furniture,
+            false,
+            null
+        );
     }
 
     private void StartPreview(
@@ -283,18 +317,30 @@ public class FurniturePlacementController : MonoBehaviour
 
         originalPosition = furniture.transform.position;
         originalRotation = furniture.transform.rotation;
-        previewYaw = furniture.transform.eulerAngles.y;
+
+        previewYaw =
+            furniture.transform.eulerAngles.y;
+
         canPlace = false;
+
+        snapCandidates =
+            FindObjectsByType<FurnitureIdentity>();
 
         selectedColliders =
             furniture.GetComponentsInChildren<Collider>(true);
 
-        originallyEnabled = new bool[selectedColliders.Length];
+        originallyEnabled =
+            new bool[selectedColliders.Length];
 
-        for (int i = 0; i < selectedColliders.Length; i++)
+        for (int i = 0;
+             i < selectedColliders.Length;
+             i++)
         {
-            originallyEnabled[i] = selectedColliders[i].enabled;
-            selectedColliders[i].enabled = false;
+            originallyEnabled[i] =
+                selectedColliders[i].enabled;
+
+            selectedColliders[i].enabled =
+                false;
         }
 
         selectedRenderers =
@@ -303,12 +349,17 @@ public class FurniturePlacementController : MonoBehaviour
         originalProperties =
             new MaterialPropertyBlock[selectedRenderers.Length];
 
-        for (int i = 0; i < selectedRenderers.Length; i++)
+        for (int i = 0;
+             i < selectedRenderers.Length;
+             i++)
         {
-            originalProperties[i] = new MaterialPropertyBlock();
+            originalProperties[i] =
+                new MaterialPropertyBlock();
 
             selectedRenderers[i]
-                .GetPropertyBlock(originalProperties[i]);
+                .GetPropertyBlock(
+                    originalProperties[i]
+                );
         }
 
         playerInteraction.enabled = false;
@@ -327,46 +378,316 @@ public class FurniturePlacementController : MonoBehaviour
             playerCamera.transform.forward
         );
 
-        bool foundFloor = buildArea.TryGetPlacementSurface(
-            ray,
-            previewRayDistance,
-            CurrentPlacementArea,
-            out Vector3 surfacePoint
-        );
+        bool foundFloor =
+            buildArea.TryGetPlacementSurface(
+                ray,
+                previewRayDistance,
+                CurrentPlacementArea,
+                out Vector3 surfacePoint
+            );
 
-        Vector3 target = originalPosition;
+        Quaternion rotation =
+            Quaternion.Euler(
+                0f,
+                previewYaw,
+                0f
+            );
+
+        Vector3 target =
+            originalPosition;
 
         if (foundFloor)
         {
-            float step = Mathf.Max(0.1f, gridSize);
+            float step =
+                Mathf.Max(0.1f, gridSize);
 
             target = new Vector3(
                 Mathf.Round(surfacePoint.x / step) * step,
                 surfacePoint.y,
                 Mathf.Round(surfacePoint.z / step) * step
             );
-        }
 
-        Quaternion rotation =
-            Quaternion.Euler(0f, previewYaw, 0f);
+            target =
+                ApplyFurnitureSnap(
+                    target,
+                    rotation
+                );
 
-        if (foundFloor)
-        {
-            selectedFurniture.transform.SetPositionAndRotation(
-                target,
-                rotation
-            );
+            selectedFurniture
+                .transform
+                .SetPositionAndRotation(
+                    target,
+                    rotation
+                );
         }
 
         canPlace =
             foundFloor &&
-            ValidatePlacement(target, rotation);
+            ValidatePlacement(
+                target,
+                rotation
+            );
 
         Color previewColor =
-            canPlace ? validColor : invalidColor;
+            canPlace
+                ? validColor
+                : invalidColor;
 
         TintPreview(previewColor);
         UpdateAccessOutline(previewColor);
+    }
+
+    private Vector3 ApplyFurnitureSnap(
+        Vector3 gridTarget,
+        Quaternion selectedRotation)
+    {
+        if (selectedFurniture == null ||
+            snapCandidates == null ||
+            furnitureSnapDistance <= 0f)
+        {
+            return gridTarget;
+        }
+
+        Vector3 selectedBodyCenter =
+            gridTarget +
+            selectedRotation * CurrentBodyCenter;
+
+        Vector2 selectedHalf =
+            GetHorizontalHalfExtents(
+                selectedRotation,
+                CurrentBodyHalfExtents
+            );
+
+        Vector3 bestTarget =
+            gridTarget;
+
+        float bestMovement =
+            float.MaxValue;
+
+        foreach (FurnitureIdentity candidate in snapCandidates)
+        {
+            if (candidate == null ||
+                candidate == selectedFurniture ||
+                !candidate.gameObject.activeInHierarchy)
+            {
+                continue;
+            }
+
+            FurnitureDefinition definition =
+                candidate.FurnitureDefinition;
+
+            if (definition == null ||
+                definition.PlacementArea != CurrentPlacementArea)
+            {
+                continue;
+            }
+
+            Quaternion otherRotation =
+                candidate.transform.rotation;
+
+            Vector3 otherBodyCenter =
+                candidate.transform.position +
+                otherRotation * definition.BodyCenter;
+
+            Vector2 otherHalf =
+                GetHorizontalHalfExtents(
+                    otherRotation,
+                    definition.BodyHalfExtents
+                );
+
+            float maximumZSeparation =
+                selectedHalf.y +
+                otherHalf.y +
+                furnitureSnapDistance;
+
+            if (Mathf.Abs(
+                    selectedBodyCenter.z -
+                    otherBodyCenter.z)
+                <= maximumZSeparation)
+            {
+                float horizontalGap =
+                    selectedHalf.x +
+                    otherHalf.x +
+                    furnitureSnapGap;
+
+                EvaluateSnapCandidate(
+                    new Vector3(
+                        otherBodyCenter.x - horizontalGap,
+                        selectedBodyCenter.y,
+                        selectedBodyCenter.z
+                    ),
+                    otherBodyCenter,
+                    true,
+                    gridTarget,
+                    selectedRotation,
+                    ref bestTarget,
+                    ref bestMovement
+                );
+
+                EvaluateSnapCandidate(
+                    new Vector3(
+                        otherBodyCenter.x + horizontalGap,
+                        selectedBodyCenter.y,
+                        selectedBodyCenter.z
+                    ),
+                    otherBodyCenter,
+                    true,
+                    gridTarget,
+                    selectedRotation,
+                    ref bestTarget,
+                    ref bestMovement
+                );
+            }
+
+            float maximumXSeparation =
+                selectedHalf.x +
+                otherHalf.x +
+                furnitureSnapDistance;
+
+            if (Mathf.Abs(
+                    selectedBodyCenter.x -
+                    otherBodyCenter.x)
+                <= maximumXSeparation)
+            {
+                float verticalGap =
+                    selectedHalf.y +
+                    otherHalf.y +
+                    furnitureSnapGap;
+
+                EvaluateSnapCandidate(
+                    new Vector3(
+                        selectedBodyCenter.x,
+                        selectedBodyCenter.y,
+                        otherBodyCenter.z - verticalGap
+                    ),
+                    otherBodyCenter,
+                    false,
+                    gridTarget,
+                    selectedRotation,
+                    ref bestTarget,
+                    ref bestMovement
+                );
+
+                EvaluateSnapCandidate(
+                    new Vector3(
+                        selectedBodyCenter.x,
+                        selectedBodyCenter.y,
+                        otherBodyCenter.z + verticalGap
+                    ),
+                    otherBodyCenter,
+                    false,
+                    gridTarget,
+                    selectedRotation,
+                    ref bestTarget,
+                    ref bestMovement
+                );
+            }
+        }
+
+        return bestTarget;
+    }
+
+    private void EvaluateSnapCandidate(
+        Vector3 candidateBodyCenter,
+        Vector3 otherBodyCenter,
+        bool snappingX,
+        Vector3 gridTarget,
+        Quaternion selectedRotation,
+        ref Vector3 bestTarget,
+        ref float bestMovement)
+    {
+        Vector3 currentBodyCenter =
+            gridTarget +
+            selectedRotation * CurrentBodyCenter;
+
+        float edgeDistance =
+            snappingX
+                ? Mathf.Abs(
+                    currentBodyCenter.x -
+                    candidateBodyCenter.x
+                )
+                : Mathf.Abs(
+                    currentBodyCenter.z -
+                    candidateBodyCenter.z
+                );
+
+        if (edgeDistance >
+            furnitureSnapDistance)
+        {
+            return;
+        }
+
+        if (snappingX)
+        {
+            if (Mathf.Abs(
+                    candidateBodyCenter.z -
+                    otherBodyCenter.z)
+                <= alignmentSnapDistance)
+            {
+                candidateBodyCenter.z =
+                    otherBodyCenter.z;
+            }
+        }
+        else
+        {
+            if (Mathf.Abs(
+                    candidateBodyCenter.x -
+                    otherBodyCenter.x)
+                <= alignmentSnapDistance)
+            {
+                candidateBodyCenter.x =
+                    otherBodyCenter.x;
+            }
+        }
+
+        Vector3 candidateRoot =
+            candidateBodyCenter -
+            selectedRotation * CurrentBodyCenter;
+
+        candidateRoot.y =
+            gridTarget.y;
+
+        float movement =
+            Vector2.Distance(
+                new Vector2(
+                    gridTarget.x,
+                    gridTarget.z
+                ),
+                new Vector2(
+                    candidateRoot.x,
+                    candidateRoot.z
+                )
+            );
+
+        if (movement >= bestMovement)
+            return;
+
+        bestMovement = movement;
+        bestTarget = candidateRoot;
+    }
+
+    private static Vector2 GetHorizontalHalfExtents(
+        Quaternion rotation,
+        Vector3 halfExtents)
+    {
+        Vector3 right =
+            rotation * Vector3.right;
+
+        Vector3 forward =
+            rotation * Vector3.forward;
+
+        float worldHalfX =
+            Mathf.Abs(right.x) * halfExtents.x +
+            Mathf.Abs(forward.x) * halfExtents.z;
+
+        float worldHalfZ =
+            Mathf.Abs(right.z) * halfExtents.x +
+            Mathf.Abs(forward.z) * halfExtents.z;
+
+        return new Vector2(
+            worldHalfX,
+            worldHalfZ
+        );
     }
 
     private bool ValidatePlacement(
@@ -424,15 +745,17 @@ public class FurniturePlacementController : MonoBehaviour
         bool ignorePlayer)
     {
         Vector3 center =
-            position + rotation * offset;
+            position +
+            rotation * offset;
 
-        Collider[] hits = Physics.OverlapBox(
-            center,
-            halfExtents,
-            rotation,
-            ~0,
-            QueryTriggerInteraction.Ignore
-        );
+        Collider[] hits =
+            Physics.OverlapBox(
+                center,
+                halfExtents,
+                rotation,
+                ~0,
+                QueryTriggerInteraction.Ignore
+            );
 
         foreach (Collider hit in hits)
         {
@@ -443,7 +766,8 @@ public class FurniturePlacementController : MonoBehaviour
             }
 
             if (selectedFurniture != null &&
-                hit.transform.IsChildOf(selectedFurniture.transform))
+                hit.transform.IsChildOf(
+                    selectedFurniture.transform))
             {
                 continue;
             }
@@ -466,10 +790,17 @@ public class FurniturePlacementController : MonoBehaviour
             return;
 
         Shader shader =
-            Shader.Find("Universal Render Pipeline/Unlit");
+            Shader.Find(
+                "Universal Render Pipeline/Unlit"
+            );
 
         if (shader == null)
-            shader = Shader.Find("Sprites/Default");
+        {
+            shader =
+                Shader.Find(
+                    "Sprites/Default"
+                );
+        }
 
         if (shader == null)
         {
@@ -491,15 +822,23 @@ public class FurniturePlacementController : MonoBehaviour
         accessOutline.positionCount = 5;
         accessOutline.widthMultiplier = outlineWidth;
         accessOutline.numCornerVertices = 2;
+
         accessOutline.shadowCastingMode =
-            UnityEngine.Rendering.ShadowCastingMode.Off;
+            UnityEngine.Rendering
+                .ShadowCastingMode
+                .Off;
+
         accessOutline.receiveShadows = false;
 
-        outlineMaterial = new Material(shader);
-        accessOutline.sharedMaterial = outlineMaterial;
+        outlineMaterial =
+            new Material(shader);
+
+        accessOutline.sharedMaterial =
+            outlineMaterial;
     }
 
-    private void UpdateAccessOutline(Color color)
+    private void UpdateAccessOutline(
+        Color color)
     {
         if (accessOutline == null ||
             selectedFurniture == null)
@@ -507,32 +846,59 @@ public class FurniturePlacementController : MonoBehaviour
             return;
         }
 
-        Vector3 half = CurrentAccessHalfExtents;
-        Vector3 center = CurrentAccessCenter;
+        Vector3 half =
+            CurrentAccessHalfExtents;
+
+        Vector3 center =
+            CurrentAccessCenter;
 
         const float y = 0.075f;
 
         Vector3[] localCorners =
         {
-            new(center.x - half.x, y, center.z - half.z),
-            new(center.x + half.x, y, center.z - half.z),
-            new(center.x + half.x, y, center.z + half.z),
-            new(center.x - half.x, y, center.z + half.z)
+            new(
+                center.x - half.x,
+                y,
+                center.z - half.z
+            ),
+            new(
+                center.x + half.x,
+                y,
+                center.z - half.z
+            ),
+            new(
+                center.x + half.x,
+                y,
+                center.z + half.z
+            ),
+            new(
+                center.x - half.x,
+                y,
+                center.z + half.z
+            )
         };
 
-        for (int i = 0; i < 4; i++)
+        for (int i = 0;
+             i < 4;
+             i++)
         {
             accessOutline.SetPosition(
                 i,
-                selectedFurniture.transform
-                    .TransformPoint(localCorners[i])
+                selectedFurniture
+                    .transform
+                    .TransformPoint(
+                        localCorners[i]
+                    )
             );
         }
 
         accessOutline.SetPosition(
             4,
-            selectedFurniture.transform
-                .TransformPoint(localCorners[0])
+            selectedFurniture
+                .transform
+                .TransformPoint(
+                    localCorners[0]
+                )
         );
 
         accessOutline.startColor = color;
@@ -541,39 +907,66 @@ public class FurniturePlacementController : MonoBehaviour
         if (outlineMaterial == null)
             return;
 
-        if (outlineMaterial.HasProperty(BaseColorId))
-            outlineMaterial.SetColor(BaseColorId, color);
+        if (outlineMaterial.HasProperty(
+                BaseColorId))
+        {
+            outlineMaterial.SetColor(
+                BaseColorId,
+                color
+            );
+        }
         else
-            outlineMaterial.color = color;
+        {
+            outlineMaterial.color =
+                color;
+        }
     }
 
     private void DestroyAccessOutline()
     {
         if (accessOutline != null)
-            Destroy(accessOutline.gameObject);
+        {
+            Destroy(
+                accessOutline.gameObject
+            );
+        }
 
         if (outlineMaterial != null)
+        {
             Destroy(outlineMaterial);
+        }
 
         accessOutline = null;
         outlineMaterial = null;
     }
 
-    private void TintPreview(Color color)
+    private void TintPreview(
+        Color color)
     {
         if (selectedRenderers == null)
             return;
 
-        foreach (MeshRenderer renderer in selectedRenderers)
+        foreach (MeshRenderer renderer
+                 in selectedRenderers)
         {
             if (renderer == null)
                 continue;
 
-            MaterialPropertyBlock propertyBlock = new();
+            MaterialPropertyBlock propertyBlock =
+                new();
 
-            renderer.GetPropertyBlock(propertyBlock);
-            propertyBlock.SetColor(BaseColorId, color);
-            renderer.SetPropertyBlock(propertyBlock);
+            renderer.GetPropertyBlock(
+                propertyBlock
+            );
+
+            propertyBlock.SetColor(
+                BaseColorId,
+                color
+            );
+
+            renderer.SetPropertyBlock(
+                propertyBlock
+            );
         }
     }
 
@@ -586,11 +979,13 @@ public class FurniturePlacementController : MonoBehaviour
 
         if (isNewFurniturePurchase)
         {
-            FurnitureDefinition definition = CurrentDefinition;
+            FurnitureDefinition definition =
+                CurrentDefinition;
 
             if (definition == null ||
                 pendingPurchase == null ||
-                !pendingPurchase.TryCompletePurchase(definition))
+                !pendingPurchase.TryCompletePurchase(
+                    definition))
             {
                 Debug.LogWarning(
                     "Not enough money or invalid furniture purchase configuration.",
@@ -600,7 +995,9 @@ public class FurniturePlacementController : MonoBehaviour
                 return;
             }
 
-            selectedFurniture.SetRuntimeActive(true);
+            selectedFurniture.SetRuntimeActive(
+                true
+            );
         }
 
         FinishPreview(false);
@@ -621,13 +1018,20 @@ public class FurniturePlacementController : MonoBehaviour
 
         if (isNewFurniturePurchase)
         {
-            FurnitureIdentity preview = selectedFurniture;
-            FurnitureShop shop = pendingPurchase;
+            FurnitureIdentity preview =
+                selectedFurniture;
+
+            FurnitureShop shop =
+                pendingPurchase;
 
             FinishPreview(false);
 
             if (shop != null)
-                shop.CancelPurchase(preview);
+            {
+                shop.CancelPurchase(
+                    preview
+                );
+            }
         }
         else
         {
@@ -635,62 +1039,79 @@ public class FurniturePlacementController : MonoBehaviour
         }
     }
 
-    private void FinishPreview(bool restorePosition)
+    private void FinishPreview(
+        bool restorePosition)
     {
         if (selectedFurniture == null)
             return;
 
         if (restorePosition)
         {
-            selectedFurniture.transform.SetPositionAndRotation(
-                originalPosition,
-                originalRotation
-            );
+            selectedFurniture
+                .transform
+                .SetPositionAndRotation(
+                    originalPosition,
+                    originalRotation
+                );
         }
 
         if (selectedColliders != null)
         {
-            for (int i = 0; i < selectedColliders.Length; i++)
+            for (int i = 0;
+                 i < selectedColliders.Length;
+                 i++)
             {
-                if (selectedColliders[i] != null)
-                {
-                    selectedColliders[i].enabled =
-                        originallyEnabled[i];
-                }
+                if (selectedColliders[i] == null)
+                    continue;
+
+                selectedColliders[i].enabled =
+                    originallyEnabled[i];
             }
         }
 
         if (selectedRenderers != null)
         {
-            for (int i = 0; i < selectedRenderers.Length; i++)
+            for (int i = 0;
+                 i < selectedRenderers.Length;
+                 i++)
             {
-                if (selectedRenderers[i] != null)
-                {
-                    selectedRenderers[i]
-                        .SetPropertyBlock(originalProperties[i]);
-                }
+                if (selectedRenderers[i] == null)
+                    continue;
+
+                selectedRenderers[i]
+                    .SetPropertyBlock(
+                        originalProperties[i]
+                    );
             }
         }
 
         DestroyAccessOutline();
 
         selectedFurniture = null;
+        snapCandidates = null;
+
         isNewFurniturePurchase = false;
         pendingPurchase = null;
+
         selectedColliders = null;
         selectedRenderers = null;
         originalProperties = null;
         originallyEnabled = null;
+
         canPlace = false;
 
-        if (Cursor.lockState == CursorLockMode.Locked &&
+        if (Cursor.lockState ==
+            CursorLockMode.Locked &&
             playerInteraction != null)
         {
-            playerInteraction.enabled = true;
+            playerInteraction.enabled =
+                true;
         }
 
         if (interactionUI != null)
+        {
             interactionUI.HidePrompt();
+        }
     }
 
     private void OnDisable()

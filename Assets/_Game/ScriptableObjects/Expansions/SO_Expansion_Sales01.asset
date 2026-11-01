@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: SO_Expansion_Sales01
   m_EditorClassIdentifier: Assembly-CSharp::StoreExpansionDefinition
   expansionID: sales_floor_01
-  displayName: Sales Floor Expansion I
-  description: "Adds 4m \xD7 10m of customer-facing floor space."
+  displayName: Sales Floor Side Expansion I
+  description: "Adds 4m \xD7 10m to the right side of the sales floor."
   purchasePrice: 100
   requiredStoreLevel: 1
