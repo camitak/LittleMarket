@@ -14,8 +14,8 @@ public class FurniturePlacementController : MonoBehaviour
     [SerializeField] private StoreBuildArea buildArea;
 
     [Header("Placement")]
-    [Min(1f)] [SerializeField] private float grabDistance = 4f;
-    [Min(1f)] [SerializeField] private float previewRayDistance = 18f;
+    [Min(1f)] [SerializeField] private float selectionRayDistance = 35f;
+    [Min(1f)] [SerializeField] private float previewRayDistance = 30f;
     [Min(0.1f)] [SerializeField] private float gridSize = 0.5f;
 
     [Header("Furniture Snapping")]
@@ -243,11 +243,11 @@ public class FurniturePlacementController : MonoBehaviour
 
         RaycastHit[] hits = Physics.RaycastAll(
             ray,
-            grabDistance,
+            selectionRayDistance,
             ~0,
             QueryTriggerInteraction.Ignore
         );
-
+        
         Array.Sort(
             hits,
             (a, b) => a.distance.CompareTo(b.distance)

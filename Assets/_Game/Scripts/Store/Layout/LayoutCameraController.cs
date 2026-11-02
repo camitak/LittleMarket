@@ -8,23 +8,23 @@ public class LayoutCameraController : MonoBehaviour
     [SerializeField] private Camera layoutCamera;
 
     [Header("Orbit")]
-    [Range(20f, 85f)]
-    [SerializeField] private float startingPitch = 55f;
+    [Range(5f, 85f)]
+    [SerializeField] private float startingPitch = 60f;
 
-    [Range(20f, 85f)]
-    [SerializeField] private float minimumPitch = 35f;
+    [Range(5f, 85f)]
+    [SerializeField] private float minimumPitch = 15f;
 
-    [Range(20f, 85f)]
-    [SerializeField] private float maximumPitch = 75f;
-
-    [Min(1f)]
-    [SerializeField] private float startingDistance = 10f;
+    [Range(15f, 89f)]
+    [SerializeField] private float maximumPitch = 88f;
 
     [Min(1f)]
-    [SerializeField] private float minimumDistance = 5f;
+    [SerializeField] private float startingDistance = 11f;
 
     [Min(1f)]
-    [SerializeField] private float maximumDistance = 18f;
+    [SerializeField] private float minimumDistance = 4f;
+
+    [Min(1f)]
+    [SerializeField] private float maximumDistance = 24f;
 
     [Header("Movement")]
     [Min(0.1f)]
@@ -41,13 +41,42 @@ public class LayoutCameraController : MonoBehaviour
     [SerializeField] private float pitchSensitivity = 0.10f;
 
     [Min(0.001f)]
-    [SerializeField] private float scrollZoomSensitivity = 0.01f;
+    [SerializeField] private float scrollZoomSensitivity = 0.02f;
 
     private float pitch;
     private float distance;
 
     public Camera LayoutCamera =>
         layoutCamera;
+
+    private void OnValidate()
+    {
+        maximumPitch =
+            Mathf.Max(
+                minimumPitch,
+                maximumPitch
+            );
+
+        startingPitch =
+            Mathf.Clamp(
+                startingPitch,
+                minimumPitch,
+                maximumPitch
+            );
+
+        maximumDistance =
+            Mathf.Max(
+                minimumDistance,
+                maximumDistance
+            );
+
+        startingDistance =
+            Mathf.Clamp(
+                startingDistance,
+                minimumDistance,
+                maximumDistance
+            );
+    }
 
     public void ActivateFrom(
         Transform source)
@@ -146,8 +175,7 @@ public class LayoutCameraController : MonoBehaviour
             movement.Normalize();
         }
 
-        float speed =
-            panSpeed;
+        float speed = panSpeed;
 
         if (Keyboard.current.leftShiftKey.isPressed)
         {
@@ -155,9 +183,7 @@ public class LayoutCameraController : MonoBehaviour
         }
 
         transform.position +=
-            movement *
-            speed *
-            Time.deltaTime;
+            movement * (speed * Time.deltaTime);
     }
 
     private void HandleRotation()
@@ -195,6 +221,9 @@ public class LayoutCameraController : MonoBehaviour
             Mouse.current.scroll
                 .ReadValue()
                 .y;
+
+        if (Mathf.Abs(scroll) < 0.01f)
+            return;
 
         distance -=
             scroll *

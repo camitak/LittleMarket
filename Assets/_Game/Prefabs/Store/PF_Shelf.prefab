@@ -965,6 +965,8 @@ GameObject:
   - component: {fileID: 1090177418780046489}
   - component: {fileID: 8930667969451341194}
   - component: {fileID: 8678131342160231080}
+  - component: {fileID: 4459464823693018056}
+  - component: {fileID: 7615729822897656399}
   m_Layer: 0
   m_Name: PF_Shelf
   m_TagString: Untagged
@@ -1030,6 +1032,37 @@ MonoBehaviour:
   storageCondition: 0
   customerStandPoint: {fileID: 2895260676985261079}
   frontSideTolerance: 0.1
+--- !u!114 &4459464823693018056
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5191368394742514984}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 35e95dc5ff2b64380880dd7ac5922847, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Unity.AI.Navigation::Unity.AI.Navigation.NavMeshModifierVolume
+  m_SerializedVersion: 0
+  m_Size: {x: 4, y: 3, z: 4}
+  m_Center: {x: 0, y: 1, z: 0}
+  m_Area: 0
+  m_AffectedAgents: ffffffffi
+--- !u!114 &7615729822897656399
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5191368394742514984}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2a4787f0588b0cb4298b4184a8d933eb, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::FurnitureNavigationBlocker
+  horizontalPadding: 0.05
+  floorOverlap: 0.2
 --- !u!1 &6875319657879054714
 GameObject:
   m_ObjectHideFlags: 0

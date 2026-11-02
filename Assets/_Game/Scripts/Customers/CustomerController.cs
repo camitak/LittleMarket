@@ -22,6 +22,7 @@ public class CustomerController : MonoBehaviour
     
     [Header("Layout Recovery")]
     [Min(0.5f)] [SerializeField] private float layoutRelocationRadius = 4f;
+    [Min(0.05f)] [SerializeField] private float layoutRecoveryVerticalTolerance = 0.5f;
 
     private NavMeshAgent agent;
     private ProductData[] shoppingList;
@@ -45,6 +46,7 @@ public class CustomerController : MonoBehaviour
     private float shelfBrowseElapsed;
     private Coroutine happyReactionRoutine;
     private bool layoutSuspended;
+    private Vector3 layoutSuspensionPosition;
 
     // Satisfaction
     private float satisfactionScore = 100f;
@@ -189,6 +191,8 @@ public class CustomerController : MonoBehaviour
             return;
 
         layoutSuspended = true;
+        
+        layoutSuspensionPosition = transform.position;
 
         if (agent != null &&
             agent.enabled &&
@@ -221,8 +225,7 @@ public class CustomerController : MonoBehaviour
             return;
         }
 
-        bool recovered =
-            RecoverToUsableNavMesh();
+        bool recovered = RecoverToUsableNavMesh();
 
         if (recovered)
         {
@@ -249,48 +252,46 @@ public class CustomerController : MonoBehaviour
 
     private bool RecoverToUsableNavMesh()
     {
-        if (TryWarpToNearestNavMesh(
-                transform.position))
+        if (TryWarpToSafeNavMesh(layoutSuspensionPosition))
         {
             return true;
         }
 
         if (entranceInsidePoint != null &&
-            TryWarpToNearestNavMesh(
-                entranceInsidePoint.position))
+            TryWarpToSafeNavMesh(entranceInsidePoint.position))
         {
             return true;
         }
 
         if (exitInsidePoint != null &&
-            TryWarpToNearestNavMesh(
-                exitInsidePoint.position))
+            TryWarpToSafeNavMesh(exitInsidePoint.position))
         {
             return true;
         }
 
         return false;
     }
-
-    private bool TryWarpToNearestNavMesh(
+    
+    private bool TryWarpToSafeNavMesh(
         Vector3 origin)
     {
-        float searchRadius =
-            Mathf.Max(
-                0.5f,
-                layoutRelocationRadius
-            );
+        bool found =
+            CustomerNavigationRecovery
+                .TryFindRecoveryPosition(
+                    agent,
+                    transform,
+                    origin,
+                    layoutRelocationRadius,
+                    layoutRecoveryVerticalTolerance,
+                    out Vector3 recoveryPosition
+                );
 
-        if (!NavMesh.SamplePosition(
-                origin,
-                out NavMeshHit hit,
-                searchRadius,
-                NavMesh.AllAreas))
-        {
+        if (!found)
             return false;
-        }
 
-        return agent.Warp(hit.position);
+        return agent.Warp(
+            recoveryPosition
+        );
     }
 
     private void ResumeActivityAfterLayout()

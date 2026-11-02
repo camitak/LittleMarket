@@ -1,106 +1,119 @@
 # Little Market — System Architecture
 
-Current architecture after **Lesson 110 — Layout Mode Simulation Foundation**.
+Current architecture after **Lesson 112 — Layout Reliability, Navigation Safety & Camera Usability**.
 
 ## Baseline
-Designed from GitHub `main` commit `29d4b30e67c593cd741405c3f7a8fee4cae9e837` (`Lesson 109 complete - layout usability rear expansion and furniture snapping`).
+Designed from GitHub `main` commit `7c6adba598527a99b93cca37eb80f8ef1c7f2656` (`Lesson 111 complete - reliable layout presentation and dedicated camera`).
 
-## Placement principle
-Placement is a major cozy/design gameplay pillar and will be developed across multiple lessons. Responsibilities stay separated instead of growing one giant controller.
+GitHub `main` is the source of truth. At the start of Lesson 112, the committed `SYSTEM_ARCHITECTURE.md` still described Lesson 110, so replace it with this file after completing the lesson.
 
-Long-term placement responsibilities include layout-mode orchestration, placement lifecycle, validation, grid/precision behavior, magnetic snapping, visualization, and modular asset standards.
+## Invisible-customer root cause
+The remaining bug was spatial recovery, not primarily customer rendering. Lesson 111 used `NavMesh.SamplePosition` near the customer's old position and immediately warped to the returned NavMesh point. A NavMesh point is not guaranteed to be physically clear or on the intended floor.
 
-## StoreLayoutModeController
-A new `StoreLayoutModeController` lives on the existing `StoreSystems` GameObject.
+Lesson 112 adds `CustomerNavigationRecovery`, which searches outward from the position captured on Layout Mode entry and accepts only candidates that:
+- match the customer's NavMesh agent type/area mask
+- remain within a small vertical tolerance
+- have physical capsule clearance
+- are not inside furniture/walls
+- are selected from the nearest successful search ring
 
-Prototype controls:
-- L: enter/exit Layout Mode
-- G: select furniture while Layout Mode is active
-- existing R/T/E/Q placement controls remain temporarily
+Fallback recovery near entrance/exit remains only for cases where the original area has no safe candidate.
 
-Lesson 110 deliberately keeps the existing first-person camera. A dedicated layout camera comes next.
+Prototype values: 4 m max radius and 0.5 m vertical tolerance.
 
-Layout Mode does not use `Time.timeScale = 0`. It explicitly suspends the systems that must stop.
+## Furniture navigation
+New `FurnitureNavigationBlocker` requires `FurnitureIdentity` and `NavMeshModifierVolume`.
 
-## Availability
-Layout Mode works whether the store is open or closed and does not require an empty store.
+It derives a Not Walkable modifier volume from `FurnitureDefinition.BodyCenter` and `BodyHalfExtents`, with 0.05 m horizontal padding and 0.20 m floor overlap. The body footprint becomes non-walkable while the access footprint stays walkable.
 
-The player must put down any carried item before entering Layout Mode.
+Add it to:
+- PF_Shelf
+- PF_RefrigeratedDisplay
+- PF_StorageRack_Ambient
+- PF_StorageRack_Chilled
 
-## StoreClock
-`StoreClock` has a layout-suspended flag. While suspended, game time and schedule transitions do not advance. Existing time state resumes unchanged.
+## Ceiling layer
+Custom layer 6: `Ceiling`.
 
-## CustomerFlow
-`CustomerFlow` pauses its spawn timer while Layout Mode is active and coordinates suspension/resumption of all active customers.
+Exact ceiling objects:
+- StoreBuilding/Base/Ceiling_Base
+- StoreBuilding/Expansion_Sales_01/UnlockedGeometry/Ceiling_SalesExpansion_01
+- StoreBuilding/Expansion_SalesRear_01/UnlockedGeometry/Ceiling_SalesRearExpansion_01
+- StoreBuilding/Expansion_Backroom_01/UnlockedGeometry/Ceiling_BackroomExpansion_01
 
-## CustomerController
-Customer state and visit data stay in memory during Layout Mode.
+`LayoutCamera` excludes `Ceiling` from its Culling Mask. `Navigation/NavMeshSurface` excludes `Ceiling` from its Layer Mask. Player/Main Camera still includes it.
 
-While suspended:
-- customer state Update stops
-- NavMesh movement stops
-- renderers are hidden
-- child colliders are disabled
-- shopping list, carried products, basket state, satisfaction, checkout state and targets are preserved
+This hides roofs only in Layout Mode and prevents ceiling colliders from becoming navigation build sources.
 
-On Layout Mode exit:
-1. NavMesh is rebuilt if furniture changed
-2. invalid customer positions are sampled/warped to nearby usable NavMesh
-3. the existing activity is reissued from the preserved CustomerState
-4. customer visuals/colliders return
-5. simulation resumes
+## Layout camera
+LayoutCameraController values:
+- start pitch 60
+- min pitch 15
+- max pitch 88
+- start distance 11 m
+- min distance 4 m
+- max distance 24 m
+- pan 7 m/s
+- Shift boost 2x
+- yaw sensitivity .12
+- pitch sensitivity .10
+- wheel zoom sensitivity .02
 
-Moved-shelf targets therefore route to the shelf's new CustomerStandPoint.
+Controls remain WASD, mouse look, wheel zoom, Shift boost, L exit.
 
-## Stocked furniture
-ShelfSlot and StorageBay no longer use stock quantity as an `IFurnitureMoveConstraint`.
+## Furniture selection
+Lesson 111 kept the old first-person 4 m grab ray even though the layout camera starts roughly 10 m away.
 
-Shelves and storage racks may be moved while stocked. `IFurnitureMoveConstraint` remains available for future genuinely meaningful restrictions.
+Lesson 112 replaces it with:
+- selectionRayDistance = 35 m
+- previewRayDistance = 30 m
 
-## FurniturePlacementController
-FurniturePlacementController no longer decides whether the store is open or empty and no longer rebuilds NavMesh directly.
+G continues to select/move furniture under the centre reticle.
 
-It requires Layout Mode to be active, owns the current placement preview lifecycle, and calls `StoreLayoutModeController.MarkNavigationDirty()` after a confirmed move/purchase.
+## Layout border
+`GameUI/LayoutModeFrame` becomes an inset neon frame.
 
-## Deferred NavMesh rebuilding
-A layout session can contain many furniture edits. NavMesh rebuild occurs once when Layout Mode exits, followed by customer recovery.
+Inset: 16 px.
 
-## FurnitureShop
-Furniture purchasing no longer requires a closed/empty store.
+Core bars:
+- FrameTop/Bottom/Left/Right
+- thickness 5 px
+- color #A7F8FFFF
 
-Buying furniture from the Store Computer closes the terminal, enters Layout Mode, suspends customers, creates the preview, and charges only after placement confirmation. Canceling an unconfirmed purchase remains free.
+Glow bars:
+- GlowTop/Bottom/Left/Right
+- thickness 18 px
+- color #31DFFF55
+- rendered behind the core
+- Raycast Target off
 
-Expansion purchasing is unchanged in Lesson 110.
+## Customer presentation
+`CustomerLayoutPresentation` remains presentation-only. It uses `Renderer.forceRenderingOff` during Layout Mode and restores prior values afterward. Customer colliders remain disabled while hidden so they do not block placement.
 
-## Save-system note
-Development save schema remains `2`.
+Navigation safety and presentation remain separate responsibilities.
 
-SaveManager still blocks save/load while active customers exist. This is intentional because active customers can hold product instances already removed from shelves, but current save data does not serialize in-progress customer visits. Removing the guard would risk lost/duplicated stock.
+## Layout Mode lifecycle
+Enter: suspend clock/customers, hide customer presentation, disable normal player controls/camera, enable layout camera/UI.
 
-Safe save-anytime requires an explicit active-customer persistence/snapshot policy and is deferred rather than faked.
+During: move/buy stocked furniture freely; mark navigation dirty; no per-object NavMesh rebuild.
 
-## Current placement baseline values
-The current `Market` scene values are preserved:
-- grab distance: 4 m
-- preview ray distance: 18 m
-- grid size: 0.1 m
-- furniture snap distance: 0.35 m
-- furniture snap gap: 0.01 m
-- alignment snap distance: 0.30 m
-
-These remain prototype values.
+Exit: rebuild NavMesh once if dirty, safely recover customers, reissue activity, restore customer presentation, resume simulation, restore player camera/controls.
 
 ## Roadmap
-### Lesson 111 — Layout Camera & Placement Visual Foundation
-Dedicated elevated/free layout camera, floor-grid visualization, body footprint, access footprint, nearby occupancy feedback.
+Lesson 113 — Grid & Footprint Visual Language.
+Lesson 114 — Grid/Precision Controls & Modular Asset Standard.
+Lesson 115 — Magnetic Socket Snapping.
 
-### Lesson 112 — Grid/Precision Controls & Modular Asset Standard
-Independent grid/precision controls and formal Little Market measurement/pivot conventions.
+Add refinement lessons if placement still does not feel good.
 
-### Lesson 113 — Magnetic Socket Snapping
-Explicit snap sockets, zero visible gap, sticky attach/detach hysteresis and alignment guides.
-
-### Later — Save-anytime customer persistence
-Permit safe save/load with active customers only after their in-progress stock and visit state is defined.
-
-Checkout development remains planned after the placement foundation: physical scanning/bagging, card/cash interaction, cash drawer/change, keypad entry, later PLU codes, multiple checkouts and self-checkouts.
+## Permanent principles
+- Inspect latest GitHub before every lesson.
+- Never guess object names, paths, fields or values.
+- Keep responsibilities separated; avoid god classes.
+- Do not fix architecture bugs with presentation workarounds.
+- The building provides space; the player decides how the grocery operates inside it.
+- Layout Mode works while the store is open.
+- Stocked furniture may move.
+- Grid and magnetic snapping are independent.
+- 1 Unity unit = 1 metre.
+- End every lesson with an updated architecture `.md` and continuation-prompt `.md`.

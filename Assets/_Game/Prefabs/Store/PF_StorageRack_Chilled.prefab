@@ -2082,6 +2082,8 @@ GameObject:
   m_Component:
   - component: {fileID: 3291202639147095468}
   - component: {fileID: 3259921114249044854}
+  - component: {fileID: 3342710472696782701}
+  - component: {fileID: 6493120876412050762}
   m_Layer: 0
   m_Name: PF_StorageRack_Chilled
   m_TagString: Untagged
@@ -2132,6 +2134,37 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::FurnitureIdentity
   furnitureDefinition: {fileID: 11400000, guid: 9c18549bec1042a43a523be0ed3e969a, type: 2}
   persistentID: 
+--- !u!114 &3342710472696782701
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2301185408672823042}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 35e95dc5ff2b64380880dd7ac5922847, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Unity.AI.Navigation::Unity.AI.Navigation.NavMeshModifierVolume
+  m_SerializedVersion: 0
+  m_Size: {x: 2.54, y: 1.84, z: 0.70000005}
+  m_Center: {x: 0, y: 0.7, z: 0}
+  m_Area: 1
+  m_AffectedAgents: ffffffffi
+--- !u!114 &6493120876412050762
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2301185408672823042}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2a4787f0588b0cb4298b4184a8d933eb, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::FurnitureNavigationBlocker
+  horizontalPadding: 0.05
+  floorOverlap: 0.2
 --- !u!1 &2331759564877960375
 GameObject:
   m_ObjectHideFlags: 0
