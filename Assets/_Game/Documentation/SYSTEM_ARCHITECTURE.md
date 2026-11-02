@@ -1,126 +1,106 @@
 # Little Market — System Architecture
 
-Current architecture after **Lesson 109 — Store Layout Usability, Rear Sales Expansion & Furniture Snapping**.
+Current architecture after **Lesson 110 — Layout Mode Simulation Foundation**.
 
 ## Baseline
+Designed from GitHub `main` commit `29d4b30e67c593cd741405c3f7a8fee4cae9e837` (`Lesson 109 complete - layout usability rear expansion and furniture snapping`).
 
-Lesson 109 was designed from GitHub `main` commit `197f48a2fc546b9839afdf09bc5f0b55e3caf966` (`Lesson 108 complete - generic furniture runtime and purchasable storage`).
+## Placement principle
+Placement is a major cozy/design gameplay pillar and will be developed across multiple lessons. Responsibilities stay separated instead of growing one giant controller.
 
-## Store layout direction
+Long-term placement responsibilities include layout-mode orchestration, placement lifecycle, validation, grid/precision behavior, magnetic snapping, visualization, and modular asset standards.
 
-The building shell and expansion boundaries are structural. Operational equipment belongs to the generic furniture layer and should eventually be player-placeable.
+## StoreLayoutModeController
+A new `StoreLayoutModeController` lives on the existing `StoreSystems` GameObject.
 
-The backroom grows only toward negative X. The sales floor can grow independently toward positive X and positive Z.
+Prototype controls:
+- L: enter/exit Layout Mode
+- G: select furniture while Layout Mode is active
+- existing R/T/E/Q placement controls remain temporarily
 
-Starter sales floor: X -4 to +8, Z -5 to +5, 12 m × 10 m.
-Starter backroom: X -8 to -4, Z -5 to +5, 4 m × 10 m.
+Lesson 110 deliberately keeps the existing first-person camera. A dedicated layout camera comes next.
 
-### Sales Floor Side Expansion I
+Layout Mode does not use `Time.timeScale = 0`. It explicitly suspends the systems that must stop.
 
-Stable ID remains `sales_floor_01`.
+## Availability
+Layout Mode works whether the store is open or closed and does not require an empty store.
 
-Bounds: X +8 to +12, Z -5 to +5. Adds 40 m².
+The player must put down any carried item before entering Layout Mode.
 
-### Sales Floor Rear Expansion I
+## StoreClock
+`StoreClock` has a layout-suspended flag. While suspended, game time and schedule transitions do not advance. Existing time state resumes unchanged.
 
-New ID: `sales_rear_01`.
+## CustomerFlow
+`CustomerFlow` pauses its spawn timer while Layout Mode is active and coordinates suspension/resumption of all active customers.
 
-Bounds: X -4 to +8, Z +5 to +9. Adds 48 m².
+## CustomerController
+Customer state and visit data stay in memory during Layout Mode.
 
-Provisional price: £120. Required Store Level: 2.
+While suspended:
+- customer state Update stops
+- NavMesh movement stops
+- renderers are hidden
+- child colliders are disabled
+- shopping list, carried products, basket state, satisfaction, checkout state and targets are preserved
 
-The starter `Wall_Rear_Sales` is its locked barrier. Unlocking activates a new floor, ceiling, left/right side walls and rear exterior wall.
+On Layout Mode exit:
+1. NavMesh is rebuilt if furniture changed
+2. invalid customer positions are sampled/warped to nearby usable NavMesh
+3. the existing activity is reissued from the preserved CustomerState
+4. customer visuals/colliders return
+5. simulation resumes
 
-### Backroom Expansion I
+Moved-shelf targets therefore route to the shelf's new CustomerStandPoint.
 
-ID remains `backroom_01`.
+## Stocked furniture
+ShelfSlot and StorageBay no longer use stock quantity as an `IFurnitureMoveConstraint`.
 
-Bounds: X -12 to -8, Z -5 to +5. Adds 40 m².
+Shelves and storage racks may be moved while stocked. `IFurnitureMoveConstraint` remains available for future genuinely meaningful restrictions.
 
-## Build zones
+## FurniturePlacementController
+FurniturePlacementController no longer decides whether the store is open or empty and no longer rebuilds NavMesh directly.
 
-StoreBuildArea references five zones: base SalesFloor, base Backroom, Sales Side 01, Sales Rear 01, Backroom 01.
+It requires Layout Mode to be active, owns the current placement preview lifecycle, and calls `StoreLayoutModeController.MarkNavigationDirty()` after a confirmed move/purchase.
 
-StoreExpansionSystem exposes three purchase zones in this order: Sales Side 01, Sales Rear 01, Backroom 01.
+## Deferred NavMesh rebuilding
+A layout session can contain many furniture edits. NavMesh rebuild occurs once when Layout Mode exits, followed by customer recovery.
 
-No new expansion-system code is required.
+## FurnitureShop
+Furniture purchasing no longer requires a closed/empty store.
 
-## Store Computer scrolling
+Buying furniture from the Store Computer closes the terminal, enters Layout Mode, suspends customers, creates the preview, and charges only after placement confirmation. Canceling an unconfirmed purchase remains free.
 
-Furniture and Expansion use dynamic rows inside ScrollRect content.
+Expansion purchasing is unchanged in Lesson 110.
 
-StoreComputerManagementUI now forces Unity layout rebuilds after dynamically repopulating those lists so ScrollRect receives correct content bounds immediately.
-
-Freshly opened tabs reset to the top. Expansion confirmation rebuilds preserve current scroll position.
-
-## Starter shelf layout
-
-Default authored positions are moved away from the middle of the store:
-
-- Shelf_Cereal: (-2.5, 0, 3.8)
-- Shelf_Bakery: (0.3, 0, 3.8)
-- Shelf_Dairy: (3.1, 0, 3.8)
-
-All retain Y rotation 0.
-
-These are new-game/default positions. Existing saved furniture positions intentionally override them when loading a save.
-
-## Furniture snapping
-
-The general furniture placement grid remains 0.5 m.
-
-FurniturePlacementController adds optional edge snapping based on FurnitureDefinition body footprints.
-
-Provisional values:
-
-- snap activation distance: 0.35 m
-- body gap: 0.05 m
-- perpendicular alignment distance: 0.30 m
-
-The preview first uses the normal grid. When it approaches another managed FurnitureIdentity in the same StoreAreaType, the nearest compatible body edge may snap to a 5 cm gap.
-
-If perpendicular centers are also close, they align into a clean row.
-
-Normal build-area, body collision, and front-access validation still run after snapping, so snapping never bypasses gameplay clearance rules.
-
-## Save compatibility
-
+## Save-system note
 Development save schema remains `2`.
 
-Adding `sales_rear_01` is naturally compatible with existing schema-2 saves; older saves simply leave the new expansion locked.
+SaveManager still blocks save/load while active customers exist. This is intentional because active customers can hold product instances already removed from shelves, but current save data does not serialize in-progress customer visits. Removing the guard would risk lost/duplicated stock.
 
-Changing default authored shelf positions does not require a schema bump because loaded saves intentionally preserve the player's stored furniture layout.
+Safe save-anytime requires an explicit active-customer persistence/snapshot policy and is deferred rather than faked.
 
-## Checkout direction
+## Current placement baseline values
+The current `Market` scene values are preserved:
+- grab distance: 4 m
+- preview ray distance: 18 m
+- grid size: 0.1 m
+- furniture snap distance: 0.35 m
+- furniture snap gap: 0.01 m
+- alignment snap distance: 0.30 m
 
-Current checkout already provides one queue, item-by-item scanning, scan visual/audio feedback, automatic bag creation, final payment, sale reporting and money gain.
-
-The remaining weakness is that cashier activity is mostly repeated E presses.
-
-The preferred future direction is a physical but cozy cashier loop:
-
-customer unloads items -> player scans physically -> player bags -> payment -> customer leaves.
-
-Manual scanning and bagging should provide the core tactile interaction. Payment can later vary between card/tap and occasional cash/change without turning every transaction into a tedious coin-counting simulator.
-
-Checkout counters must eventually become managed furniture discovered through a checkout registry rather than one CheckoutQueue permanently referenced by CustomerFlow.
-
-Additional staffed checkouts and future self-checkouts should become purchasable layout decisions.
+These remain prototype values.
 
 ## Roadmap
+### Lesson 111 — Layout Camera & Placement Visual Foundation
+Dedicated elevated/free layout camera, floor-grid visualization, body footprint, access footprint, nearby occupancy feedback.
 
-### Lesson 110 — Dynamic checkout foundation & cashier interaction phase 1
+### Lesson 112 — Grid/Precision Controls & Modular Asset Standard
+Independent grid/precision controls and formal Little Market measurement/pivot conventions.
 
-Generalize checkout discovery, convert the starter checkout toward managed furniture, and begin richer physical cashier interaction.
+### Lesson 113 — Magnetic Socket Snapping
+Explicit snap sockets, zero visible gap, sticky attach/detach hysteresis and alignment guides.
 
-### Lesson 111 — Basket/service furniture & multi-checkout behavior
+### Later — Save-anytime customer persistence
+Permit safe save/load with active customers only after their in-progress stock and visit state is defined.
 
-Generalize basket-station discovery and validate multiple service points.
-
-### Lesson 112 — First employee foundation
-
-Begin employees after manual service furniture and cashier gameplay are stable. Restocker remains the preferred first employee.
-
-## Still deferred
-
-Spoilage, operating expenses, production building art, advanced/corner expansion tiers, furniture selling/recovery, and final economy balancing remain deferred.
+Checkout development remains planned after the placement foundation: physical scanning/bagging, card/cash interaction, cash drawer/change, keypad entry, later PLU codes, multiple checkouts and self-checkouts.

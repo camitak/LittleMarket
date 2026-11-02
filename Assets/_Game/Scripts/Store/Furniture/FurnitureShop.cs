@@ -8,16 +8,17 @@ public class FurnitureShop : MonoBehaviour
 
     [Header("Store")]
     [SerializeField] private StoreEconomy storeEconomy;
-    [SerializeField] private StoreClock storeClock;
-    [SerializeField] private CustomerFlow customerFlow;
     [SerializeField] private StoreFurnitureLayout storeFurnitureLayout;
+    [SerializeField] private StoreLayoutModeController layoutMode;
 
     [Header("Player")]
     [SerializeField] private PlayerInteraction playerInteraction;
     [SerializeField] private FurniturePlacementController placementController;
 
     public int CatalogCount =>
-        furnitureCatalog != null ? furnitureCatalog.Count : 0;
+        furnitureCatalog != null
+            ? furnitureCatalog.Count
+            : 0;
 
     public FurnitureDefinition GetCatalogItem(int index)
     {
@@ -32,34 +33,31 @@ public class FurnitureShop : MonoBehaviour
     {
         if (furnitureCatalog == null ||
             storeEconomy == null ||
-            storeClock == null ||
-            customerFlow == null ||
             storeFurnitureLayout == null ||
+            layoutMode == null ||
             playerInteraction == null ||
             placementController == null)
         {
-            reason = "Furniture purchasing is not configured.";
+            reason =
+                "Furniture purchasing is not configured.";
+
             return false;
         }
 
         if (definition == null ||
             !furnitureCatalog.Contains(definition))
         {
-            reason = "This furniture is not part of the current catalog.";
+            reason =
+                "This furniture is not part of the current catalog.";
+
             return false;
         }
 
         if (!definition.IsConfigured)
         {
-            reason = $"{definition.DisplayName} is not configured correctly.";
-            return false;
-        }
+            reason =
+                $"{definition.DisplayName} is not configured correctly.";
 
-        if (storeClock.IsStoreOpen ||
-            storeClock.HasDayEnded ||
-            customerFlow.ActiveCustomerCount > 0)
-        {
-            reason = "Buy furniture while the store is closed and empty.";
             return false;
         }
 
@@ -72,9 +70,12 @@ public class FurnitureShop : MonoBehaviour
             return false;
         }
 
-        if (storeEconomy.CurrentMoney < definition.PurchasePrice)
+        if (storeEconomy.CurrentMoney <
+            definition.PurchasePrice)
         {
-            reason = $"Not enough money to buy {definition.DisplayName}.";
+            reason =
+                $"Not enough money to buy {definition.DisplayName}.";
+
             return false;
         }
 
@@ -86,13 +87,30 @@ public class FurnitureShop : MonoBehaviour
         FurnitureDefinition definition,
         out string reason)
     {
-        if (!CanBeginPurchase(definition, out reason))
+        if (!CanBeginPurchase(
+                definition,
+                out reason))
+        {
             return false;
+        }
+
+        bool enteredLayoutMode =
+            !layoutMode.IsActive;
+
+        if (enteredLayoutMode &&
+            !layoutMode.TryEnterLayoutMode(
+                out reason))
+        {
+            return false;
+        }
 
         if (!storeFurnitureLayout.TryCreatePreviewFurniture(
                 definition,
                 out FurnitureIdentity furniture))
         {
+            if (enteredLayoutMode)
+                layoutMode.ExitLayoutMode();
+
             reason =
                 $"Could not create {definition.DisplayName}. Check the furniture catalog and prefab.";
 
@@ -103,7 +121,13 @@ public class FurnitureShop : MonoBehaviour
                 furniture,
                 this))
         {
-            storeFurnitureLayout.DiscardUnconfirmedFurniture(furniture);
+            storeFurnitureLayout
+                .DiscardUnconfirmedFurniture(
+                    furniture
+                );
+
+            if (enteredLayoutMode)
+                layoutMode.ExitLayoutMode();
 
             reason =
                 "Couldn't start furniture placement. Make sure the Game view is active.";
@@ -115,7 +139,8 @@ public class FurnitureShop : MonoBehaviour
         return true;
     }
 
-    public bool TryCompletePurchase(FurnitureDefinition definition)
+    public bool TryCompletePurchase(
+        FurnitureDefinition definition)
     {
         if (definition == null ||
             furnitureCatalog == null ||
@@ -125,16 +150,20 @@ public class FurnitureShop : MonoBehaviour
             return false;
         }
 
-        return storeEconomy.TrySpend(definition.PurchasePrice);
+        return storeEconomy.TrySpend(
+            definition.PurchasePrice
+        );
     }
 
-    public void CancelPurchase(FurnitureIdentity previewFurniture)
+    public void CancelPurchase(
+        FurnitureIdentity previewFurniture)
     {
-        if (storeFurnitureLayout != null)
-        {
-            storeFurnitureLayout.DiscardUnconfirmedFurniture(
+        if (storeFurnitureLayout == null)
+            return;
+
+        storeFurnitureLayout
+            .DiscardUnconfirmedFurniture(
                 previewFurniture
             );
-        }
     }
 }

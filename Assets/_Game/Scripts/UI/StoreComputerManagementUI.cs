@@ -92,7 +92,7 @@ public class StoreComputerManagementUI : MonoBehaviour
         if (orderStatusText != null)
         {
             orderStatusText.text =
-                "Furniture is charged only after valid placement. Store must be closed and empty.";
+                "Furniture can be bought at any time. Buying or moving furniture uses Layout Mode.";
         }
     }
 

@@ -3,22 +3,22 @@ using UnityEngine;
 
 public class CustomerFlow : MonoBehaviour
 {
-    [Header("Customer")] 
+    [Header("Customer")]
     [SerializeField] private CustomerController customerPrefab;
 
-    [Header("Spawn Timing")] 
+    [Header("Spawn Timing")]
     [Min(0f)] [SerializeField] private float initialSpawnDelay = 3f;
     [Min(0.5f)] [SerializeField] private float minSpawnInterval = 6f;
     [Min(0.5f)] [SerializeField] private float maxSpawnInterval = 10f;
 
-    [Header("Store Capacity")] 
+    [Header("Store Capacity")]
     [Min(1)] [SerializeField] private int maxCustomersInStore = 3;
 
-    [Header("Shopping List")] 
+    [Header("Shopping List")]
     [Min(1)] [SerializeField] private int minItemsPerCustomer = 1;
     [Min(1)] [SerializeField] private int maxItemsPerCustomer = 4;
 
-    [Header("Store References")] 
+    [Header("Store References")]
     [SerializeField] private StoreClock storeClock;
     [SerializeField] private DailyStats dailyStats;
     [SerializeField] private StoreReputation storeReputation;
@@ -31,11 +31,13 @@ public class CustomerFlow : MonoBehaviour
     [SerializeField] private Transform customerExitInsidePoint;
     [SerializeField] private Transform customerExitPoint;
 
-    private List<CustomerController> activeCustomers = new();
+    private readonly List<CustomerController> activeCustomers = new();
 
     private float spawnTimer;
+    private bool layoutSuspended;
 
     public int ActiveCustomerCount => activeCustomers.Count;
+    public bool IsLayoutSuspended => layoutSuspended;
 
     private void Start()
     {
@@ -46,22 +48,57 @@ public class CustomerFlow : MonoBehaviour
     {
         RemoveDestroyedCustomers();
 
-        if (!HasValidConfiguration()) return;
-
-        if (!storeClock.IsStoreOpen) return;
-
-        if (activeCustomers.Count
-            >= maxCustomersInStore)
+        if (layoutSuspended)
             return;
 
-        spawnTimer -=
-            Time.deltaTime;
+        if (!HasValidConfiguration())
+            return;
 
-        if (spawnTimer > 0f) return;
+        if (!storeClock.IsStoreOpen)
+            return;
+
+        if (activeCustomers.Count >= maxCustomersInStore)
+            return;
+
+        spawnTimer -= Time.deltaTime;
+
+        if (spawnTimer > 0f)
+            return;
 
         SpawnCustomer();
-
         ResetSpawnTimer();
+    }
+
+    public void SuspendForLayout()
+    {
+        if (layoutSuspended)
+            return;
+
+        layoutSuspended = true;
+
+        RemoveDestroyedCustomers();
+
+        foreach (CustomerController customer in activeCustomers)
+        {
+            if (customer != null)
+                customer.SuspendForLayout();
+        }
+    }
+
+    public void ResumeFromLayout()
+    {
+        if (!layoutSuspended)
+            return;
+
+        RemoveDestroyedCustomers();
+
+        foreach (CustomerController customer in activeCustomers)
+        {
+            if (customer != null)
+                customer.ResumeFromLayout();
+        }
+
+        layoutSuspended = false;
     }
 
     public void ResetForNewDay()
@@ -72,20 +109,20 @@ public class CustomerFlow : MonoBehaviour
 
     private void SpawnCustomer()
     {
-        var shoppingList = CreateShoppingList();
+        ProductData[] shoppingList = CreateShoppingList();
 
-        if (shoppingList == null) return;
+        if (shoppingList == null ||
+            shoppingList.Length == 0)
+        {
+            return;
+        }
 
-        if (shoppingList.Length == 0) return;
+        CustomerController customer = Instantiate(
+            customerPrefab,
+            customerSpawnPoint.position,
+            customerSpawnPoint.rotation
+        );
 
-        var customer =
-            Instantiate(
-                customerPrefab,
-                customerSpawnPoint.position,
-                customerSpawnPoint.rotation
-            );
-
-        
         customer.Configure(
             shoppingList,
             shelfRegistry,
@@ -97,28 +134,33 @@ public class CustomerFlow : MonoBehaviour
             customerBasketStation
         );
 
-
-        activeCustomers.Add(
-            customer
-        );
+        activeCustomers.Add(customer);
     }
 
     private ProductData[] CreateShoppingList()
     {
-        
-        var minimumItems = Mathf.Max(1, minItemsPerCustomer);
+        int minimumItems =
+            Mathf.Max(1, minItemsPerCustomer);
 
-        var maximumItems = Mathf.Max(minimumItems, maxItemsPerCustomer);
-        
-        var itemCount = Random.Range(minimumItems, maximumItems + 1);
+        int maximumItems =
+            Mathf.Max(minimumItems, maxItemsPerCustomer);
 
-        var shoppingList = new ProductData[itemCount];
+        int itemCount =
+            Random.Range(
+                minimumItems,
+                maximumItems + 1
+            );
 
-        for (var i = 0; i < shoppingList.Length; i++)
+        ProductData[] shoppingList =
+            new ProductData[itemCount];
+
+        for (int i = 0; i < shoppingList.Length; i++)
         {
-            var product = GetRandomUnlockedProduct();
+            ProductData product =
+                GetRandomUnlockedProduct();
 
-            if (product == null) return null;
+            if (product == null)
+                return null;
 
             shoppingList[i] = product;
         }
@@ -128,32 +170,34 @@ public class CustomerFlow : MonoBehaviour
 
     private ProductData GetRandomUnlockedProduct()
     {
-        if (storeProgression == null) return null;
+        if (storeProgression == null)
+            return null;
 
-        var productCount =
+        int productCount =
             storeProgression.UnlockedProductCount;
 
-        if (productCount <= 0) return null;
+        if (productCount <= 0)
+            return null;
 
-        var randomIndex =
+        int randomIndex =
             Random.Range(
                 0,
                 productCount
             );
 
-        return storeProgression
-            .GetUnlockedProduct(
-                randomIndex
-            );
+        return storeProgression.GetUnlockedProduct(
+            randomIndex
+        );
     }
 
     private void RemoveDestroyedCustomers()
     {
-        for (var i = activeCustomers.Count - 1;
+        for (int i = activeCustomers.Count - 1;
              i >= 0;
              i--)
         {
-            if (activeCustomers[i] != null) continue;
+            if (activeCustomers[i] != null)
+                continue;
 
             activeCustomers.RemoveAt(i);
         }
@@ -170,22 +214,22 @@ public class CustomerFlow : MonoBehaviour
 
     private void ResetSpawnTimer()
     {
-        var minimumInterval =
+        float minimumInterval =
             Mathf.Max(
                 0.5f,
                 minSpawnInterval
             );
 
-        var maximumInterval =
+        float maximumInterval =
             Mathf.Max(
                 minimumInterval,
                 maxSpawnInterval
             );
 
-        var reputationMultiplier = storeReputation.CustomerArrivalIntervalMultiplier;
+        float reputationMultiplier =
+            storeReputation.CustomerArrivalIntervalMultiplier;
 
         minimumInterval *= reputationMultiplier;
-
         maximumInterval *= reputationMultiplier;
 
         spawnTimer =
@@ -197,29 +241,41 @@ public class CustomerFlow : MonoBehaviour
 
     private bool HasValidConfiguration()
     {
-        if (customerPrefab == null) return false;
+        if (customerPrefab == null)
+            return false;
 
-        if (storeClock == null) return false;
+        if (storeClock == null)
+            return false;
 
-        if (dailyStats == null) return false;
+        if (dailyStats == null)
+            return false;
 
-        if (storeReputation == null) return false;
+        if (storeReputation == null)
+            return false;
 
-        if (storeProgression == null) return false;
+        if (storeProgression == null)
+            return false;
 
-        if (storeProgression.UnlockedProductCount <= 0) return false;
+        if (storeProgression.UnlockedProductCount <= 0)
+            return false;
 
-        if (shelfRegistry == null) return false;
+        if (shelfRegistry == null)
+            return false;
 
-        if (checkoutQueue == null) return false;
+        if (checkoutQueue == null)
+            return false;
 
-        if (customerSpawnPoint == null) return false;
+        if (customerSpawnPoint == null)
+            return false;
 
-        if (customerEntranceInsidePoint == null) return false;
+        if (customerEntranceInsidePoint == null)
+            return false;
 
-        if (customerExitInsidePoint == null) return false;
+        if (customerExitInsidePoint == null)
+            return false;
 
-        if (customerExitPoint == null) return false;
+        if (customerExitPoint == null)
+            return false;
 
         return true;
     }

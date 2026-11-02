@@ -7,8 +7,7 @@ public class ShelfSlot :
     ISecondaryInteractable,
     IManagementInteractable,
     IRepeatableInteractable,
-    IFurnitureRuntimeParticipant,
-    IFurnitureMoveConstraint
+    IFurnitureRuntimeParticipant
 {
     [Header("Identity")]
     [SerializeField] private string localSlotKey = "";
@@ -104,21 +103,7 @@ public class ShelfSlot :
     {
         UnregisterFromCurrentRegistry();
     }
-
-    public bool CanMoveFurniture(out string reason)
-    {
-        RemoveNullEntries();
-
-        if (StoredItemCount > 0)
-        {
-            reason = "Empty the shelf before moving it.";
-            return false;
-        }
-
-        reason = "";
-        return true;
-    }
-
+    
     public bool IsActorAtShelfFront(Vector3 worldPosition)
     {
         if (salesShelf == null)

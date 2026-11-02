@@ -1,5 +1,4 @@
 using System;
-using Unity.AI.Navigation;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
@@ -12,10 +11,8 @@ public class FurniturePlacementController : MonoBehaviour
     [SerializeField] private InteractionUI interactionUI;
 
     [Header("Store")]
-    [SerializeField] private StoreClock storeClock;
-    [SerializeField] private CustomerFlow customerFlow;
+    [SerializeField] private StoreLayoutModeController layoutMode;
     [SerializeField] private StoreBuildArea buildArea;
-    [SerializeField] private NavMeshSurface navMeshSurface;
 
     [Header("Placement")]
     [Min(1f)] [SerializeField] private float grabDistance = 4f;
@@ -116,10 +113,8 @@ public class FurniturePlacementController : MonoBehaviour
 
         if (Cursor.lockState != CursorLockMode.Locked ||
             Time.timeScale <= 0f ||
-            storeClock == null ||
-            storeClock.IsStoreOpen ||
-            customerFlow == null ||
-            customerFlow.ActiveCustomerCount > 0)
+            layoutMode == null ||
+            !layoutMode.IsActive)
         {
             CancelPlacement();
             return;
@@ -155,6 +150,8 @@ public class FurniturePlacementController : MonoBehaviour
     private void LateUpdate()
     {
         if (interactionUI == null ||
+            layoutMode == null ||
+            !layoutMode.IsActive ||
             Cursor.lockState != CursorLockMode.Locked)
         {
             return;
@@ -165,7 +162,7 @@ public class FurniturePlacementController : MonoBehaviour
             if (!canPlace)
             {
                 interactionUI.ShowPrompt(
-                    "Keep furniture and front access clear  |  [R] Right  [T] Left  |  [Q] Cancel"
+                    "Keep furniture and front access clear  |  [R] Right  [T] Left  |  [Q] Cancel  |  [L] Exit"
                 );
 
                 return;
@@ -182,13 +179,13 @@ public class FurniturePlacementController : MonoBehaviour
                         : "purchase";
 
                 interactionUI.ShowPrompt(
-                    $"[E] Buy & place {priceText}  |  [R] Right  [T] Left  |  [Q] Cancel (free)"
+                    $"[E] Buy & place {priceText}  |  [R] Right  [T] Left  |  [Q] Cancel  |  [L] Exit"
                 );
             }
             else
             {
                 interactionUI.ShowPrompt(
-                    "[E] Place  |  [R] Right  [T] Left  |  [Q] Cancel"
+                    "[E] Place  |  [R] Right  [T] Left  |  [Q] Cancel  |  [L] Exit"
                 );
             }
 
@@ -201,26 +198,29 @@ public class FurniturePlacementController : MonoBehaviour
             furniture.CanMoveFurniture(out _))
         {
             interactionUI.ShowPrompt(
-                "[G] Move empty furniture"
+                "[G] Move furniture  |  [L] Exit Layout Mode"
             );
+
+            return;
         }
+
+        interactionUI.ShowPrompt(
+            "LAYOUT MODE  |  [L] Exit"
+        );
     }
 
     private bool CanStartPlacement()
     {
-        return playerCamera != null &&
-               playerInteraction != null &&
-               interactionUI != null &&
-               buildArea != null &&
-               navMeshSurface != null &&
-               storeClock != null &&
-               customerFlow != null &&
-               !storeClock.IsStoreOpen &&
-               !storeClock.HasDayEnded &&
-               customerFlow.ActiveCustomerCount == 0 &&
-               !playerInteraction.HasAnythingHeld &&
-               Time.timeScale > 0f &&
-               Cursor.lockState == CursorLockMode.Locked;
+        return
+            playerCamera != null &&
+            playerInteraction != null &&
+            interactionUI != null &&
+            layoutMode != null &&
+            layoutMode.IsActive &&
+            buildArea != null &&
+            !playerInteraction.HasAnythingHeld &&
+            Time.timeScale > 0f &&
+            Cursor.lockState == CursorLockMode.Locked;
     }
 
     private bool TryFindLookedAtFurniture(
@@ -318,8 +318,7 @@ public class FurniturePlacementController : MonoBehaviour
         originalPosition = furniture.transform.position;
         originalRotation = furniture.transform.rotation;
 
-        previewYaw =
-            furniture.transform.eulerAngles.y;
+        previewYaw = furniture.transform.eulerAngles.y;
 
         canPlace = false;
 
@@ -329,8 +328,7 @@ public class FurniturePlacementController : MonoBehaviour
         selectedColliders =
             furniture.GetComponentsInChildren<Collider>(true);
 
-        originallyEnabled =
-            new bool[selectedColliders.Length];
+        originallyEnabled = new bool[selectedColliders.Length];
 
         for (int i = 0;
              i < selectedColliders.Length;
@@ -361,9 +359,7 @@ public class FurniturePlacementController : MonoBehaviour
                     originalProperties[i]
                 );
         }
-
-        playerInteraction.enabled = false;
-
+        
         CreateAccessOutline();
         UpdatePreview();
     }
@@ -1002,8 +998,8 @@ public class FurniturePlacementController : MonoBehaviour
 
         FinishPreview(false);
 
-        Physics.SyncTransforms();
-        navMeshSurface.BuildNavMesh();
+        if (layoutMode != null)
+            layoutMode.MarkNavigationDirty();
 
         Debug.Log(
             $"{furnitureName} placed. Save your game to keep the new layout.",
@@ -1011,6 +1007,11 @@ public class FurniturePlacementController : MonoBehaviour
         );
     }
 
+    public void CancelActivePlacement()
+    {
+        CancelPlacement();
+    }
+    
     private void CancelPlacement()
     {
         if (selectedFurniture == null)
@@ -1099,15 +1100,7 @@ public class FurniturePlacementController : MonoBehaviour
         originallyEnabled = null;
 
         canPlace = false;
-
-        if (Cursor.lockState ==
-            CursorLockMode.Locked &&
-            playerInteraction != null)
-        {
-            playerInteraction.enabled =
-                true;
-        }
-
+        
         if (interactionUI != null)
         {
             interactionUI.HidePrompt();

@@ -9,8 +9,7 @@ public class StorageBay :
     ICarryInteractable,
     IManagementInteractable,
     IRepeatableInteractable,
-    IFurnitureRuntimeParticipant,
-    IFurnitureMoveConstraint
+    IFurnitureRuntimeParticipant
 {
     [Header("Identity")]
     [SerializeField] private string localBayKey = "";
@@ -123,18 +122,6 @@ public class StorageBay :
 
         registeredStorageRegistry.Unregister(this);
         registeredStorageRegistry = null;
-    }
-
-    public bool CanMoveFurniture(out string reason)
-    {
-        if (quantity > 0)
-        {
-            reason = "Empty the storage rack before moving it.";
-            return false;
-        }
-
-        reason = "";
-        return true;
     }
 
     public bool CanAcceptProduct(ProductData productData)

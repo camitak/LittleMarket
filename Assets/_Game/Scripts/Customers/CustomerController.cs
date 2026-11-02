@@ -18,6 +18,9 @@ public class CustomerController : MonoBehaviour
     [Min(0.05f)] [SerializeField] private float shelfBrowseDuration = 0.85f;
     [Min(0f)] [SerializeField] private float shelfTurnDegreesPerSecond = 360f;
     [Range(0f, 20f)] [SerializeField] private float shelfLeanDegrees = 10f;
+    
+    [Header("Layout Recovery")]
+    [Min(0.5f)] [SerializeField] private float layoutRelocationRadius = 4f;
 
     private NavMeshAgent agent;
     private ProductData[] shoppingList;
@@ -40,6 +43,16 @@ public class CustomerController : MonoBehaviour
     private Quaternion visualBaseLocalRotation;
     private float shelfBrowseElapsed;
     private Coroutine happyReactionRoutine;
+    private bool layoutSuspended;
+
+    private Renderer[] layoutRenderers;
+    private bool[] layoutRendererEnabledStates;
+
+    private Collider[] layoutColliders;
+    private bool[] layoutColliderEnabledStates;
+
+    private Canvas[] layoutCanvases;
+    private bool[] layoutCanvasEnabledStates;
 
     // Satisfaction
     private float satisfactionScore = 100f;
@@ -73,7 +86,8 @@ public class CustomerController : MonoBehaviour
 
     private void Update()
     {
-        if (!isConfigured) return;
+        if (!isConfigured || layoutSuspended)
+            return;
 
         switch (currentState)
         {
@@ -164,6 +178,370 @@ public class CustomerController : MonoBehaviour
 
         BeginEnteringStore();
 
+    }
+    
+    public void SuspendForLayout()
+    {
+        if (layoutSuspended)
+            return;
+
+        layoutSuspended = true;
+
+        if (agent != null &&
+            agent.enabled &&
+            agent.isOnNavMesh)
+        {
+            agent.isStopped = true;
+        }
+
+        CaptureLayoutPresentation();
+    }
+
+    public void ResumeFromLayout()
+    {
+        if (!layoutSuspended)
+            return;
+
+        RestoreLayoutPresentation();
+        layoutSuspended = false;
+
+        if (!isConfigured ||
+            agent == null ||
+            !agent.enabled)
+        {
+            return;
+        }
+
+        if (!RecoverToUsableNavMesh())
+        {
+            Debug.LogWarning(
+                $"Customer '{gameObject.name}' could not recover to the NavMesh after Layout Mode.",
+                this
+            );
+
+            return;
+        }
+
+        agent.ResetPath();
+        agent.isStopped = false;
+
+        ResumeActivityAfterLayout();
+    }
+
+    private void CaptureLayoutPresentation()
+    {
+        layoutRenderers =
+            GetComponentsInChildren<Renderer>(true);
+
+        layoutRendererEnabledStates =
+            new bool[layoutRenderers.Length];
+
+        for (int i = 0; i < layoutRenderers.Length; i++)
+        {
+            Renderer renderer = layoutRenderers[i];
+
+            if (renderer == null)
+                continue;
+
+            layoutRendererEnabledStates[i] =
+                renderer.enabled;
+
+            renderer.enabled = false;
+        }
+
+        layoutColliders =
+            GetComponentsInChildren<Collider>(true);
+
+        layoutColliderEnabledStates =
+            new bool[layoutColliders.Length];
+
+        for (int i = 0; i < layoutColliders.Length; i++)
+        {
+            Collider customerCollider =
+                layoutColliders[i];
+
+            if (customerCollider == null)
+                continue;
+
+            layoutColliderEnabledStates[i] =
+                customerCollider.enabled;
+
+            customerCollider.enabled = false;
+        }
+
+        layoutCanvases =
+            GetComponentsInChildren<Canvas>(true);
+
+        layoutCanvasEnabledStates =
+            new bool[layoutCanvases.Length];
+
+        for (int i = 0; i < layoutCanvases.Length; i++)
+        {
+            Canvas customerCanvas =
+                layoutCanvases[i];
+
+            if (customerCanvas == null)
+                continue;
+
+            layoutCanvasEnabledStates[i] =
+                customerCanvas.enabled;
+
+            customerCanvas.enabled = false;
+        }
+    }
+
+    private void RestoreLayoutPresentation()
+    {
+        if (layoutRenderers != null &&
+            layoutRendererEnabledStates != null)
+        {
+            int count =
+                Mathf.Min(
+                    layoutRenderers.Length,
+                    layoutRendererEnabledStates.Length
+                );
+
+            for (int i = 0; i < count; i++)
+            {
+                if (layoutRenderers[i] != null)
+                {
+                    layoutRenderers[i].enabled =
+                        layoutRendererEnabledStates[i];
+                }
+            }
+        }
+
+        if (layoutColliders != null &&
+            layoutColliderEnabledStates != null)
+        {
+            int count =
+                Mathf.Min(
+                    layoutColliders.Length,
+                    layoutColliderEnabledStates.Length
+                );
+
+            for (int i = 0; i < count; i++)
+            {
+                if (layoutColliders[i] != null)
+                {
+                    layoutColliders[i].enabled =
+                        layoutColliderEnabledStates[i];
+                }
+            }
+        }
+
+        if (layoutCanvases != null &&
+            layoutCanvasEnabledStates != null)
+        {
+            int count =
+                Mathf.Min(
+                    layoutCanvases.Length,
+                    layoutCanvasEnabledStates.Length
+                );
+
+            for (int i = 0; i < count; i++)
+            {
+                if (layoutCanvases[i] != null)
+                {
+                    layoutCanvases[i].enabled =
+                        layoutCanvasEnabledStates[i];
+                }
+            }
+        }
+
+        layoutRenderers = null;
+        layoutRendererEnabledStates = null;
+
+        layoutColliders = null;
+        layoutColliderEnabledStates = null;
+
+        layoutCanvases = null;
+        layoutCanvasEnabledStates = null;
+    }
+
+    private bool RecoverToUsableNavMesh()
+    {
+        if (TryWarpToNearestNavMesh(
+                transform.position))
+        {
+            return true;
+        }
+
+        if (entranceInsidePoint != null &&
+            TryWarpToNearestNavMesh(
+                entranceInsidePoint.position))
+        {
+            return true;
+        }
+
+        if (exitInsidePoint != null &&
+            TryWarpToNearestNavMesh(
+                exitInsidePoint.position))
+        {
+            return true;
+        }
+
+        return false;
+    }
+
+    private bool TryWarpToNearestNavMesh(
+        Vector3 origin)
+    {
+        float searchRadius =
+            Mathf.Max(
+                0.5f,
+                layoutRelocationRadius
+            );
+
+        if (!NavMesh.SamplePosition(
+                origin,
+                out NavMeshHit hit,
+                searchRadius,
+                NavMesh.AllAreas))
+        {
+            return false;
+        }
+
+        return agent.Warp(hit.position);
+    }
+
+    private void ResumeActivityAfterLayout()
+    {
+        if (visual != null)
+        {
+            visual.localRotation =
+                visualBaseLocalRotation;
+        }
+
+        agent.updateRotation = true;
+
+        switch (currentState)
+        {
+            case CustomerState.WalkingIntoStore:
+                if (!TryResumeDestination(
+                        entranceInsidePoint,
+                        CustomerState.WalkingIntoStore))
+                {
+                    BeginBasketPickupOrShopping();
+                }
+
+                break;
+
+            case CustomerState.WalkingToBasketStation:
+            case CustomerState.TakingBasket:
+                BeginBasketPickupOrShopping();
+                break;
+
+            case CustomerState.SearchingForProduct:
+                SearchForNextProduct();
+                break;
+
+            case CustomerState.WalkingToProduct:
+            case CustomerState.TakingProduct:
+                ResumeCurrentProductApproach();
+                break;
+
+            case CustomerState.WaitingForCheckoutSpace:
+                break;
+
+            case CustomerState.WalkingToCheckout:
+            case CustomerState.WaitingInCheckoutQueue:
+                ResumeCheckoutApproach();
+                break;
+
+            case CustomerState.WalkingToExitApproach:
+                if (!TryResumeDestination(
+                        exitInsidePoint,
+                        CustomerState.WalkingToExitApproach))
+                {
+                    BeginWalkingOutside();
+                }
+
+                break;
+
+            case CustomerState.WalkingToExit:
+                if (!TryResumeDestination(
+                        exitPoint,
+                        CustomerState.WalkingToExit))
+                {
+                    FinishVisit();
+                }
+
+                break;
+
+            case CustomerState.Finished:
+                break;
+        }
+    }
+
+    private bool TryResumeDestination(
+        Transform destination,
+        CustomerState state)
+    {
+        if (destination == null)
+            return false;
+
+        currentState = state;
+
+        return agent.SetDestination(
+            destination.position
+        );
+    }
+
+    private void ResumeCurrentProductApproach()
+    {
+        if (targetShelfSlot == null)
+        {
+            SearchForNextProduct();
+            return;
+        }
+
+        Transform shoppingPoint =
+            targetShelfSlot.CustomerStandPoint;
+
+        if (shoppingPoint == null)
+        {
+            SearchForNextProduct();
+            return;
+        }
+
+        shelfBrowseElapsed = 0f;
+
+        currentState =
+            CustomerState.WalkingToProduct;
+
+        bool accepted =
+            agent.SetDestination(
+                shoppingPoint.position
+            );
+
+        if (!accepted)
+            SearchForNextProduct();
+    }
+
+    private void ResumeCheckoutApproach()
+    {
+        if (assignedQueuePoint == null)
+        {
+            Debug.LogWarning(
+                "Customer lost its checkout queue point during Layout Mode and will leave the store.",
+                this
+            );
+
+            BeginLeaving();
+            return;
+        }
+
+        currentState =
+            CustomerState.WalkingToCheckout;
+
+        bool accepted =
+            agent.SetDestination(
+                assignedQueuePoint.position
+            );
+
+        if (!accepted)
+            BeginLeaving();
     }
     
     private void BeginEnteringStore()

@@ -11106,6 +11106,7 @@ GameObject:
   - component: {fileID: 1117834545}
   - component: {fileID: 1117834546}
   - component: {fileID: 1117834547}
+  - component: {fileID: 1117834548}
   m_Layer: 0
   m_Name: StoreSystems
   m_TagString: Untagged
@@ -11207,7 +11208,7 @@ MonoBehaviour:
   supplierCutoffMinute: 0
   dayEndHour: 22
   dayEndMinute: 0
-  gameMinutesPerRealSecond: 0.1
+  gameMinutesPerRealSecond: 2
   dayText: {fileID: 741771842}
   timeText: {fileID: 1557549108}
   statusText: {fileID: 249437617}
@@ -11420,9 +11421,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::FurnitureShop
   furnitureCatalog: {fileID: 11400000, guid: e8df1eee53c075946a985993b34221d2, type: 2}
   storeEconomy: {fileID: 1117834528}
-  storeClock: {fileID: 1117834532}
-  customerFlow: {fileID: 1117834531}
   storeFurnitureLayout: {fileID: 1117834544}
+  layoutMode: {fileID: 1117834548}
   playerInteraction: {fileID: 1349577615}
   placementController: {fileID: 1349577616}
 --- !u!114 &1117834546
@@ -11464,6 +11464,24 @@ MonoBehaviour:
   - {fileID: 36434960}
   - {fileID: 187919213}
   - {fileID: 237213500}
+--- !u!114 &1117834548
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1117834526}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 63e2088120d97f949be0a061a3cf4a86, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::StoreLayoutModeController
+  storeClock: {fileID: 1117834532}
+  customerFlow: {fileID: 1117834531}
+  navMeshSurface: {fileID: 436418470}
+  playerInteraction: {fileID: 1349577615}
+  furniturePlacementController: {fileID: 1349577616}
+  interactionUI: {fileID: 766562198}
 --- !u!1 &1120029493
 GameObject:
   m_ObjectHideFlags: 0
@@ -13574,10 +13592,8 @@ MonoBehaviour:
   playerCamera: {fileID: 330585545}
   playerInteraction: {fileID: 1349577615}
   interactionUI: {fileID: 766562198}
-  storeClock: {fileID: 1117834532}
-  customerFlow: {fileID: 1117834531}
+  layoutMode: {fileID: 1117834548}
   buildArea: {fileID: 1117834546}
-  navMeshSurface: {fileID: 436418470}
   grabDistance: 4
   previewRayDistance: 18
   gridSize: 0.1
@@ -17320,7 +17336,7 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1785659148}
-  m_Enabled: 0
+  m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 1aa08ab6e0800fa44ae55d278d1423e3, type: 3}
   m_Name: 
@@ -18064,7 +18080,7 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1861925307}
-  m_Enabled: 0
+  m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 1aa08ab6e0800fa44ae55d278d1423e3, type: 3}
   m_Name: 

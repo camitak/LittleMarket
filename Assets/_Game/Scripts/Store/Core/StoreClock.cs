@@ -3,19 +3,16 @@ using UnityEngine;
 
 public class StoreClock : MonoBehaviour
 {
-    [Header("Day")] [Min(1)] [SerializeField]
-    private int startingDay = 1;
+    [Header("Day")] 
+    [Min(1)] [SerializeField] private int startingDay = 1;
 
-    [Header("Starting Time")] [Range(0, 23)] [SerializeField]
-    private int startHour = 7;
-
+    [Header("Starting Time")] 
+    [Range(0, 23)] [SerializeField] private int startHour = 7;
     [Range(0, 59)] [SerializeField] private int startMinute = 0;
 
-    [Header("Store Schedule")] [Range(0, 23)] [SerializeField]
-    private int openingHour = 8;
-
+    [Header("Store Schedule")] 
+    [Range(0, 23)] [SerializeField] private int openingHour = 8;
     [Range(0, 59)] [SerializeField] private int openingMinute = 0;
-
     [Range(0, 23)] [SerializeField] private int closingHour = 21;
     [Range(0, 59)] [SerializeField] private int closingMinute = 0;
 
@@ -27,13 +24,12 @@ public class StoreClock : MonoBehaviour
     [Range(0, 23)] [SerializeField] private int dayEndHour = 22;
     [Range(0, 59)] [SerializeField] private int dayEndMinute = 0;
 
-    [Header("Time Speed")] [Min(0.1f)] [SerializeField]
-    private float gameMinutesPerRealSecond = 2f;
+    [Header("Time Speed")] 
+    [Min(0.1f)] [SerializeField] private float gameMinutesPerRealSecond = 2f;
 
-    [Header("UI")] [SerializeField] private TMP_Text dayText;
-
+    [Header("UI")] 
+    [SerializeField] private TMP_Text dayText;
     [SerializeField] private TMP_Text timeText;
-
     [SerializeField] private TMP_Text statusText;
 
     private float currentMinutes;
@@ -41,6 +37,8 @@ public class StoreClock : MonoBehaviour
     private int currentDay;
 
     private bool hasDayEnded;
+    
+    private bool layoutSuspended;
 
     private static readonly Color32 OpenStatusColor =
         new(
@@ -89,6 +87,8 @@ public class StoreClock : MonoBehaviour
     }
 
     public bool HasDayEnded => hasDayEnded;
+    
+    public bool IsLayoutSuspended => layoutSuspended;
 
     public bool IsPastClosingTime =>
         !hasDayEnded && currentMinutes >= ClosingTimeMinutes;
@@ -136,7 +136,8 @@ public class StoreClock : MonoBehaviour
 
     private void Update()
     {
-        if (hasDayEnded) return;
+        if (hasDayEnded || layoutSuspended)
+            return;
 
         currentMinutes +=
             gameMinutesPerRealSecond
@@ -153,6 +154,11 @@ public class StoreClock : MonoBehaviour
         }
 
         UpdateClockUI();
+    }
+    
+    public void SetLayoutSuspended(bool suspended)
+    {
+        layoutSuspended = suspended;
     }
     
     public void EndDayNow()
