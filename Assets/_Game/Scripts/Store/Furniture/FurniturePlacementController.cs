@@ -6,7 +6,6 @@ using UnityEngine.InputSystem;
 public class FurniturePlacementController : MonoBehaviour
 {
     [Header("Player")]
-    [SerializeField] private Camera playerCamera;
     [SerializeField] private PlayerInteraction playerInteraction;
     [SerializeField] private InteractionUI interactionUI;
 
@@ -31,7 +30,6 @@ public class FurniturePlacementController : MonoBehaviour
     [Header("Fallback Front Access Footprint")]
     [SerializeField] private Vector3 accessHalfExtents = new(1.25f, 0.75f, 0.50f);
     [SerializeField] private Vector3 accessCenter = new(0f, 0.80f, -1.02f);
-
     [Min(0.01f)] [SerializeField] private float outlineWidth = 0.05f;
 
     [Header("Preview Colours")]
@@ -62,8 +60,12 @@ public class FurniturePlacementController : MonoBehaviour
     private static readonly int BaseColorId =
         Shader.PropertyToID("_BaseColor");
 
-    public bool IsPlacementActive =>
-        selectedFurniture != null;
+    public bool IsPlacementActive => selectedFurniture != null;
+    
+    private Camera PlacementCamera =>
+        layoutMode != null
+            ? layoutMode.PlacementCamera
+            : null;
 
     private FurnitureDefinition CurrentDefinition =>
         selectedFurniture != null
@@ -212,7 +214,7 @@ public class FurniturePlacementController : MonoBehaviour
     private bool CanStartPlacement()
     {
         return
-            playerCamera != null &&
+            PlacementCamera != null &&
             playerInteraction != null &&
             interactionUI != null &&
             layoutMode != null &&
@@ -228,9 +230,15 @@ public class FurniturePlacementController : MonoBehaviour
     {
         furniture = null;
 
+        Camera placementCamera =
+            PlacementCamera;
+
+        if (placementCamera == null)
+            return false;
+
         Ray ray = new(
-            playerCamera.transform.position,
-            playerCamera.transform.forward
+            placementCamera.transform.position,
+            placementCamera.transform.forward
         );
 
         RaycastHit[] hits = Physics.RaycastAll(
@@ -369,9 +377,15 @@ public class FurniturePlacementController : MonoBehaviour
         if (selectedFurniture == null)
             return;
 
+        Camera placementCamera =
+            PlacementCamera;
+
+        if (placementCamera == null)
+            return;
+
         Ray ray = new(
-            playerCamera.transform.position,
-            playerCamera.transform.forward
+            placementCamera.transform.position,
+            placementCamera.transform.forward
         );
 
         bool foundFloor =

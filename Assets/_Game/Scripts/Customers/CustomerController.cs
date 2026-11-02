@@ -12,6 +12,7 @@ public class CustomerController : MonoBehaviour
     [SerializeField] private Transform visual;
     [SerializeField] private CustomerShoppingBasket customerShoppingBasket;
     [SerializeField] private CustomerMissingProductVisual missingProductVisual;
+    [SerializeField] private CustomerLayoutPresentation layoutPresentation;
 
 
     [Header("Shelf Browsing")]
@@ -45,15 +46,6 @@ public class CustomerController : MonoBehaviour
     private Coroutine happyReactionRoutine;
     private bool layoutSuspended;
 
-    private Renderer[] layoutRenderers;
-    private bool[] layoutRendererEnabledStates;
-
-    private Collider[] layoutColliders;
-    private bool[] layoutColliderEnabledStates;
-
-    private Canvas[] layoutCanvases;
-    private bool[] layoutCanvasEnabledStates;
-
     // Satisfaction
     private float satisfactionScore = 100f;
     private int missedProductCount;
@@ -72,16 +64,27 @@ public class CustomerController : MonoBehaviour
 
     public float CurrentCheckoutWaitPenalty => CalculateCheckoutWaitPenalty();
     
+    public bool IsLayoutSuspended => layoutSuspended;
+    
     private void Awake()
     {
-        agent = GetComponent<NavMeshAgent>();
-        
-        if (visual != null)
+        agent =
+            GetComponent<NavMeshAgent>();
+
+        if (layoutPresentation == null)
         {
-            visualBaseScale = visual.localScale;
-            visualBaseLocalRotation = visual.localRotation;
+            layoutPresentation =
+                GetComponent<CustomerLayoutPresentation>();
         }
 
+        if (visual != null)
+        {
+            visualBaseScale =
+                visual.localScale;
+
+            visualBaseLocalRotation =
+                visual.localRotation;
+        }
     }
 
     private void Update()
@@ -194,7 +197,10 @@ public class CustomerController : MonoBehaviour
             agent.isStopped = true;
         }
 
-        CaptureLayoutPresentation();
+        if (layoutPresentation != null)
+        {
+            layoutPresentation.HideForLayout();
+        }
     }
 
     public void ResumeFromLayout()
@@ -202,161 +208,43 @@ public class CustomerController : MonoBehaviour
         if (!layoutSuspended)
             return;
 
-        RestoreLayoutPresentation();
-        layoutSuspended = false;
-
         if (!isConfigured ||
             agent == null ||
             !agent.enabled)
         {
+            if (layoutPresentation != null)
+            {
+                layoutPresentation.ShowAfterLayout();
+            }
+
+            layoutSuspended = false;
             return;
         }
 
-        if (!RecoverToUsableNavMesh())
+        bool recovered =
+            RecoverToUsableNavMesh();
+
+        if (recovered)
+        {
+            agent.ResetPath();
+            agent.isStopped = false;
+
+            ResumeActivityAfterLayout();
+        }
+        else
         {
             Debug.LogWarning(
                 $"Customer '{gameObject.name}' could not recover to the NavMesh after Layout Mode.",
                 this
             );
-
-            return;
         }
 
-        agent.ResetPath();
-        agent.isStopped = false;
-
-        ResumeActivityAfterLayout();
-    }
-
-    private void CaptureLayoutPresentation()
-    {
-        layoutRenderers =
-            GetComponentsInChildren<Renderer>(true);
-
-        layoutRendererEnabledStates =
-            new bool[layoutRenderers.Length];
-
-        for (int i = 0; i < layoutRenderers.Length; i++)
+        if (layoutPresentation != null)
         {
-            Renderer renderer = layoutRenderers[i];
-
-            if (renderer == null)
-                continue;
-
-            layoutRendererEnabledStates[i] =
-                renderer.enabled;
-
-            renderer.enabled = false;
+            layoutPresentation.ShowAfterLayout();
         }
 
-        layoutColliders =
-            GetComponentsInChildren<Collider>(true);
-
-        layoutColliderEnabledStates =
-            new bool[layoutColliders.Length];
-
-        for (int i = 0; i < layoutColliders.Length; i++)
-        {
-            Collider customerCollider =
-                layoutColliders[i];
-
-            if (customerCollider == null)
-                continue;
-
-            layoutColliderEnabledStates[i] =
-                customerCollider.enabled;
-
-            customerCollider.enabled = false;
-        }
-
-        layoutCanvases =
-            GetComponentsInChildren<Canvas>(true);
-
-        layoutCanvasEnabledStates =
-            new bool[layoutCanvases.Length];
-
-        for (int i = 0; i < layoutCanvases.Length; i++)
-        {
-            Canvas customerCanvas =
-                layoutCanvases[i];
-
-            if (customerCanvas == null)
-                continue;
-
-            layoutCanvasEnabledStates[i] =
-                customerCanvas.enabled;
-
-            customerCanvas.enabled = false;
-        }
-    }
-
-    private void RestoreLayoutPresentation()
-    {
-        if (layoutRenderers != null &&
-            layoutRendererEnabledStates != null)
-        {
-            int count =
-                Mathf.Min(
-                    layoutRenderers.Length,
-                    layoutRendererEnabledStates.Length
-                );
-
-            for (int i = 0; i < count; i++)
-            {
-                if (layoutRenderers[i] != null)
-                {
-                    layoutRenderers[i].enabled =
-                        layoutRendererEnabledStates[i];
-                }
-            }
-        }
-
-        if (layoutColliders != null &&
-            layoutColliderEnabledStates != null)
-        {
-            int count =
-                Mathf.Min(
-                    layoutColliders.Length,
-                    layoutColliderEnabledStates.Length
-                );
-
-            for (int i = 0; i < count; i++)
-            {
-                if (layoutColliders[i] != null)
-                {
-                    layoutColliders[i].enabled =
-                        layoutColliderEnabledStates[i];
-                }
-            }
-        }
-
-        if (layoutCanvases != null &&
-            layoutCanvasEnabledStates != null)
-        {
-            int count =
-                Mathf.Min(
-                    layoutCanvases.Length,
-                    layoutCanvasEnabledStates.Length
-                );
-
-            for (int i = 0; i < count; i++)
-            {
-                if (layoutCanvases[i] != null)
-                {
-                    layoutCanvases[i].enabled =
-                        layoutCanvasEnabledStates[i];
-                }
-            }
-        }
-
-        layoutRenderers = null;
-        layoutRendererEnabledStates = null;
-
-        layoutColliders = null;
-        layoutColliderEnabledStates = null;
-
-        layoutCanvases = null;
-        layoutCanvasEnabledStates = null;
+        layoutSuspended = false;
     }
 
     private bool RecoverToUsableNavMesh()

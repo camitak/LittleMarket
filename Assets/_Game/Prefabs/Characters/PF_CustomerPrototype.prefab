@@ -308,6 +308,7 @@ GameObject:
   - component: {fileID: 2142928466922106264}
   - component: {fileID: 1460273712183202335}
   - component: {fileID: 3464890494841654905}
+  - component: {fileID: 4847074087475386461}
   m_Layer: 0
   m_Name: PF_CustomerPrototype
   m_TagString: Untagged
@@ -377,9 +378,11 @@ MonoBehaviour:
   visual: {fileID: 6794779590699774044}
   customerShoppingBasket: {fileID: 1460273712183202335}
   missingProductVisual: {fileID: 3464890494841654905}
+  layoutPresentation: {fileID: 4847074087475386461}
   shelfBrowseDuration: 0.85
   shelfTurnDegreesPerSecond: 360
   shelfLeanDegrees: 10
+  layoutRelocationRadius: 4
 --- !u!114 &7286726194657894436
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -458,6 +461,24 @@ MonoBehaviour:
   riseHeight: 0.08
   fadeOutSeconds: 0.35
   reactionColor: {r: 0.76862746, g: 0.41960785, b: 0.41960785, a: 1}
+--- !u!114 &4847074087475386461
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2599349677635650199}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ae83baf9044129248b931fd9ffeb513f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CustomerLayoutPresentation
+  visibilityRoots:
+  - {fileID: 5696178109681276074}
+  - {fileID: 7279372988479505635}
+  - {fileID: 5922845108665904575}
+  - {fileID: 1350903068309145706}
+  - {fileID: 6198429103013572156}
 --- !u!1 &3331872740172664456
 GameObject:
   m_ObjectHideFlags: 0

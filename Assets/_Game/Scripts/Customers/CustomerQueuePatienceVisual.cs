@@ -39,6 +39,16 @@ public class CustomerQueuePatienceVisual : MonoBehaviour
     {
         if (customer == null || patienceText == null)
             return;
+        
+        if (customer.IsLayoutSuspended)
+        {
+            if (patienceText.gameObject.activeSelf)
+            {
+                patienceText.gameObject.SetActive(false);
+            }
+
+            return;
+        }
 
         float penalty = customer.CurrentCheckoutWaitPenalty;
 
