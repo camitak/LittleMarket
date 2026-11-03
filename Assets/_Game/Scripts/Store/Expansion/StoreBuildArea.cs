@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using UnityEngine;
 
 [DisallowMultipleComponent]
@@ -68,6 +69,35 @@ public class StoreBuildArea : MonoBehaviour
         }
 
         return hasBounds;
+    }
+    
+    public void CollectAvailableFloorBounds(
+        StoreAreaType requiredArea,
+        List<Bounds> results)
+    {
+        if (results == null || buildZones == null)
+            return;
+
+        foreach (StoreBuildZone zone in buildZones)
+        {
+            if (zone == null ||
+                !zone.IsAvailable ||
+                zone.AreaType != requiredArea)
+            {
+                continue;
+            }
+
+            Collider floor = zone.FloorCollider;
+
+            if (floor == null ||
+                !floor.enabled ||
+                !floor.gameObject.activeInHierarchy)
+            {
+                continue;
+            }
+
+            results.Add(floor.bounds);
+        }
     }
 
     public bool IsFootprintInside(Vector3 position,

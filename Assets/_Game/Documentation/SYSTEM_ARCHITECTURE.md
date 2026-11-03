@@ -1,219 +1,249 @@
 # Little Market — System Architecture
 
-Current architecture after **Lesson 114 — Reliable Fixed-Fixture Navigation & Automatic Layout Overview**.
+Current architecture after **Lesson 115 — Grid & Footprint Visual Language**.
 
 ## Baseline
-Lesson 114 is designed from GitHub `main` commit:
+Lesson 115 is designed from GitHub `main` commit:
 
-`5a1b9cb9639684e9d73d568ad60a220b35164a50`
+`aa83c6856db146001d8102a9289bd2ff6ba87c29`
 
 Commit message:
 
-`Lesson 113 complete - mouse driven layout and operational clearance`
+`Lesson 114 complete - fixed fixture navigation and automatic layout overview`
 
 GitHub `main` remains the source of truth.
 
-## Why Lesson 114 exists
-Lesson 113 improved Layout Mode interaction and introduced semantic operational clearance, but two foundation issues remained:
+## User-authored camera value
+The actual pushed scene has:
 
-1. customers could still walk over `CustomerBasketStation`
-2. Layout Mode opened around the player's current position rather than presenting the store as an editing workspace
+`LayoutCameraRig -> LayoutCameraController -> Scroll Zoom Sensitivity = 2`
 
-Lesson 114 fixes those before adding the visual grid/footprint layer.
+This is intentional user tuning and must be preserved. Do not reset it to the older lesson value `0.035`.
 
-Fine movement/orbit smoothing is deliberately deferred until the visual placement language is present, because input feel should be tuned against the near-final editing feedback rather than repeatedly retuned while the interface is still changing.
+Current pushed camera also has:
+- Overview Pitch 62
+- Overview Yaw 0
+- Overview Padding 1.08
+- Fallback Distance 4
+- Minimum Pitch 15
+- Maximum Pitch 88
+- Minimum Distance 4
+- Maximum Distance 32
+- Pan Speed 7
+- Boost Multiplier 2
+- Yaw Sensitivity .12
+- Pitch Sensitivity .10
+- Scroll Zoom Sensitivity 2
 
-## FixedNavigationBlocker
-`FixedNavigationBlocker` no longer uses `NavMeshModifierVolume`.
+## Future Layout Mode camera direction
+The current whole-sales-floor overview is acceptable temporarily but is not the intended long-term camera contract.
 
-The Lesson-113 volume was correctly configured, but its top boundary ended at the basket-rack collider's top surface. Because NavMesh generation is voxelized, the top surface could still become walkable.
+Preferred future behavior:
+- entering from the sales floor focuses the sales-floor working area
+- entering from the backroom focuses the backroom
+- startup framing uses a comfortable fixed editing distance rather than always fitting the entire growing area
+- manual zoom-out remains available when the player wants the full picture
+- store growth should not automatically push the default camera farther and farther away
+- future exterior/outdoor layout space should be handled as its own buildable/focus region rather than exposing the whole world indiscriminately
 
-For a fixed physical fixture, the reliable semantic rule is to mark the fixture's own collected geometry as `Not Walkable`.
+A future camera lesson should introduce player-area detection / focus context, likely through StoreBuildArea rather than hard-coded world coordinates.
 
-`FixedNavigationBlocker` now requires:
-- `BoxCollider`
-- `NavMeshModifier`
+Do not implement this by repeatedly changing global overview bounds.
 
-It configures:
-- Override Area = true
-- Area = Not Walkable
-- Ignore From Build = false
+## Lesson-115 visual architecture
+Placement validation remains the source of truth.
 
-The NavMeshModifier applies the area override to the fixture geometry used by `Navigation/NavMeshSurface`.
+Visual feedback is split into dedicated presentation components:
 
-Use `FixedNavigationBlocker` on:
-- `CustomerBasketStation`
-- `CheckoutCounter`
+### LayoutWorldVisualizer
+Lives on `StoreSystems`.
 
-Remove the old `NavMeshModifierVolume` components from those two fixed fixtures.
+Responsibilities:
+- show a subtle floor grid over each currently available build zone
+- show semantic `LayoutClearanceZone` footprints such as the checkout queue/service lane
+- create/destroy/toggle runtime-only visual meshes
+- never create colliders
+- never change placement validation
 
-`FurnitureNavigationBlocker` remains unchanged and continues using `NavMeshModifierVolume`, because movable furniture needs a semantic body footprint that can be larger/more regular than its individual physics colliders.
+It references:
+- `StoreSystems -> StoreLayoutModeController`
+- `StoreSystems -> StoreBuildArea`
 
-## CustomerBasketStation
-Current scene facts:
-- root position `(4.2, 0, -3.173)`
-- BoxCollider center `(0, 0.2, 0)`
-- BoxCollider size `(0.95, 0.65, 0.72)`
-- PickupPoint local position `(0.9, 0, 0.3)`
+It displays both available SalesFloor and Backroom zones.
 
-The physical rack geometry is now baked as Not Walkable.
+The grid is generated per build-zone floor bounds rather than from one union bound. This prevents phantom grid space across L-shaped expansion combinations.
 
-The PickupPoint remains outside the blocked rack body and therefore remains reachable for customers who need a basket.
+Prototype visual grid:
+- visible grid size: 0.5 m
+- line width: 0.015 m
+- floor offset: 0.025 m
+- grid color: subtle pale cyan
+- no physics / no raycast behavior
 
-Customers who do not need a basket route around the rack.
+The visual 0.5 m grid is currently only a reference. `FurniturePlacementController.gridSize` remains the actual 0.1 m placement snap step until Lesson 116 adds explicit Grid Snap ON/OFF / precision behavior.
 
-## StoreBuildArea overview bounds
-`StoreBuildArea` gains:
+### FurniturePlacementVisualizer
+Lives on `Player`.
 
-`TryGetAvailableBounds(StoreAreaType requiredArea, out Bounds bounds)`
+Responsibilities:
+- show selected furniture body footprint
+- show selected furniture front/access footprint
+- update pose/rotation with the selected furniture
+- switch presentation between valid and invalid
+- hide on confirm/cancel/exit
 
-The method combines the world-space floor bounds of all currently available `StoreBuildZone` entries matching the requested area.
+Prototype colors:
+- valid body: translucent green
+- invalid body: translucent red
+- valid access: translucent amber
+- invalid access: translucent red
 
-For `SalesFloor`, this automatically includes:
-- starter `SalesFloorArea`
-- unlocked `Expansion_Sales_01`
-- unlocked `Expansion_SalesRear_01`
+The visualizer has no placement rules and no colliders.
 
-Locked expansions are excluded because `StoreBuildZone.IsAvailable` is false.
+## LayoutVisualUtility
+Static rendering utility shared by the two visualizers.
 
-This keeps camera framing data-driven and expansion-aware.
+Responsibilities:
+- create transparent unlit runtime materials
+- create a reusable unit XZ quad mesh
+- create the floor-grid mesh from individual world-space floor Bounds
 
-## Layout camera overview
-`LayoutCameraController` now supports:
+Runtime visuals use URP Unlit transparent material when available, with `Sprites/Default` as fallback.
 
-`ActivateForBounds(Bounds targetBounds)`
+## StoreBuildArea additions
+Existing:
+- `TryGetPlacementSurface`
+- `TryGetAvailableBounds`
+- `IsFootprintInside`
+- `IsBuildFloorCollider`
 
-Layout Mode no longer starts from the player's current transform when valid sales-floor bounds are available.
+Lesson 115 adds:
 
-On entry it:
-1. centers the layout rig on the available sales-floor bounds
-2. uses a consistent overview yaw
-3. uses an overview pitch
-4. calculates the required camera distance from the target bounds and camera FOV
-5. clamps that distance to the allowed zoom range
+`CollectAvailableFloorBounds(StoreAreaType requiredArea, List<Bounds> results)`
 
-The framing calculation uses the smaller of horizontal and vertical camera FOV, so the floor remains framed across different aspect ratios.
+This exposes each available zone's floor bounds separately for presentation systems.
 
-Prototype values:
-- Overview Pitch = 62°
-- Overview Yaw = 0°
-- Overview Padding = 1.08
-- Fallback Distance = 18 m
-- Minimum Pitch = 15°
-- Maximum Pitch = 88°
-- Minimum Distance = 4 m
-- Maximum Distance = 32 m
-- Pan Speed = 7 m/s
-- Boost Multiplier = 2
-- Yaw Sensitivity = 0.12
-- Pitch Sensitivity = 0.10
-- Scroll Zoom Sensitivity = 0.035
+It does not alter build-zone availability or placement rules.
 
-Zoom responsiveness is increased provisionally. Full smoothing/speed tuning is deferred.
+## LayoutClearanceZone additions
+Existing overlap logic remains unchanged.
 
-## StoreLayoutModeController
-New Store reference:
+Public read-only presentation data is added:
+- `AreaType`
+- `Center`
+- `HalfExtents`
+- `BlocksFurnitureBody`
+- `BlocksFurnitureAccess`
 
-`StoreBuildArea buildArea`
+This allows LayoutWorldVisualizer to display semantic operational space without duplicating configuration.
 
-On Layout Mode entry:
-- first ask `buildArea.TryGetAvailableBounds(StoreAreaType.SalesFloor, ...)`
-- when successful, call `layoutCameraController.ActivateForBounds(...)`
-- otherwise fall back to `ActivateFrom(playerController.transform)`
+Current CheckoutCounter zone remains:
+- SalesFloor
+- center `(0, 0.75, -2.0)`
+- half extents `(0.8, 0.75, 1.55)`
+- blocks body and access
 
-Exact scene assignment:
-`StoreSystems -> Store Layout Mode Controller -> Build Area = StoreSystems / StoreBuildArea`
+## FurniturePlacementController integration
+The controller keeps all existing selection, snapping, validation, purchase and confirmation behavior.
 
-All existing simulation suspension/recovery behavior remains.
+New serialized reference:
+- `FurniturePlacementVisualizer placementVisualizer`
+
+During preview it sends:
+- selected furniture Transform
+- body center / half extents
+- access center / half extents
+- current `canPlace`
+
+The visualizer mirrors the validator state.
+
+The existing furniture tint and access-outline logic remains for now. The new footprint fills complement it. A future cleanup may move all preview rendering into the visualizer after the full placement visual language is proven.
+
+## Layout visual language
+When Layout Mode is active:
+- pale cyan grid = dimensional reference
+- translucent purple operational zone = keep this service/work/queue area clear
+- translucent green body footprint = furniture body fits
+- translucent amber access footprint = customer/front access required
+- red selected footprint = current placement is invalid
+
+This creates a stable visual vocabulary before precision/grid toggles and magnetic snapping are added.
+
+## Existing navigation architecture
+Fixed fixtures:
+- `FixedNavigationBlocker + NavMeshModifier`
+- CustomerBasketStation and CheckoutCounter geometry = Not Walkable
+
+Movable furniture:
+- `FurnitureNavigationBlocker + NavMeshModifierVolume`
+- semantic body footprint = Not Walkable
+
+Customer recovery:
+- same-agent NavMesh sample
+- vertical tolerance
+- physical capsule clearance
+
+Ceiling:
+- excluded from layout camera rendering and NavMesh build
+
+NavMesh:
+- rebuilt once on dirty Layout Mode exit
 
 ## Existing Layout Mode controls
-- Left Mouse: select furniture / confirm
-- mouse movement: move selected furniture
-- Middle Mouse drag: orbit/tilt
-- mouse wheel: zoom
-- WASD: pan
-- Shift + WASD: faster pan
-- R/T: rotate
-- Right Mouse / Esc / Q: cancel
-- L: exit
+- Left Mouse select / confirm
+- mouse movement moves selected furniture
+- Middle Mouse drag orbits/tilts camera
+- mouse wheel zoom
+- WASD pan
+- Shift + WASD faster pan
+- R/T rotate
+- Right Mouse / Esc / Q cancel
+- L exit
 
-Cursor remains visible/unlocked during Layout Mode.
-First-person Crosshair remains hidden during Layout Mode.
-
-## Existing spatial architecture
-Three distinct concepts remain:
-
-1. **physical body**
-    - actual object geometry/collider
-
-2. **navigation blocker**
-    - customers cannot navigate here
-    - fixed fixtures use NavMeshModifier
-    - movable furniture uses FurnitureNavigationBlocker + NavMeshModifierVolume
-
-3. **layout clearance**
-    - area remains walkable
-    - furniture is not allowed to occupy it
-    - used by CheckoutCounter queue/service lane
-
-Do not merge these concepts.
-
-## Existing checkout clearance
-`CheckoutCounter` still has `LayoutClearanceZone`:
-- Area Type SalesFloor
-- Center `(0, 0.75, -2.0)`
-- Half Extents `(0.8, 0.75, 1.55)`
-- Block Furniture Body = true
-- Block Furniture Access = true
-
-This protects the queue/service lane from furniture placement.
-
-## Existing navigation safety
-Lesson 112 remains:
-- `CustomerNavigationRecovery` checks NavMesh position, vertical tolerance and physical capsule clearance
-- ceilings use `Ceiling` layer and are excluded from LayoutCamera and NavMeshSurface
-- NavMesh rebuild happens once when exiting a dirty Layout Mode session
+Cursor visible/unlocked.
+Crosshair hidden.
 
 ## Roadmap
-### Lesson 115 — Grid & Footprint Visual Language
-- subtle floor grid
-- selected furniture body footprint
-- access/front footprint
-- checkout operational clearance visualization
-- nearby occupied/conflicting spaces
-
-### Lesson 116 — Grid/Precision Controls & Modular Asset Standard
-- grid ON/OFF
+### Lesson 116 — Grid / Precision Controls & Modular Asset Standard
+- independent Grid Snap ON/OFF
+- preserve visual grid independently from snapping
 - free precision placement
-- modular asset measurements
-- standard pivots and local-front convention
+- likely surface controls in Layout Mode UI
+- formal 1 Unity unit = 1 metre production standard
+- 0.25 m asset module target where practical
+- consistent floor-root pivot / local -Z functional-front convention
 
 ### Lesson 117 — Magnetic Socket Snapping
-- compatible sockets
+- explicit compatible sockets
 - zero-gap adjacency
-- attach/detach hysteresis
+- sticky attach/detach hysteresis
 - alignment guides
 
-A later dedicated Layout Mode feel pass should tune:
+### Later — Layout Mode Camera & Feel Pass
+After precision/snapping is stable:
+- area-aware startup focus (sales floor vs backroom)
+- fixed comfortable default editing distance
+- optional manual full-store overview
+- exterior/outdoor layout-region policy
 - pan acceleration/deceleration
 - orbit sensitivity
 - zoom easing
 - object-follow smoothing
-- optional camera edge pan if desired
-
-Do this after the main visual/precision interaction model is stable.
+- optional edge-pan evaluation
 
 ## Permanent principles
 - GitHub `main` is source of truth.
 - Inspect current scripts/prefabs/scene before every lesson.
 - Never guess object names, paths, fields or values.
-- Prefer semantic gameplay rules over incidental collider behavior.
-- Fixed fixture geometry and movable furniture footprints can use different NavMesh annotation strategies.
-- Navigation blocker and placement-clearance zone are different concepts.
+- Preserve user-authored Inspector tuning unless intentionally changing it.
+- Placement rules and placement presentation are separate responsibilities.
+- Prefer semantic gameplay zones over incidental collider behavior.
+- Navigation blockers and layout-clearance zones are different concepts.
 - Avoid god classes.
 - The building provides space; the player decides how the grocery operates inside it.
 - Layout Mode works while the store is open.
 - Stocked furniture can move.
-- Grid and magnetic snapping are independent.
+- Grid visibility and grid snapping are independent concepts.
+- Magnetic snapping is independent from grid snapping.
 - 1 Unity unit = 1 metre.
 - End every lesson with updated architecture and continuation-prompt `.md` files.

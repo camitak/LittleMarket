@@ -13,6 +13,9 @@ public class FurniturePlacementController : MonoBehaviour
     [Header("Store")] 
     [SerializeField] private StoreLayoutModeController layoutMode;
     [SerializeField] private StoreBuildArea buildArea;
+    
+    [Header("Visuals")]
+    [SerializeField] private FurniturePlacementVisualizer placementVisualizer;
 
     [Header("Placement")] 
     [Min(1f)] [SerializeField] private float selectionRayDistance = 35f;
@@ -338,6 +341,18 @@ public class FurniturePlacementController : MonoBehaviour
 
         canPlace = foundFloor && ValidatePlacement(target, rotation);
 
+        if (placementVisualizer != null)
+        {
+            placementVisualizer.UpdateFootprints(
+                selectedFurniture.transform,
+                CurrentBodyCenter,
+                CurrentBodyHalfExtents,
+                CurrentAccessCenter,
+                CurrentAccessHalfExtents,
+                canPlace
+            );
+        }
+        
         Color previewColor = canPlace ? validColor : invalidColor;
 
         TintPreview(previewColor);
@@ -795,6 +810,11 @@ public class FurniturePlacementController : MonoBehaviour
             }
         }
 
+        if (placementVisualizer != null)
+        {
+            placementVisualizer.Hide();
+        }
+
         DestroyAccessOutline();
 
         selectedFurniture = null;
@@ -820,5 +840,10 @@ public class FurniturePlacementController : MonoBehaviour
     private void OnDisable()
     {
         CancelPlacement();
+
+        if (placementVisualizer != null)
+        {
+            placementVisualizer.Hide();
+        }
     }
 }

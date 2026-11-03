@@ -14,6 +14,12 @@ public class LayoutClearanceZone : MonoBehaviour
     [SerializeField] private bool blockFurnitureBody = true;
     [SerializeField] private bool blockFurnitureAccess = true;
 
+    public StoreAreaType AreaType => areaType;
+    public Vector3 Center => center;
+    public Vector3 HalfExtents => halfExtents;
+    public bool BlocksFurnitureBody => blockFurnitureBody;
+    public bool BlocksFurnitureAccess => blockFurnitureAccess;
+    
     public bool BlocksFootprint(StoreAreaType placementArea,
         Vector3 furniturePosition,
         Quaternion furnitureRotation,
