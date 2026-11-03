@@ -19,7 +19,7 @@ public class LayoutClearanceZone : MonoBehaviour
     public Vector3 HalfExtents => halfExtents;
     public bool BlocksFurnitureBody => blockFurnitureBody;
     public bool BlocksFurnitureAccess => blockFurnitureAccess;
-    
+
     public bool BlocksFootprint(StoreAreaType placementArea,
         Vector3 furniturePosition,
         Quaternion furnitureRotation,
@@ -28,7 +28,9 @@ public class LayoutClearanceZone : MonoBehaviour
         bool isAccessFootprint)
     {
         if (placementArea != areaType)
+        {
             return false;
+        }
 
         if (isAccessFootprint && !blockFurnitureAccess)
         {
@@ -40,93 +42,23 @@ public class LayoutClearanceZone : MonoBehaviour
             return false;
         }
 
-        Vector3 zoneCenter3D = transform.TransformPoint(center);
+        Vector3 zoneWorldCenter = transform.TransformPoint(center);
 
-        Vector3 furnitureCenter3D = furniturePosition + furnitureRotation * furnitureOffset;
+        Vector3 zoneScale = transform.lossyScale;
 
-        Vector2 zoneCenter = new(zoneCenter3D.x, zoneCenter3D.z);
+        Vector2 zoneHalf = new(halfExtents.x * Mathf.Abs(zoneScale.x), halfExtents.z * Mathf.Abs(zoneScale.z));
 
-        Vector2 furnitureCenter = new(furnitureCenter3D.x, furnitureCenter3D.z);
-
-        Vector3 scale = transform.lossyScale;
-
-        Vector2 zoneHalf = new(halfExtents.x * Mathf.Abs(scale.x), halfExtents.z * Mathf.Abs(scale.z));
+        Vector3 furnitureWorldCenter = furniturePosition + furnitureRotation * furnitureOffset;
 
         Vector2 furnitureHalf = new(Mathf.Abs(furnitureHalfExtents.x), Mathf.Abs(furnitureHalfExtents.z));
 
-        Vector2 zoneRight = ToHorizontalAxis(transform.right);
-
-        Vector2 zoneForward = ToHorizontalAxis(transform.forward);
-
-        Vector2 furnitureRight = ToHorizontalAxis(furnitureRotation * Vector3.right);
-
-        Vector2 furnitureForward = ToHorizontalAxis(furnitureRotation * Vector3.forward);
-
-        Vector2 difference = furnitureCenter - zoneCenter;
-
-        if (IsSeparated(difference, zoneRight, zoneRight, zoneForward, zoneHalf, furnitureRight, furnitureForward,
-                furnitureHalf))
-        {
-            return false;
-        }
-
-        if (IsSeparated(difference, zoneForward, zoneRight, zoneForward, zoneHalf, furnitureRight, furnitureForward,
-                furnitureHalf))
-        {
-            return false;
-        }
-
-        if (IsSeparated(difference, furnitureRight, zoneRight, zoneForward, zoneHalf, furnitureRight, furnitureForward,
-                furnitureHalf))
-        {
-            return false;
-        }
-
-        if (IsSeparated(difference, furnitureForward, zoneRight, zoneForward, zoneHalf, furnitureRight,
-                furnitureForward, furnitureHalf))
-        {
-            return false;
-        }
-
-        return true;
-    }
-
-    private static bool IsSeparated(Vector2 difference,
-        Vector2 axis,
-        Vector2 firstRight,
-        Vector2 firstForward,
-        Vector2 firstHalf,
-        Vector2 secondRight,
-        Vector2 secondForward,
-        Vector2 secondHalf)
-    {
-        float centerDistance = Mathf.Abs(Vector2.Dot(difference, axis));
-
-        float firstRadius = firstHalf.x * Mathf.Abs(Vector2.Dot(firstRight, axis)) +
-                            firstHalf.y * Mathf.Abs(Vector2.Dot(firstForward, axis));
-
-        float secondRadius = secondHalf.x * Mathf.Abs(Vector2.Dot(secondRight, axis)) +
-                             secondHalf.y * Mathf.Abs(Vector2.Dot(secondForward, axis));
-
-        return centerDistance > firstRadius + secondRadius;
-    }
-
-    private static Vector2 ToHorizontalAxis(Vector3 direction)
-    {
-        Vector2 axis = new(direction.x, direction.z);
-
-        if (axis.sqrMagnitude < 0.0001f)
-        {
-            return Vector2.right;
-        }
-
-        return axis.normalized;
+        return LayoutFootprintUtility.OverlapsHorizontal(zoneWorldCenter, transform.rotation, zoneHalf,
+            furnitureWorldCenter, furnitureRotation, furnitureHalf);
     }
 
     private void OnDrawGizmosSelected()
     {
         Matrix4x4 previousMatrix = Gizmos.matrix;
-
         Color previousColor = Gizmos.color;
 
         Gizmos.matrix = transform.localToWorldMatrix;
@@ -136,7 +68,6 @@ public class LayoutClearanceZone : MonoBehaviour
         Gizmos.DrawWireCube(center, halfExtents * 2f);
 
         Gizmos.matrix = previousMatrix;
-
         Gizmos.color = previousColor;
     }
 }

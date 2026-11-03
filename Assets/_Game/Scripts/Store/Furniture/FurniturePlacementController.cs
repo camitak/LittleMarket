@@ -13,8 +13,8 @@ public class FurniturePlacementController : MonoBehaviour
     [Header("Store")] 
     [SerializeField] private StoreLayoutModeController layoutMode;
     [SerializeField] private StoreBuildArea buildArea;
-    
-    [Header("Visuals")]
+
+    [Header("Visuals")] 
     [SerializeField] private FurniturePlacementVisualizer placementVisualizer;
 
     [Header("Placement")] 
@@ -41,7 +41,7 @@ public class FurniturePlacementController : MonoBehaviour
     [SerializeField] private Color invalidColor = new Color32(196, 107, 107, 255);
 
     private FurnitureIdentity selectedFurniture;
-    private FurnitureIdentity[] snapCandidates;
+    private FurnitureIdentity[] furnitureCandidates;
     private LayoutClearanceZone[] clearanceZones;
 
     private Vector3 originalPosition;
@@ -160,7 +160,7 @@ public class FurniturePlacementController : MonoBehaviour
             if (!canPlace)
             {
                 interactionUI.ShowPrompt(
-                    "Keep furniture and required access clear  •  [R/T] Rotate  •  RMB/Esc Cancel  •  MMB Orbit");
+                    "Keep furniture bodies and required customer access clear  •  [R/T] Rotate  •  RMB/Esc Cancel  •  MMB Orbit");
 
                 return;
             }
@@ -227,7 +227,9 @@ public class FurniturePlacementController : MonoBehaviour
             FurnitureIdentity candidate = hit.collider.GetComponentInParent<FurnitureIdentity>();
 
             if (candidate == null)
+            {
                 continue;
+            }
 
             furniture = candidate;
             return true;
@@ -257,7 +259,9 @@ public class FurniturePlacementController : MonoBehaviour
         }
 
         if (!furniture.CanMoveFurniture(out _))
+        {
             return;
+        }
 
         StartPreview(furniture, false, null);
     }
@@ -276,7 +280,7 @@ public class FurniturePlacementController : MonoBehaviour
 
         canPlace = false;
 
-        snapCandidates = FindObjectsByType<FurnitureIdentity>(FindObjectsSortMode.None);
+        furnitureCandidates = FindObjectsByType<FurnitureIdentity>(FindObjectsSortMode.None);
 
         clearanceZones = FindObjectsByType<LayoutClearanceZone>(FindObjectsSortMode.None);
 
@@ -316,7 +320,9 @@ public class FurniturePlacementController : MonoBehaviour
         Camera placementCamera = PlacementCamera;
 
         if (placementCamera == null)
+        {
             return;
+        }
 
         Ray ray = CreatePointerRay(placementCamera);
 
@@ -343,20 +349,13 @@ public class FurniturePlacementController : MonoBehaviour
 
         if (placementVisualizer != null)
         {
-            placementVisualizer.UpdateFootprints(
-                selectedFurniture.transform,
-                CurrentBodyCenter,
-                CurrentBodyHalfExtents,
-                CurrentAccessCenter,
-                CurrentAccessHalfExtents,
-                canPlace
-            );
+            placementVisualizer.UpdateFootprints(selectedFurniture.transform, CurrentBodyCenter, CurrentBodyHalfExtents,
+                CurrentAccessCenter, CurrentAccessHalfExtents, canPlace);
         }
-        
+
         Color previewColor = canPlace ? validColor : invalidColor;
 
         TintPreview(previewColor);
-
         UpdateAccessOutline(previewColor);
     }
 
@@ -369,7 +368,7 @@ public class FurniturePlacementController : MonoBehaviour
 
     private Vector3 ApplyFurnitureSnap(Vector3 gridTarget, Quaternion selectedRotation)
     {
-        if (selectedFurniture == null || snapCandidates == null || furnitureSnapDistance <= 0f)
+        if (selectedFurniture == null || furnitureCandidates == null || furnitureSnapDistance <= 0f)
         {
             return gridTarget;
         }
@@ -382,7 +381,7 @@ public class FurniturePlacementController : MonoBehaviour
 
         float bestMovement = float.MaxValue;
 
-        foreach (FurnitureIdentity candidate in snapCandidates)
+        foreach (FurnitureIdentity candidate in furnitureCandidates)
         {
             if (candidate == null || candidate == selectedFurniture || !candidate.gameObject.activeInHierarchy)
             {
@@ -478,7 +477,9 @@ public class FurniturePlacementController : MonoBehaviour
             new Vector2(candidateRoot.x, candidateRoot.z));
 
         if (movement >= bestMovement)
+        {
             return;
+        }
 
         bestMovement = movement;
         bestTarget = candidateRoot;
@@ -521,6 +522,11 @@ public class FurniturePlacementController : MonoBehaviour
             return false;
         }
 
+        if (OverlapsOtherFurnitureAccess(position, rotation))
+        {
+            return false;
+        }
+
         if (HasBlockingCollider(position, rotation, CurrentBodyCenter, CurrentBodyHalfExtents, false))
         {
             return false;
@@ -534,6 +540,50 @@ public class FurniturePlacementController : MonoBehaviour
         return true;
     }
 
+    private bool OverlapsOtherFurnitureAccess(Vector3 position, Quaternion rotation)
+    {
+        if (furnitureCandidates == null)
+        {
+            return false;
+        }
+
+        Vector3 selectedBodyCenter = position + rotation * CurrentBodyCenter;
+
+        Vector2 selectedBodyHalf = new(Mathf.Abs(CurrentBodyHalfExtents.x), Mathf.Abs(CurrentBodyHalfExtents.z));
+
+        foreach (FurnitureIdentity candidate in furnitureCandidates)
+        {
+            if (candidate == null || candidate == selectedFurniture || !candidate.gameObject.activeInHierarchy)
+            {
+                continue;
+            }
+
+            FurnitureDefinition definition = candidate.FurnitureDefinition;
+
+            if (definition == null || definition.PlacementArea != CurrentPlacementArea)
+            {
+                continue;
+            }
+
+            Transform candidateTransform = candidate.transform;
+
+            Vector3 candidateAccessCenter = candidateTransform.TransformPoint(definition.AccessCenter);
+
+            Vector3 candidateScale = candidateTransform.lossyScale;
+
+            Vector2 candidateAccessHalf = new(Mathf.Abs(definition.AccessHalfExtents.x * candidateScale.x),
+                Mathf.Abs(definition.AccessHalfExtents.z * candidateScale.z));
+
+            if (LayoutFootprintUtility.OverlapsHorizontal(selectedBodyCenter, rotation, selectedBodyHalf,
+                    candidateAccessCenter, candidateTransform.rotation, candidateAccessHalf))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     private bool OverlapsProtectedClearance(Vector3 position,
         Quaternion rotation,
         Vector3 offset,
@@ -541,7 +591,9 @@ public class FurniturePlacementController : MonoBehaviour
         bool isAccessFootprint)
     {
         if (clearanceZones == null)
+        {
             return false;
+        }
 
         foreach (LayoutClearanceZone zone in clearanceZones)
         {
@@ -605,7 +657,9 @@ public class FurniturePlacementController : MonoBehaviour
     private void CreateAccessOutline()
     {
         if (accessOutline != null)
+        {
             return;
+        }
 
         Shader shader = Shader.Find("Universal Render Pipeline/Unlit");
 
@@ -626,11 +680,8 @@ public class FurniturePlacementController : MonoBehaviour
         accessOutline = outlineObject.AddComponent<LineRenderer>();
 
         accessOutline.useWorldSpace = true;
-
         accessOutline.positionCount = 5;
-
         accessOutline.widthMultiplier = outlineWidth;
-
         accessOutline.numCornerVertices = 2;
 
         accessOutline.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
@@ -669,11 +720,12 @@ public class FurniturePlacementController : MonoBehaviour
         accessOutline.SetPosition(4, selectedFurniture.transform.TransformPoint(localCorners[0]));
 
         accessOutline.startColor = color;
-
         accessOutline.endColor = color;
 
         if (outlineMaterial == null)
+        {
             return;
+        }
 
         if (outlineMaterial.HasProperty(BaseColorId))
         {
@@ -704,12 +756,16 @@ public class FurniturePlacementController : MonoBehaviour
     private void TintPreview(Color color)
     {
         if (selectedRenderers == null)
+        {
             return;
+        }
 
         foreach (MeshRenderer renderer in selectedRenderers)
         {
             if (renderer == null)
+            {
                 continue;
+            }
 
             MaterialPropertyBlock propertyBlock = new();
 
@@ -757,7 +813,9 @@ public class FurniturePlacementController : MonoBehaviour
     private void CancelPlacement()
     {
         if (selectedFurniture == null)
+        {
             return;
+        }
 
         if (isNewFurniturePurchase)
         {
@@ -781,7 +839,9 @@ public class FurniturePlacementController : MonoBehaviour
     private void FinishPreview(bool restorePosition)
     {
         if (selectedFurniture == null)
+        {
             return;
+        }
 
         if (restorePosition)
         {
@@ -793,7 +853,9 @@ public class FurniturePlacementController : MonoBehaviour
             for (int i = 0; i < selectedColliders.Length; i++)
             {
                 if (selectedColliders[i] == null)
+                {
                     continue;
+                }
 
                 selectedColliders[i].enabled = originallyEnabled[i];
             }
@@ -804,7 +866,9 @@ public class FurniturePlacementController : MonoBehaviour
             for (int i = 0; i < selectedRenderers.Length; i++)
             {
                 if (selectedRenderers[i] == null)
+                {
                     continue;
+                }
 
                 selectedRenderers[i].SetPropertyBlock(originalProperties[i]);
             }
@@ -818,7 +882,7 @@ public class FurniturePlacementController : MonoBehaviour
         DestroyAccessOutline();
 
         selectedFurniture = null;
-        snapCandidates = null;
+        furnitureCandidates = null;
         clearanceZones = null;
 
         isNewFurniturePurchase = false;
