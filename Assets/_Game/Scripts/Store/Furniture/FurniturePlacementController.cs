@@ -23,7 +23,7 @@ public class FurniturePlacementController : MonoBehaviour
 
     [Header("Grid Snap")]
     [SerializeField] private bool gridSnapEnabled = true;
-    [Min(0.01f)] [SerializeField] private float gridSize = 0.1f;
+    [Min(0.01f)] [SerializeField] private float gridSize = 0.5f;
 
     [Header("Furniture Snapping")] 
     [Min(0f)] [SerializeField] private float furnitureSnapDistance = 0.35f;

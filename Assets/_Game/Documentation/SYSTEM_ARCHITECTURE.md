@@ -1,18 +1,18 @@
 # Little Market — System Architecture
 
-Current proposed architecture after **Lesson 119 — Layout Mode HUD Hierarchy & Control Legend**.
+Current proposed architecture after **Lesson 120 — Grid Snap Readability & Permanent UX Rules**.
 
 ## Verified source of truth
 
-Lesson 119 was designed after inspecting GitHub `main` at:
+Lesson 120 was designed after inspecting GitHub `main` at:
 
-`0e1f5cce627ab2c0bdb72dbad30c6f23b19730c0`
+`1777dc6c1c258502f389efa4baaa62425bb8786a`
 
 Commit:
 
-`Lesson 118 complete - grid snap toggle and free precision placement`
+`Lesson 119 complete - layout HUD hierarchy and control legend`
 
-GitHub `main` remains the source of truth. Re-verify the user's actual latest push before every future lesson.
+Re-verify GitHub `main` before every future lesson.
 
 ## Stack
 
@@ -32,11 +32,65 @@ GitHub `main` remains the source of truth. Re-verify the user's actual latest pu
 
 Little Market is a cozy first-person grocery-management game. Placement is a major design pillar.
 
+## Permanent project UX/UI rules
+
+These are permanent project rules and must be carried into every fresh-chat continuation prompt.
+
+### UI implementation detail rule
+
+Whenever a lesson asks the user to create or edit UI, provide:
+
+- exact Hierarchy path
+- exact GameObject names
+- exact RectTransform anchors
+- exact pivot
+- exact anchored position
+- exact width/height or stretch offsets
+- font size
+- alignment
+- Raycast Target state
+- required component references
+- exact color HEX values
+- RGBA values when useful
+- explanation of why that layout is being chosen
+
+Never tell the user to choose/find an approximate color without also giving the intended HEX.
+
+### UX research rule
+
+Before making or locking in a meaningful player-facing UX decision, search current game-UX/game-interface best practices and relevant examples from established games/tools.
+
+Prefer:
+
+- official engine/game documentation
+- platform design guidance
+- accessibility guidance
+- reputable game UX sources
+
+Do not copy another game mechanically. Use research to validate the principle, then adapt it to Little Market.
+
+User playtest feedback outranks theory when the actual interaction clearly feels wrong. Treat that feedback as evidence and iterate.
+
+### Accessibility rule
+
+Do not rely on color alone for essential state.
+
+Pair important color changes with at least one of:
+
+- text
+- shape
+- icon
+- spatial change
+- animation
+- sound where appropriate
+
+Maintain readable contrast and avoid unnecessary HUD clutter.
+
 ## Layout Mode controls
 
 - LMB: select / place
 - R / T: rotate
-- G: toggle Grid Snap
+- G: Grid Snap ON/OFF
 - MMB drag: orbit / tilt
 - Wheel: zoom
 - WASD: pan
@@ -44,233 +98,191 @@ Little Market is a cozy first-person grocery-management game. Placement is a maj
 - RMB / Esc / Q: cancel
 - L: exit
 
-Cursor is visible/unlocked and the normal first-person crosshair is hidden.
+## Lesson 120 — Grid Snap readability
 
-## Layout Mode HUD hierarchy — Lesson 119
+The previous `.1 m` snap interval felt effectively free in playtesting.
 
-The UI now deliberately separates three information classes.
+Lesson 120 changes the default/current Grid Snap interval to:
 
-### Persistent mode status
+`0.5 m`
 
-Lives near screen edges.
+Reasoning:
 
-Current top-left status:
+- the visible floor grid is already `.5 m`
+- a snapped mode should feel perceptibly different from unrestricted placement
+- matching the visible reference grid to the snap interval makes the system predictable
+- Grid OFF remains the precision/free-placement mode
+- future magnetic sockets will handle intentional furniture-to-furniture adjacency
 
-- `GRID SNAP ON · 0.10 m`
-- `GRID SNAP OFF · FREE`
+This aligns with established build-mode patterns where grid placement and off-grid/free placement are distinct modes.
 
-The `[G]` hint is removed from this status because controls are shown in the dedicated legend.
+### Grid Snap ON
 
-### Persistent control legend
+- floor target quantizes X/Z to `.5 m`
+- visible `.5 m` grid predicts the base snap locations
+- the existing provisional body/alignment furniture assist still runs near other furniture until replaced by explicit socket snapping
+- placement validation remains unchanged
 
-A new non-interactive `LayoutControlsPanel` lives under:
+### Grid Snap OFF
 
-`GameUI -> LayoutModeFrame`
+- raw permitted floor position
+- old provisional body/alignment assist bypassed
+- normal validation remains active
 
-It is anchored bottom-right, because the current HUD already uses:
+### Important temporary caveat
 
-- top-left: ClockPanel during normal play
-- top-right: MoneyText / MoneyGainText
-- bottom-left: BasketContentsPanel
-- top-center: BasketLocator
-- center-lower: InteractionPrompt
+The old `ApplyFurnitureSnap` system can still move a Grid-ON object away from the exact `.5 m` root point when it detects nearby furniture.
 
-Bottom-right is therefore the least contested persistent HUD region.
+This is temporary compatibility behavior so shelf adjacency is not lost before socket snapping exists.
 
-The legend is static and compact. It does not use InteractionUI.
+Lesson 121 should replace the architectural role of that provisional assist with explicit magnetic sockets.
 
-Recommended text:
+## Current grid values after Lesson 120
 
-`LAYOUT CONTROLS`
-
-`LMB   Select / Place`
-`R / T   Rotate      G   Grid Snap`
-`MMB   Orbit         Wheel   Zoom`
-`WASD   Pan          Shift   Faster`
-`RMB / Esc   Cancel  L   Exit`
-
-Both the panel Image and TMP text must have Raycast Target OFF so this informational overlay never blocks pointer-based furniture placement.
-
-### Contextual feedback
-
-`InteractionUI` remains the generic center-lower prompt system for short, high-attention contextual information only.
-
-During Layout Mode it is no longer used as a persistent control legend.
-
-Appropriate Layout Mode center prompts include:
-
-- `LMB Move Standard Shelf`
-- `LMB Buy & place £40.00`
-- `Can't place here — keep furniture bodies and required customer access clear.`
-
-When no contextual message is needed, InteractionUI is hidden.
-
-This keeps the center of the editing view clear.
-
-## ClockPanel visibility
-
-Actual current normal-play ClockPanel:
-
-- `GameUI -> ClockPanel`
-- top-left
-- anchored position `(30,-25)`
-- size `260 x 120`
-- contains DayText, TimeText, StatusText and ReputationText
-
-Actual Lesson-118 GridSnapStatusText:
-
-- child of `GameUI -> LayoutModeFrame`
-- top-left
-- anchored position `(28,-28)`
-- size `340 x 28`
-
-These overlap by design location.
-
-Lesson 119 does not move GridSnapStatusText to work around this collision.
-
-Instead, LayoutModeUI hides ClockPanel while Layout Mode is active and restores its exact previous active state when Layout Mode exits.
-
-This is appropriate because StoreLayoutModeController already calls:
-
-`storeClock.SetLayoutSuspended(true)`
-
-while Layout Mode is active.
-
-Therefore the normal-play time/status card is low-value while editing. Money remains visible because furniture purchasing can occur during Layout Mode.
-
-LayoutModeUI owns this presentation transition; StoreClock remains unaware of HUD mode.
-
-## LayoutModeUI responsibilities
-
-`LayoutModeUI` on `GameUI` owns:
-
-- LayoutModeFrame visibility
-- normal crosshair hide/restore
-- ClockPanel hide/restore during Layout Mode
-- Grid Snap status presentation
-
-Serialized references after Lesson 119:
-
-- Frame Root -> `GameUI/LayoutModeFrame`
-- Normal Crosshair -> `GameUI/Crosshair`
-- Clock Panel -> `GameUI/ClockPanel`
-- Placement Controller -> `Player/FurniturePlacementController`
-- Grid Snap Status Text -> `GameUI/LayoutModeFrame/GridSnapStatusText`
-
-It stores previous active state before hiding normal gameplay UI so it can restore state safely on exit.
-
-## InteractionUI contract
-
-`InteractionUI` itself remains unchanged.
-
-It owns the generic `InteractionPrompt` TMP object at center-lower screen.
-
-FurniturePlacementController changes how it uses the service:
-
-- invalid selection -> short placement error
-- valid new purchase -> short buy/place action
-- hover movable furniture -> short move action
-- valid existing placement -> no center prompt
-- idle Layout Mode -> no center prompt
-
-StoreLayoutModeController no longer writes a full Layout Mode control legend into InteractionUI on entry.
-
-## Grid / precision architecture
-
-FurniturePlacementController owns:
-
-- `gridSnapEnabled`
-- `gridSize`
-
-Actual pushed scene values:
+### Player -> FurniturePlacementController
 
 - Grid Snap Enabled `true`
-- Grid Size `.1`
+- **Grid Size `.5`**
 - Furniture Snap Distance `.35`
 - Furniture Snap Gap `.01`
 - Alignment Snap Distance `.3`
 
-Grid ON:
+The source initializer should also be `.5f`, matching the scene.
 
-- quantize floor position to `.1m`
-- old provisional body/alignment assist may run
-- normal validation
+### StoreSystems -> LayoutWorldVisualizer
 
-Grid OFF:
+- Visible Grid Size `.5`
+- Grid Line Width `.015`
+- Grid Surface Offset `.025`
+- Grid Color `#CFF7FA26`
+    - RGBA `(207, 247, 250, 38)`
 
-- raw permitted floor point
-- old provisional body/alignment assist bypassed
-- normal validation
+The visual grid and snapping remain conceptually separate systems, even though they intentionally use the same interval now.
 
-The visible `.5m` LayoutWorldVisualizer grid remains independent and visible in both modes.
+If a future fine snap option is added, it must be communicated clearly rather than silently using an invisible subdivision.
 
-## Placement validation
+## Layout Mode HUD after Lesson 119
+
+### Top-left Grid status
+
+`GameUI -> LayoutModeFrame -> GridSnapStatusText`
+
+Runtime states after Lesson 120:
+
+- `GRID SNAP ON · 0.50 m`
+- `GRID SNAP OFF · FREE`
+
+Current text color:
+
+- `#CFF7FADC`
+- RGBA `(207, 247, 250, 220)`
+
+Raycast Target OFF.
+
+### Bottom-right controls
+
+`GameUI -> LayoutModeFrame -> LayoutControlsPanel`
+
+Current verified values:
+
+- Anchor Min `(1,0)`
+- Anchor Max `(1,0)`
+- Pivot `(1,0)`
+- Anchored Position `(-28,28)`
+- Size `360 x 190`
+- Raycast Target OFF
+
+Panel color:
+
+- `#FFF9EEDC`
+- RGBA `(255,249,238,220)`
+
+`ControlsText`:
+
+- stretch inside panel with 16 px padding
+- Font Size `17`
+- Raycast Target OFF
+- text color `#594640FF`
+- RGBA `(89,70,64,255)`
+
+### ClockPanel
+
+`GameUI -> ClockPanel`
+
+Hidden during Layout Mode and restored to its previous active state on exit.
+
+This remains appropriate because Layout Mode suspends StoreClock.
+
+Money remains visible because furniture purchases can occur during Layout Mode.
+
+### InteractionPrompt
+
+Center-lower generic prompt is reserved for contextual information only:
+
+- hover movable furniture
+- purchase confirmation/action
+- invalid placement explanation
+
+It is not a permanent control legend.
+
+## Furniture placement validation
 
 Unchanged:
 
-1. selected body inside build area
-2. selected access inside build area
-3. selected body vs explicit LayoutClearanceZone
-4. selected access vs explicit LayoutClearanceZone
-5. selected body vs other furniture access
-6. selected body vs physical colliders
-7. selected access vs physical colliders
+1. body inside permitted build area
+2. access inside permitted build area
+3. body vs explicit LayoutClearanceZone
+4. access vs explicit LayoutClearanceZone
+5. body vs another furniture's access
+6. body vs colliders
+7. access vs colliders
 
-Body vs another furniture's access is forbidden.
+Body vs other access = forbidden.
 
-Access vs access remains allowed so facing furniture may share an aisle.
+Access vs access = allowed.
 
-## Visual architecture
+## Visual language
 
-### LayoutWorldVisualizer
-StoreSystems:
-- `.5m` cyan visual reference grid
-- purple explicit operational zones
+- cyan grid `#CFF7FA26`
+- fixed operational clearance purple `#977EFF42`
+- selected valid body green `#6FCF97`
+- existing/valid access amber family
+- conflicts/invalid red family
 
-### FurniturePlacementVisualizer
-Player:
-- selected body green/red
-- selected access amber/red
+Current existing furniture access:
 
-### LayoutFurnitureAccessVisualizer
-StoreSystems:
-- existing furniture access amber
-- conflicting existing access red
+- amber `#F0C96A30`
+- conflict red `#C46B6B96`
 
-### LayoutVisualUtility
-Rendering geometry/material helper.
+Do not rely on these colors alone; placement state also uses text and geometry.
 
-### LayoutFootprintUtility
-Placement footprint intersection mathematics.
+## FurnitureDefinition authority
 
-Presentation and placement policy remain separate.
-
-## FurnitureDefinition
-
-Remains authoritative for:
+FurnitureDefinition remains authoritative for:
 
 - PlacementArea
-- BodyCenter / BodyHalfExtents
-- AccessCenter / AccessHalfExtents
+- BodyCenter
+- BodyHalfExtents
+- AccessCenter
+- AccessHalfExtents
 
-Local `-Z` is functional/front direction.
+Local `-Z` remains functional/front direction.
 
 ## Modular production standard
 
 For new/revised placeable furniture:
 
 - 1 Unity unit = 1 metre
-- root local position `(0,0,0)`
-- root local rotation identity
+- root position `(0,0,0)`
+- root rotation identity
 - root scale `(1,1,1)`
-- root pivot at floor level
-- prefer X/Z root around body center
-- local `-Z` = functional/front
-- prefer `.25m` horizontal modules/offsets/socket positions where practical
-- child art may use local scaling
-- avoid arbitrary placeable-root scaling
+- floor-level root pivot
+- local `-Z` = front/functional
+- prefer `.25 m` modular dimensions/offsets/socket locations where practical
+- child meshes may use local scaling
+- avoid arbitrary root scaling
 
-Current four furniture prefab roots were verified compatible with the root position/scale baseline.
+The `.25 m` asset-module guideline does not require the interactive Grid Snap interval to also be `.25 m`.
 
 ## Camera baseline
 
@@ -290,74 +302,61 @@ Preserve:
 - Pitch `.10`
 - Scroll Zoom Sensitivity **2**
 
-Future dedicated camera pass:
-
-- area-aware sales-floor/backroom focus
-- comfortable fixed editing distance
-- manual wider zoom-out
-- exterior focus/build region
-- easing/smoothing
-
 ## Navigation
 
-Fixed fixtures:
+Unchanged.
 
-- FixedNavigationBlocker + NavMeshModifier
-
-Movable furniture:
-
-- FurnitureNavigationBlocker + NavMeshModifierVolume
-
-Operational access is not a NavMesh obstacle.
-
-Dirty Layout Mode sessions rebuild NavMesh once on exit.
-
-Lesson 119 changes no navigation behavior.
+- fixed fixtures use FixedNavigationBlocker + NavMeshModifier
+- movable furniture uses FurnitureNavigationBlocker + NavMeshModifierVolume
+- operational access is navigable and not a NavMesh blocker
+- dirty Layout Mode rebuilds NavMesh once on exit
 
 ## Save
 
 - schema `2`
 - `little_market_dev_v2_save.json`
 
-No Lesson-119 HUD state is persisted.
+Grid Snap remains a runtime Layout preference, not saved in Lesson 120.
 
 ## Forward roadmap
 
-### Lesson 120 — Magnetic Socket Snapping
+### Lesson 121 — Magnetic Socket Snapping
 
-Implement a real snapping architecture independent from Grid Snap:
+Build a real furniture-to-furniture snapping system independent from Grid Snap:
 
-- explicit furniture sockets
-- compatibility rules
+- explicit socket component/data
+- compatible socket types
+- side/end attachment semantics
 - zero-gap adjacency
-- capture distance
+- capture radius
 - attach/detach hysteresis
-- alignment guides
-- clear separation from the old provisional body-based snap
+- visual alignment feedback
+- Grid ON and Grid OFF both remain meaningful
+- retire the old generic body-bounds snapping architecture once sockets replace it safely
 
 ### Later — Layout Camera & Feel Pass
 
-- area-aware entry focus
-- fixed comfortable editing distance
-- manual full-store overview
-- exterior policy
-- pan/orbit/zoom easing
-- object-follow smoothing
+- sales-floor/backroom entry context
+- comfortable fixed editing distance
+- manual full-store zoom-out
+- exterior build/focus regions
+- easing/smoothing
+- selected-object follow
 - optional edge pan
 
-## Permanent principles
+## Permanent engineering/teaching rules
 
 - GitHub `main` is source of truth
-- inspect actual current project before every lesson
+- inspect actual project before every lesson
 - preserve user-authored tuning
-- protect the center of the screen from persistent HUD clutter
-- persistent mode information belongs at screen edges
-- contextual prompts should be short and temporary
-- mode-specific HUD can hide normal-play HUD that is not relevant
-- non-interactive HUD overlays must not capture raycasts
-- visual grid and Grid Snap are independent
-- magnetic snapping and Grid Snap are independent
-- placement, navigation and presentation remain separate
-- FurnitureDefinition remains authoritative
+- search current game UX best practices for meaningful player-facing UX decisions
+- give exact UI setup details
+- always give HEX for any requested UI/gameplay color
+- user playtest feedback is evidence and should drive iteration
+- protect the center from persistent HUD clutter
+- non-interactive HUD must not intercept pointer raycasts
+- do not convey essential state by color alone
+- keep placement, visualization and navigation separate
+- FurnitureDefinition remains the movable furniture spatial authority
 - avoid god classes
-- end each lesson with complete updated architecture and continuation prompt
+- end each lesson with complete architecture and fresh-chat continuation files

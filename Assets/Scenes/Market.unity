@@ -610,7 +610,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: "GRID ON \xB7 0.10 m \xB7 [G]"
+  m_text: "GRID SNAP ON \xB7 0.50 m"
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
   m_sharedMaterial: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
@@ -14868,7 +14868,7 @@ MonoBehaviour:
   selectionRayDistance: 35
   previewRayDistance: 30
   gridSnapEnabled: 1
-  gridSize: 0.1
+  gridSize: 0.5
   furnitureSnapDistance: 0.35
   furnitureSnapGap: 0.01
   alignmentSnapDistance: 0.3
