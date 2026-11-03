@@ -198,7 +198,9 @@ public class FurniturePlacementController : MonoBehaviour
 
     private void LateUpdate()
     {
-        if (interactionUI == null || layoutMode == null || !layoutMode.IsActive ||
+        if (interactionUI == null ||
+            layoutMode == null ||
+            !layoutMode.IsActive ||
             Cursor.lockState != CursorLockMode.None)
         {
             return;
@@ -209,37 +211,56 @@ public class FurniturePlacementController : MonoBehaviour
             if (!canPlace)
             {
                 interactionUI.ShowPrompt(
-                    "Keep furniture bodies and required customer access clear  •  [R/T] Rotate  •  RMB/Esc Cancel  •  MMB Orbit");
+                    "Can't place here — keep furniture bodies and required customer access clear.");
 
                 return;
             }
 
             if (isNewFurniturePurchase)
             {
-                FurnitureDefinition definition = CurrentDefinition;
+                FurnitureDefinition definition =
+                    CurrentDefinition;
 
-                string priceText = definition != null ? $"£{definition.PurchasePrice:0.00}" : "purchase";
-
-                interactionUI.ShowPrompt(
-                    $"LMB Buy & place {priceText}  •  [R/T] Rotate  •  RMB/Esc Cancel  •  MMB Orbit");
+                if (definition != null)
+                {
+                    interactionUI.ShowPrompt(
+                        $"LMB Buy & place £{definition.PurchasePrice:0.00}");
+                }
+                else
+                {
+                    interactionUI.ShowPrompt(
+                        "LMB Buy & place");
+                }
 
                 return;
             }
 
-            interactionUI.ShowPrompt("LMB Place  •  [R/T] Rotate  •  RMB/Esc Cancel  •  MMB Orbit");
-
+            interactionUI.HidePrompt();
             return;
         }
 
-        if (!layoutMode.IsCameraManipulating && CanStartPlacement() && !IsPointerOverUI() &&
-            TryFindPointedAtFurniture(out FurnitureIdentity furniture) && furniture.CanMoveFurniture(out _))
+        if (!layoutMode.IsCameraManipulating &&
+            CanStartPlacement() &&
+            !IsPointerOverUI() &&
+            TryFindPointedAtFurniture(
+                out FurnitureIdentity furniture) &&
+            furniture.CanMoveFurniture(out _))
         {
-            interactionUI.ShowPrompt("LMB Move furniture  •  MMB Orbit  •  Wheel Zoom  •  WASD Pan  •  [L] Exit");
+            FurnitureDefinition definition =
+                furniture.FurnitureDefinition;
+
+            string furnitureName =
+                definition != null
+                    ? definition.DisplayName
+                    : "furniture";
+
+            interactionUI.ShowPrompt(
+                $"LMB Move {furnitureName}");
 
             return;
         }
 
-        interactionUI.ShowPrompt("LAYOUT MODE  •  LMB Select  •  MMB Orbit  •  Wheel Zoom  •  WASD Pan  •  [L] Exit");
+        interactionUI.HidePrompt();
     }
 
     private bool CanStartPlacement()

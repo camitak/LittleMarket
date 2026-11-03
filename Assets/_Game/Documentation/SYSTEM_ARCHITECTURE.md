@@ -1,18 +1,18 @@
 # Little Market — System Architecture
 
-Current proposed architecture after **Lesson 118 — Grid Snap / Free Precision & Modular Asset Standard**.
+Current proposed architecture after **Lesson 119 — Layout Mode HUD Hierarchy & Control Legend**.
 
 ## Verified source of truth
 
-Lesson 118 was designed after inspecting GitHub `main` at:
+Lesson 119 was designed after inspecting GitHub `main` at:
 
-`a20b241856c29f85c8d75e97896f13110fc6d425`
+`0e1f5cce627ab2c0bdb72dbad30c6f23b19730c0`
 
 Commit:
 
-`Lesson 117 complete - visible furniture access and conflict feedback`
+`Lesson 118 complete - grid snap toggle and free precision placement`
 
-This document describes the architecture after applying and testing Lesson 118. Re-verify GitHub `main` before the next lesson.
+GitHub `main` remains the source of truth. Re-verify the user's actual latest push before every future lesson.
 
 ## Stack
 
@@ -22,34 +22,259 @@ This document describes the architecture after applying and testing Lesson 118. 
 - URP
 - Unity Input System
 - Unity AI Navigation 2.0.14
-- repository `camitak/LittleMarket`
+- Repository `camitak/LittleMarket`
 - branch `main`
-- main scene `Assets/Scenes/Market.unity`
+- scene `Assets/Scenes/Market.unity`
 
 ## Core design principle
 
 > The building provides space; the player decides how the grocery operates inside that space.
 
-Little Market is a cozy first-person grocery-management game. Placement is a major design pillar and must remain understandable, flexible and data-driven.
+Little Market is a cozy first-person grocery-management game. Placement is a major design pillar.
 
-## Current Layout Mode controls
+## Layout Mode controls
 
-- LMB: select / confirm
-- mouse movement: position selected furniture
-- MMB drag: orbit / tilt camera
-- mouse wheel: zoom
+- LMB: select / place
+- R / T: rotate
+- G: toggle Grid Snap
+- MMB drag: orbit / tilt
+- Wheel: zoom
 - WASD: pan
 - Shift + WASD: faster pan
-- R / T: rotate furniture
-- G: toggle Grid Snap ON/OFF
 - RMB / Esc / Q: cancel
-- L: exit Layout Mode
-- cursor visible/unlocked
-- first-person crosshair hidden
+- L: exit
 
-## Layout camera baseline
+Cursor is visible/unlocked and the normal first-person crosshair is hidden.
 
-Preserve the actual pushed LayoutCameraController values unless intentionally revisiting them in the dedicated camera-feel pass:
+## Layout Mode HUD hierarchy — Lesson 119
+
+The UI now deliberately separates three information classes.
+
+### Persistent mode status
+
+Lives near screen edges.
+
+Current top-left status:
+
+- `GRID SNAP ON · 0.10 m`
+- `GRID SNAP OFF · FREE`
+
+The `[G]` hint is removed from this status because controls are shown in the dedicated legend.
+
+### Persistent control legend
+
+A new non-interactive `LayoutControlsPanel` lives under:
+
+`GameUI -> LayoutModeFrame`
+
+It is anchored bottom-right, because the current HUD already uses:
+
+- top-left: ClockPanel during normal play
+- top-right: MoneyText / MoneyGainText
+- bottom-left: BasketContentsPanel
+- top-center: BasketLocator
+- center-lower: InteractionPrompt
+
+Bottom-right is therefore the least contested persistent HUD region.
+
+The legend is static and compact. It does not use InteractionUI.
+
+Recommended text:
+
+`LAYOUT CONTROLS`
+
+`LMB   Select / Place`
+`R / T   Rotate      G   Grid Snap`
+`MMB   Orbit         Wheel   Zoom`
+`WASD   Pan          Shift   Faster`
+`RMB / Esc   Cancel  L   Exit`
+
+Both the panel Image and TMP text must have Raycast Target OFF so this informational overlay never blocks pointer-based furniture placement.
+
+### Contextual feedback
+
+`InteractionUI` remains the generic center-lower prompt system for short, high-attention contextual information only.
+
+During Layout Mode it is no longer used as a persistent control legend.
+
+Appropriate Layout Mode center prompts include:
+
+- `LMB Move Standard Shelf`
+- `LMB Buy & place £40.00`
+- `Can't place here — keep furniture bodies and required customer access clear.`
+
+When no contextual message is needed, InteractionUI is hidden.
+
+This keeps the center of the editing view clear.
+
+## ClockPanel visibility
+
+Actual current normal-play ClockPanel:
+
+- `GameUI -> ClockPanel`
+- top-left
+- anchored position `(30,-25)`
+- size `260 x 120`
+- contains DayText, TimeText, StatusText and ReputationText
+
+Actual Lesson-118 GridSnapStatusText:
+
+- child of `GameUI -> LayoutModeFrame`
+- top-left
+- anchored position `(28,-28)`
+- size `340 x 28`
+
+These overlap by design location.
+
+Lesson 119 does not move GridSnapStatusText to work around this collision.
+
+Instead, LayoutModeUI hides ClockPanel while Layout Mode is active and restores its exact previous active state when Layout Mode exits.
+
+This is appropriate because StoreLayoutModeController already calls:
+
+`storeClock.SetLayoutSuspended(true)`
+
+while Layout Mode is active.
+
+Therefore the normal-play time/status card is low-value while editing. Money remains visible because furniture purchasing can occur during Layout Mode.
+
+LayoutModeUI owns this presentation transition; StoreClock remains unaware of HUD mode.
+
+## LayoutModeUI responsibilities
+
+`LayoutModeUI` on `GameUI` owns:
+
+- LayoutModeFrame visibility
+- normal crosshair hide/restore
+- ClockPanel hide/restore during Layout Mode
+- Grid Snap status presentation
+
+Serialized references after Lesson 119:
+
+- Frame Root -> `GameUI/LayoutModeFrame`
+- Normal Crosshair -> `GameUI/Crosshair`
+- Clock Panel -> `GameUI/ClockPanel`
+- Placement Controller -> `Player/FurniturePlacementController`
+- Grid Snap Status Text -> `GameUI/LayoutModeFrame/GridSnapStatusText`
+
+It stores previous active state before hiding normal gameplay UI so it can restore state safely on exit.
+
+## InteractionUI contract
+
+`InteractionUI` itself remains unchanged.
+
+It owns the generic `InteractionPrompt` TMP object at center-lower screen.
+
+FurniturePlacementController changes how it uses the service:
+
+- invalid selection -> short placement error
+- valid new purchase -> short buy/place action
+- hover movable furniture -> short move action
+- valid existing placement -> no center prompt
+- idle Layout Mode -> no center prompt
+
+StoreLayoutModeController no longer writes a full Layout Mode control legend into InteractionUI on entry.
+
+## Grid / precision architecture
+
+FurniturePlacementController owns:
+
+- `gridSnapEnabled`
+- `gridSize`
+
+Actual pushed scene values:
+
+- Grid Snap Enabled `true`
+- Grid Size `.1`
+- Furniture Snap Distance `.35`
+- Furniture Snap Gap `.01`
+- Alignment Snap Distance `.3`
+
+Grid ON:
+
+- quantize floor position to `.1m`
+- old provisional body/alignment assist may run
+- normal validation
+
+Grid OFF:
+
+- raw permitted floor point
+- old provisional body/alignment assist bypassed
+- normal validation
+
+The visible `.5m` LayoutWorldVisualizer grid remains independent and visible in both modes.
+
+## Placement validation
+
+Unchanged:
+
+1. selected body inside build area
+2. selected access inside build area
+3. selected body vs explicit LayoutClearanceZone
+4. selected access vs explicit LayoutClearanceZone
+5. selected body vs other furniture access
+6. selected body vs physical colliders
+7. selected access vs physical colliders
+
+Body vs another furniture's access is forbidden.
+
+Access vs access remains allowed so facing furniture may share an aisle.
+
+## Visual architecture
+
+### LayoutWorldVisualizer
+StoreSystems:
+- `.5m` cyan visual reference grid
+- purple explicit operational zones
+
+### FurniturePlacementVisualizer
+Player:
+- selected body green/red
+- selected access amber/red
+
+### LayoutFurnitureAccessVisualizer
+StoreSystems:
+- existing furniture access amber
+- conflicting existing access red
+
+### LayoutVisualUtility
+Rendering geometry/material helper.
+
+### LayoutFootprintUtility
+Placement footprint intersection mathematics.
+
+Presentation and placement policy remain separate.
+
+## FurnitureDefinition
+
+Remains authoritative for:
+
+- PlacementArea
+- BodyCenter / BodyHalfExtents
+- AccessCenter / AccessHalfExtents
+
+Local `-Z` is functional/front direction.
+
+## Modular production standard
+
+For new/revised placeable furniture:
+
+- 1 Unity unit = 1 metre
+- root local position `(0,0,0)`
+- root local rotation identity
+- root scale `(1,1,1)`
+- root pivot at floor level
+- prefer X/Z root around body center
+- local `-Z` = functional/front
+- prefer `.25m` horizontal modules/offsets/socket positions where practical
+- child art may use local scaling
+- avoid arbitrary placeable-root scaling
+
+Current four furniture prefab roots were verified compatible with the root position/scale baseline.
+
+## Camera baseline
+
+Preserve:
 
 - Overview Pitch `62`
 - Overview Yaw `0`
@@ -59,363 +284,80 @@ Preserve the actual pushed LayoutCameraController values unless intentionally re
 - Max Pitch `88`
 - Min Distance `4`
 - Max Distance `32`
-- Pan Speed `7`
+- Pan `7`
 - Boost `2`
-- Yaw Sensitivity `.12`
-- Pitch Sensitivity `.10`
-- **Scroll Zoom Sensitivity `2`**
-
-The full-sales-floor startup overview remains provisional.
-
-Future camera direction:
-
-- focus the relevant sales-floor or backroom working region based on player context
-- use a comfortable fixed default editing distance
-- allow manual full-store zoom-out
-- treat future exterior build space as its own focus/build region
-- avoid progressively zooming farther out as the store expands
-
-## Spatial concepts remain separate
-
-### Physical body
-Actual colliders and geometry.
-
-### Navigation blocker
-Defines where customers cannot navigate.
-
-### Operational access
-Space customers/staff need to use furniture or store systems. It is navigable but furniture bodies may be prohibited from occupying it.
-
-Do not merge these responsibilities.
-
-## FurnitureDefinition remains authoritative
-
-FurnitureDefinition owns movable-furniture placement geometry:
-
-- PlacementArea
-- BodyCenter
-- BodyHalfExtents
-- AccessCenter
-- AccessHalfExtents
-
-Functional/front direction is local `-Z`.
-
-### Current standard shelf / refrigerated display
-
-- body center `(0,1.1,0)`
-- body half extents `(1.3,1.05,.52)`
-- access center `(0,.8,-1.02)`
-- access half extents `(1.25,.75,.5)`
-
-### Current ambient / chilled storage racks
-
-- area `Backroom`
-- body center `(0,.8,0)`
-- body half extents `(1.22,.82,.3)`
-- access center `(0,.75,-.8)`
-- access half extents `(1.15,.75,.5)`
-
-## Placement validation
-
-FurniturePlacementController continues to validate:
-
-1. selected body inside permitted build area
-2. selected access inside permitted build area
-3. selected body against explicit LayoutClearanceZone
-4. selected access against explicit LayoutClearanceZone
-5. selected body against access footprints of other furniture
-6. selected body against colliders
-7. selected access against colliders
-
-Body vs another furniture's access is forbidden.
-
-Access vs access remains allowed so facing furniture may share an aisle.
-
-Lesson 118 does not alter these rules.
-
-## Lesson 118 grid / precision architecture
-
-FurniturePlacementController becomes the owner of **Grid Snap state**.
-
-New serialized state:
-
-`gridSnapEnabled = true`
-
-The actual grid step remains:
-
-`gridSize = .1 m`
-
-The source initializer is updated to `.1` as well so code defaults and the current scene no longer disagree.
-
-Public read-only presentation surface:
-
-- `GridSnapEnabled`
-- `GridSize`
-
-### Grid Snap ON
-
-When ON:
-
-1. raycast finds the permitted floor point
-2. X/Z are quantized to the `.1 m` placement grid
-3. the existing provisional furniture body/alignment assist may run
-4. normal placement validation runs
-
-This preserves the placement feel that existed before Lesson 118.
-
-### Grid Snap OFF / Free Precision
-
-When OFF:
-
-1. raycast finds the permitted floor point
-2. raw X/Z are used directly
-3. the old provisional `ApplyFurnitureSnap` assist is bypassed
-4. normal placement validation still runs
-
-This provides genuinely free positional placement while retaining all body/access/build-area rules.
-
-The provisional body-based furniture snap is not the future magnetic system. Lesson 119 introduces explicit sockets as a separate architecture.
-
-### Visual grid independence
-
-`LayoutWorldVisualizer.visibleGridSize = .5 m` remains unchanged.
-
-The pale-cyan `.5 m` grid is a visual reference and remains visible whether Grid Snap is ON or OFF.
-
-Therefore:
-
-- visual grid size != placement snap step
-- visual grid visibility != Grid Snap enabled state
-
-This distinction is permanent.
-
-## LayoutModeUI additions
-
-LayoutModeUI still owns:
-
-- LayoutModeFrame visibility
-- normal crosshair hiding/restoration
-
-Lesson 118 adds:
-
-- serialized `FurniturePlacementController placementController`
-- serialized `TMP_Text gridSnapStatusText`
-
-The status is intentionally compact:
-
-Grid ON:
-`GRID  ON  ·  0.10 m  ·  [G]`
-
-Grid OFF:
-`GRID  OFF  ·  FREE  ·  [G]`
-
-The status remains visible whenever Layout Mode is active, including when no furniture is selected.
-
-The UI reads placement state; it does not own or mutate placement rules.
-
-## Existing visual architecture
-
-### LayoutVisualUtility
-Rendering helper for runtime transparent materials, unit XZ quad and grid meshes.
-
-### LayoutFootprintUtility
-Geometry helper for horizontal oriented-footprint overlap.
-
-Do not merge these utilities.
-
-### LayoutWorldVisualizer
-On StoreSystems.
-
-Shows:
-
-- `.5 m` pale-cyan reference grid over each available build zone
-- purple explicit LayoutClearanceZone areas
-
-No physics or placement authority.
-
-### FurniturePlacementVisualizer
-On Player.
-
-Shows selected furniture:
-
-- green body when valid
-- amber selected access when valid
-- red when invalid
-
-### LayoutFurnitureAccessVisualizer
-On StoreSystems.
-
-Shows existing unselected furniture access:
-
-- soft amber normally
-- red when the selected furniture body intrudes into that access zone
-
-Shared access remains allowed.
-
-## Modular asset production standard
-
-Lesson 118 formalizes the standard for **new and revised furniture assets**.
-
-### World scale
-
-`1 Unity unit = 1 metre`
-
-FurnitureDefinition body/access dimensions are authored in metres.
-
-### Root transform
-
-Every placeable furniture prefab root should use:
-
-- local position `(0,0,0)` inside the prefab
-- local rotation identity
-- local scale `(1,1,1)`
-
-Current Shelf, Refrigerated Display, Ambient Storage Rack and Chilled Storage Rack roots already satisfy the scale/position baseline.
-
-Child meshes may use local scale as needed. The root is the gameplay coordinate system.
-
-### Root pivot
-
-The root pivot should be at floor level (`Y = 0`).
-
-Prefer X/Z near the center of the physical body footprint unless the asset has a strong reason otherwise.
-
-This lets placement position correspond to a meaningful floor point.
-
-### Functional front
-
-Local `-Z` is the standard functional/front direction.
-
-Examples:
-
-- shelf customer-facing side
-- refrigerated-display customer-facing side
-- storage-rack working side
-
-AccessCenter should therefore normally be located toward negative local Z.
-
-### Modular dimensions
-
-Prefer `.25 m` increments for new horizontal furniture dimensions, offsets and future socket locations **where practical**.
-
-This is a production target, not an immediate migration requirement.
-
-Existing prototype assets do not need to be remodeled simply because some current child geometry uses non-.25 dimensions.
-
-Gameplay fit, readability and art quality may justify exceptions.
-
-### Runtime scaling
-
-Do not use arbitrary root scaling to create furniture variants.
-
-Prefer:
-
-- dedicated prefab / definition variants
-- modular child geometry
-- explicit body/access data
-
-Root scale should remain one so placement, navigation and socket geometry stay predictable.
-
-## Build areas
-
-StoreBuildArea remains authoritative for available floor regions and footprint containment.
-
-Relevant APIs:
-
-- TryGetPlacementSurface
-- IsFootprintInside
-- IsBuildFloorCollider
-- TryGetAvailableBounds
-- CollectAvailableFloorBounds
+- Yaw `.12`
+- Pitch `.10`
+- Scroll Zoom Sensitivity **2**
+
+Future dedicated camera pass:
+
+- area-aware sales-floor/backroom focus
+- comfortable fixed editing distance
+- manual wider zoom-out
+- exterior focus/build region
+- easing/smoothing
 
 ## Navigation
 
 Fixed fixtures:
 
 - FixedNavigationBlocker + NavMeshModifier
-- CheckoutCounter / CustomerBasketStation geometry marked Not Walkable
 
 Movable furniture:
 
 - FurnitureNavigationBlocker + NavMeshModifierVolume
-- semantic body footprint
 
-Customer recovery:
+Operational access is not a NavMesh obstacle.
 
-- NavMesh agent position
-- vertical tolerance
-- physical capsule clearance
+Dirty Layout Mode sessions rebuild NavMesh once on exit.
 
-Ceilings remain excluded from LayoutCamera and NavMeshSurface.
-
-A dirty Layout Mode session rebuilds NavMesh once on exit.
-
-Lesson 118 changes no navigation behavior.
+Lesson 119 changes no navigation behavior.
 
 ## Save
 
 - schema `2`
-- filename `little_market_dev_v2_save.json`
+- `little_market_dev_v2_save.json`
 
-Grid Snap state is a Layout Mode interaction preference and is not added to the save schema in Lesson 118.
-
-It persists while the current runtime controller exists, but a new play session starts from the serialized default.
-
-Save/load still blocks active customers until their in-progress state is intentionally persisted.
-
-## Checkout future
-
-Desired tactile flow remains:
-
-customer unloads -> physical scan -> bag -> card/cash payment -> leaves
-
-Later:
-
-- cash drawer / change
-- tender keypad
-- PLU
-- upgraded terminals
-- CheckoutRegistry
-- multiple placeable checkouts
-- self-checkouts
+No Lesson-119 HUD state is persisted.
 
 ## Forward roadmap
 
-### Lesson 119 — Magnetic Socket Snapping
+### Lesson 120 — Magnetic Socket Snapping
 
-Introduce an explicit system independent from Grid Snap:
+Implement a real snapping architecture independent from Grid Snap:
 
-- compatible socket types
+- explicit furniture sockets
+- compatibility rules
 - zero-gap adjacency
-- socket world transforms
 - capture distance
 - attach/detach hysteresis
 - alignment guides
-- clear separation from free/grid placement
-
-Grid Snap OFF must not inherently disable the future magnetic system unless the player explicitly chooses to bypass/disable magnetism.
+- clear separation from the old provisional body-based snap
 
 ### Later — Layout Camera & Feel Pass
 
-- sales-floor/backroom entry context
-- useful fixed editing distance
-- manual full-store zoom-out
-- exterior/outdoor focus regions
+- area-aware entry focus
+- fixed comfortable editing distance
+- manual full-store overview
+- exterior policy
 - pan/orbit/zoom easing
-- selected-object follow smoothing
-- optional edge-pan evaluation
+- object-follow smoothing
+- optional edge pan
 
-## Permanent development rules
+## Permanent principles
 
-- GitHub `main` is the source of truth
-- inspect the actual latest scripts, scene, prefabs and definitions before every lesson
-- never invent paths, hierarchy or Inspector values
-- preserve user-authored tuning, especially camera Scroll Zoom Sensitivity `2`
-- keep validation, navigation and visualization separate
-- visual grid and placement grid are independent
-- future magnetic snapping and Grid Snap are independent
-- keep FurnitureDefinition authoritative for furniture spatial data
+- GitHub `main` is source of truth
+- inspect actual current project before every lesson
+- preserve user-authored tuning
+- protect the center of the screen from persistent HUD clutter
+- persistent mode information belongs at screen edges
+- contextual prompts should be short and temporary
+- mode-specific HUD can hide normal-play HUD that is not relevant
+- non-interactive HUD overlays must not capture raycasts
+- visual grid and Grid Snap are independent
+- magnetic snapping and Grid Snap are independent
+- placement, navigation and presentation remain separate
+- FurnitureDefinition remains authoritative
 - avoid god classes
-- substantial rewrites get complete replacement code; small changes may use anchored edits
-- include exact Inspector setup and focused regression tests
-- finish each lesson with an updated complete architecture document and fresh-chat continuation prompt
+- end each lesson with complete updated architecture and continuation prompt

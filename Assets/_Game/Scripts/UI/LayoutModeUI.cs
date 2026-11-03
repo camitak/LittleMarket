@@ -4,9 +4,10 @@ using UnityEngine;
 [DisallowMultipleComponent]
 public class LayoutModeUI : MonoBehaviour
 {
-    [Header("Layout")] 
+    [Header("Layout Mode")] 
     [SerializeField] private GameObject frameRoot;
     [SerializeField] private GameObject normalCrosshair;
+    [SerializeField] private GameObject clockPanel;
 
     [Header("Placement Status")] 
     [SerializeField] private FurniturePlacementController placementController;
@@ -14,6 +15,9 @@ public class LayoutModeUI : MonoBehaviour
 
     private bool previousCrosshairState;
     private bool hasStoredCrosshairState;
+
+    private bool previousClockPanelState;
+    private bool hasStoredClockPanelState;
 
     private void Awake()
     {
@@ -45,6 +49,40 @@ public class LayoutModeUI : MonoBehaviour
             RefreshGridSnapStatus();
         }
 
+        SetClockPanelForLayout(active);
+        SetCrosshairForLayout(active);
+    }
+
+    private void SetClockPanelForLayout(bool active)
+    {
+        if (clockPanel == null)
+        {
+            return;
+        }
+
+        if (active)
+        {
+            if (!hasStoredClockPanelState)
+            {
+                previousClockPanelState = clockPanel.activeSelf;
+                hasStoredClockPanelState = true;
+            }
+
+            clockPanel.SetActive(false);
+            return;
+        }
+
+        if (!hasStoredClockPanelState)
+        {
+            return;
+        }
+
+        clockPanel.SetActive(previousClockPanelState);
+        hasStoredClockPanelState = false;
+    }
+
+    private void SetCrosshairForLayout(bool active)
+    {
         if (normalCrosshair == null)
         {
             return;
@@ -52,12 +90,13 @@ public class LayoutModeUI : MonoBehaviour
 
         if (active)
         {
-            previousCrosshairState = normalCrosshair.activeSelf;
-
-            hasStoredCrosshairState = true;
+            if (!hasStoredCrosshairState)
+            {
+                previousCrosshairState = normalCrosshair.activeSelf;
+                hasStoredCrosshairState = true;
+            }
 
             normalCrosshair.SetActive(false);
-
             return;
         }
 
@@ -67,7 +106,6 @@ public class LayoutModeUI : MonoBehaviour
         }
 
         normalCrosshair.SetActive(previousCrosshairState);
-
         hasStoredCrosshairState = false;
     }
 
@@ -86,11 +124,11 @@ public class LayoutModeUI : MonoBehaviour
 
         if (placementController.GridSnapEnabled)
         {
-            gridSnapStatusText.text = $"GRID  ON  ·  {placementController.GridSize:0.00} m  ·  [G]";
+            gridSnapStatusText.text = $"GRID SNAP  ON  ·  {placementController.GridSize:0.00} m";
 
             return;
         }
 
-        gridSnapStatusText.text = "GRID  OFF  ·  FREE  ·  [G]";
+        gridSnapStatusText.text = "GRID SNAP  OFF  ·  FREE";
     }
 }

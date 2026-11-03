@@ -131,7 +131,7 @@ public class StoreLayoutModeController : MonoBehaviour
 
         layoutModeUI.SetLayoutModeActive(true);
 
-        interactionUI.ShowPrompt("LAYOUT MODE  •  LMB Select  •  MMB Orbit  •  Wheel Zoom  •  WASD Pan  •  [L] Exit");
+        interactionUI.HidePrompt();
 
         reason = "";
         return true;
