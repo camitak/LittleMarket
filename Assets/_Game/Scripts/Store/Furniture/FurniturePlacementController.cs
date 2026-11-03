@@ -17,10 +17,13 @@ public class FurniturePlacementController : MonoBehaviour
     [Header("Visuals")] 
     [SerializeField] private FurniturePlacementVisualizer placementVisualizer;
 
-    [Header("Placement")] 
+    [Header("Placement")]
     [Min(1f)] [SerializeField] private float selectionRayDistance = 35f;
     [Min(1f)] [SerializeField] private float previewRayDistance = 30f;
-    [Min(0.1f)] [SerializeField] private float gridSize = 0.5f;
+
+    [Header("Grid Snap")]
+    [SerializeField] private bool gridSnapEnabled = true;
+    [Min(0.01f)] [SerializeField] private float gridSize = 0.1f;
 
     [Header("Furniture Snapping")] 
     [Min(0f)] [SerializeField] private float furnitureSnapDistance = 0.35f;
@@ -65,6 +68,10 @@ public class FurniturePlacementController : MonoBehaviour
     private static readonly int BaseColorId = Shader.PropertyToID("_BaseColor");
 
     public bool IsPlacementActive => selectedFurniture != null;
+    
+    public bool GridSnapEnabled => gridSnapEnabled;
+
+    public float GridSize => Mathf.Max(0.01f, gridSize);
 
     // Read-only access for Layout Mode presentation.
     public FurnitureIdentity SelectedFurniture => selectedFurniture;
@@ -122,6 +129,15 @@ public class FurniturePlacementController : MonoBehaviour
         if (Keyboard.current == null || Mouse.current == null)
         {
             return;
+        }
+
+        if (layoutMode != null &&
+            layoutMode.IsActive &&
+            Time.timeScale > 0f &&
+            Cursor.lockState == CursorLockMode.None &&
+            Keyboard.current.gKey.wasPressedThisFrame)
+        {
+            gridSnapEnabled = !gridSnapEnabled;
         }
 
         if (selectedFurniture == null)
@@ -368,12 +384,22 @@ public class FurniturePlacementController : MonoBehaviour
 
         if (foundFloor)
         {
-            float step = Mathf.Max(0.1f, gridSize);
+            if (gridSnapEnabled)
+            {
+                float step = GridSize;
 
-            target = new Vector3(Mathf.Round(surfacePoint.x / step) * step, surfacePoint.y,
-                Mathf.Round(surfacePoint.z / step) * step);
+                target = new Vector3(
+                    Mathf.Round(surfacePoint.x / step) * step,
+                    surfacePoint.y,
+                    Mathf.Round(surfacePoint.z / step) * step
+                );
 
-            target = ApplyFurnitureSnap(target, rotation);
+                target = ApplyFurnitureSnap(target, rotation);
+            }
+            else
+            {
+                target = surfacePoint;
+            }
 
             selectedFurniture.transform.SetPositionAndRotation(target, rotation);
         }
