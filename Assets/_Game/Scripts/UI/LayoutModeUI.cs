@@ -122,13 +122,15 @@ public class LayoutModeUI : MonoBehaviour
             return;
         }
 
-        if (placementController.GridSnapEnabled)
-        {
-            gridSnapStatusText.text = $"GRID SNAP  ON  ·  {placementController.GridSize:0.00} m";
+        string status = placementController.GridSnapEnabled
+            ? $"GRID SNAP  ON  ·  {placementController.GridSize:0.00} m"
+            : "GRID SNAP  OFF  ·  FREE";
 
-            return;
+        if (placementController.IsMagneticallySnapped)
+        {
+            status += "  ·  MAGNET";
         }
 
-        gridSnapStatusText.text = "GRID SNAP  OFF  ·  FREE";
+        gridSnapStatusText.text = status;
     }
 }

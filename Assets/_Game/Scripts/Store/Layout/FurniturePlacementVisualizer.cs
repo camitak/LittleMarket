@@ -14,19 +14,29 @@ public class FurniturePlacementVisualizer : MonoBehaviour
     [SerializeField] private Color validAccessColor = new Color32(240, 201, 106, 102);
     [SerializeField] private Color invalidAccessColor = new Color32(196, 107, 107, 112);
 
+    [Header("Magnetic Snap Guide")] 
+    [Min(0.05f)] [SerializeField] private float snapGuideSize = 0.18f;
+    [Min(0.005f)] [SerializeField] private float snapGuideWidth = 0.035f;
+    [Min(0f)] [SerializeField] private float snapGuideSurfaceOffset = 0.085f;
+    [SerializeField] private Color snapGuideColor = new Color32(95, 227, 240, 230);
+    [SerializeField] private Color invalidSnapGuideColor = new Color32(196, 107, 107, 230);
+
     private GameObject visualRoot;
     private GameObject bodyVisual;
     private GameObject accessVisual;
+    private GameObject snapGuideObject;
 
     private Mesh unitQuad;
 
     private Material bodyMaterial;
     private Material accessMaterial;
+    private Material snapGuideMaterial;
+
+    private LineRenderer snapGuide;
 
     private void Awake()
     {
         CreateRuntimeObjects();
-
         Hide();
     }
 
@@ -57,6 +67,45 @@ public class FurniturePlacementVisualizer : MonoBehaviour
         LayoutVisualUtility.SetMaterialColor(accessMaterial, canPlace ? validAccessColor : invalidAccessColor);
     }
 
+    public void UpdateSnapGuide(Vector3 worldPosition, bool active, bool canPlace)
+    {
+        if (snapGuideObject == null || snapGuide == null)
+        {
+            return;
+        }
+
+        if (!active)
+        {
+            snapGuideObject.SetActive(false);
+            return;
+        }
+
+        if (visualRoot != null && !visualRoot.activeSelf)
+        {
+            visualRoot.SetActive(true);
+        }
+
+        snapGuideObject.SetActive(true);
+
+        Vector3 center = worldPosition;
+        center.y += snapGuideSurfaceOffset;
+
+        float size = Mathf.Max(0.05f, snapGuideSize);
+
+        snapGuide.SetPosition(0, center + new Vector3(0f, 0f, -size));
+        snapGuide.SetPosition(1, center + new Vector3(size, 0f, 0f));
+        snapGuide.SetPosition(2, center + new Vector3(0f, 0f, size));
+        snapGuide.SetPosition(3, center + new Vector3(-size, 0f, 0f));
+        snapGuide.SetPosition(4, center + new Vector3(0f, 0f, -size));
+
+        Color color = canPlace ? snapGuideColor : invalidSnapGuideColor;
+
+        snapGuide.startColor = color;
+        snapGuide.endColor = color;
+
+        LayoutVisualUtility.SetMaterialColor(snapGuideMaterial, color);
+    }
+
     public void Hide()
     {
         if (visualRoot != null)
@@ -73,12 +122,16 @@ public class FurniturePlacementVisualizer : MonoBehaviour
 
         bodyMaterial = LayoutVisualUtility.CreateTransparentMaterial("FurnitureBodyFootprint_Runtime", validBodyColor);
 
-        accessMaterial =
-            LayoutVisualUtility.CreateTransparentMaterial("FurnitureAccessFootprint_Runtime", validAccessColor);
+        accessMaterial = LayoutVisualUtility.CreateTransparentMaterial(
+            "FurnitureAccessFootprint_Runtime", validAccessColor);
+
+        snapGuideMaterial = LayoutVisualUtility.CreateTransparentMaterial("FurnitureSnapGuide_Runtime", snapGuideColor);
 
         bodyVisual = CreateFootprintObject("BodyFootprint", bodyMaterial, 10);
 
         accessVisual = CreateFootprintObject("AccessFootprint", accessMaterial, 11);
+
+        CreateSnapGuide();
     }
 
     private GameObject CreateFootprintObject(string objectName, Material material, int sortingOrder)
@@ -88,20 +141,36 @@ public class FurniturePlacementVisualizer : MonoBehaviour
         visual.transform.SetParent(visualRoot.transform, true);
 
         MeshFilter filter = visual.AddComponent<MeshFilter>();
-
         filter.sharedMesh = unitQuad;
 
         MeshRenderer renderer = visual.AddComponent<MeshRenderer>();
-
         renderer.sharedMaterial = material;
-
         renderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
-
         renderer.receiveShadows = false;
-
         renderer.sortingOrder = sortingOrder;
 
         return visual;
+    }
+
+    private void CreateSnapGuide()
+    {
+        snapGuideObject = new GameObject("MagneticSnapGuide");
+        snapGuideObject.transform.SetParent(visualRoot.transform, true);
+
+        snapGuide = snapGuideObject.AddComponent<LineRenderer>();
+
+        snapGuide.useWorldSpace = true;
+        snapGuide.positionCount = 5;
+        snapGuide.loop = false;
+        snapGuide.widthMultiplier = snapGuideWidth;
+        snapGuide.numCornerVertices = 2;
+        snapGuide.numCapVertices = 2;
+        snapGuide.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+        snapGuide.receiveShadows = false;
+        snapGuide.sortingOrder = 20;
+        snapGuide.sharedMaterial = snapGuideMaterial;
+
+        snapGuideObject.SetActive(false);
     }
 
     private static void ApplyFootprint(GameObject visual,
@@ -146,6 +215,11 @@ public class FurniturePlacementVisualizer : MonoBehaviour
         if (accessMaterial != null)
         {
             Destroy(accessMaterial);
+        }
+
+        if (snapGuideMaterial != null)
+        {
+            Destroy(snapGuideMaterial);
         }
     }
 }

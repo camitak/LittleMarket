@@ -17,18 +17,20 @@ public class FurniturePlacementController : MonoBehaviour
     [Header("Visuals")] 
     [SerializeField] private FurniturePlacementVisualizer placementVisualizer;
 
-    [Header("Placement")]
+    [Header("Placement")] 
     [Min(1f)] [SerializeField] private float selectionRayDistance = 35f;
     [Min(1f)] [SerializeField] private float previewRayDistance = 30f;
+    [Min(0f)] [SerializeField] private float bodyContactTolerance = 0.01f;
 
-    [Header("Grid Snap")]
+    [Header("Grid Snap")] 
     [SerializeField] private bool gridSnapEnabled = true;
     [Min(0.01f)] [SerializeField] private float gridSize = 0.5f;
 
-    [Header("Furniture Snapping")] 
-    [Min(0f)] [SerializeField] private float furnitureSnapDistance = 0.35f;
-    [Min(0f)] [SerializeField] private float furnitureSnapGap = 0.05f;
-    [Min(0f)] [SerializeField] private float alignmentSnapDistance = 0.30f;
+    [Header("Magnetic Snap")] 
+    [SerializeField] private bool magneticSnapEnabled = true;
+    [Min(0.01f)] [SerializeField] private float socketCaptureDistance = 0.30f;
+    [Min(0.01f)] [SerializeField] private float socketReleaseDistance = 0.55f;
+    [Range(0f, 45f)] [SerializeField] private float maximumSocketFacingAngle = 15f;
 
     [Header("Fallback Body Footprint")] 
     [SerializeField] private Vector3 footprintHalfExtents = new(1.30f, 1.05f, 0.52f);
@@ -46,6 +48,11 @@ public class FurniturePlacementController : MonoBehaviour
     private FurnitureIdentity selectedFurniture;
     private FurnitureIdentity[] furnitureCandidates;
     private LayoutClearanceZone[] clearanceZones;
+
+    private FurnitureSnapSocket[] selectedSnapSockets;
+    private FurnitureSnapSocket[] snapSocketCandidates;
+    private FurnitureSnapSocket activeSelectedSnapSocket;
+    private FurnitureSnapSocket activeTargetSnapSocket;
 
     private Vector3 originalPosition;
     private Quaternion originalRotation;
@@ -68,16 +75,22 @@ public class FurniturePlacementController : MonoBehaviour
     private static readonly int BaseColorId = Shader.PropertyToID("_BaseColor");
 
     public bool IsPlacementActive => selectedFurniture != null;
-    
+
     public bool GridSnapEnabled => gridSnapEnabled;
 
     public float GridSize => Mathf.Max(0.01f, gridSize);
 
+    public bool IsMagneticallySnapped => activeSelectedSnapSocket != null && activeTargetSnapSocket != null;
+
     // Read-only access for Layout Mode presentation.
     public FurnitureIdentity SelectedFurniture => selectedFurniture;
 
-    public bool TryGetSelectedBodyFootprint(
-        out Vector3 worldCenter,
+    private float EffectiveSocketReleaseDistance => Mathf.Max(socketCaptureDistance, socketReleaseDistance);
+
+    private bool IsMagneticSnapBypassed =>
+        Keyboard.current != null && (Keyboard.current.leftAltKey.isPressed || Keyboard.current.rightAltKey.isPressed);
+
+    public bool TryGetSelectedBodyFootprint(out Vector3 worldCenter,
         out Quaternion rotation,
         out Vector2 halfExtents,
         out StoreAreaType placementArea)
@@ -94,12 +107,9 @@ public class FurniturePlacementController : MonoBehaviour
 
         rotation = selectedFurniture.transform.rotation;
 
-        worldCenter = selectedFurniture.transform.position +
-                      rotation * CurrentBodyCenter;
+        worldCenter = selectedFurniture.transform.position + rotation * CurrentBodyCenter;
 
-        halfExtents = new Vector2(
-            Mathf.Abs(CurrentBodyHalfExtents.x),
-            Mathf.Abs(CurrentBodyHalfExtents.z));
+        halfExtents = new Vector2(Mathf.Abs(CurrentBodyHalfExtents.x), Mathf.Abs(CurrentBodyHalfExtents.z));
 
         placementArea = CurrentPlacementArea;
 
@@ -131,11 +141,8 @@ public class FurniturePlacementController : MonoBehaviour
             return;
         }
 
-        if (layoutMode != null &&
-            layoutMode.IsActive &&
-            Time.timeScale > 0f &&
-            Cursor.lockState == CursorLockMode.None &&
-            Keyboard.current.gKey.wasPressedThisFrame)
+        if (layoutMode != null && layoutMode.IsActive && Time.timeScale > 0f &&
+            Cursor.lockState == CursorLockMode.None && Keyboard.current.gKey.wasPressedThisFrame)
         {
             gridSnapEnabled = !gridSnapEnabled;
         }
@@ -198,9 +205,7 @@ public class FurniturePlacementController : MonoBehaviour
 
     private void LateUpdate()
     {
-        if (interactionUI == null ||
-            layoutMode == null ||
-            !layoutMode.IsActive ||
+        if (interactionUI == null || layoutMode == null || !layoutMode.IsActive ||
             Cursor.lockState != CursorLockMode.None)
         {
             return;
@@ -218,18 +223,15 @@ public class FurniturePlacementController : MonoBehaviour
 
             if (isNewFurniturePurchase)
             {
-                FurnitureDefinition definition =
-                    CurrentDefinition;
+                FurnitureDefinition definition = CurrentDefinition;
 
                 if (definition != null)
                 {
-                    interactionUI.ShowPrompt(
-                        $"LMB Buy & place £{definition.PurchasePrice:0.00}");
+                    interactionUI.ShowPrompt($"LMB Buy & place £{definition.PurchasePrice:0.00}");
                 }
                 else
                 {
-                    interactionUI.ShowPrompt(
-                        "LMB Buy & place");
+                    interactionUI.ShowPrompt("LMB Buy & place");
                 }
 
                 return;
@@ -239,23 +241,14 @@ public class FurniturePlacementController : MonoBehaviour
             return;
         }
 
-        if (!layoutMode.IsCameraManipulating &&
-            CanStartPlacement() &&
-            !IsPointerOverUI() &&
-            TryFindPointedAtFurniture(
-                out FurnitureIdentity furniture) &&
-            furniture.CanMoveFurniture(out _))
+        if (!layoutMode.IsCameraManipulating && CanStartPlacement() && !IsPointerOverUI() &&
+            TryFindPointedAtFurniture(out FurnitureIdentity furniture) && furniture.CanMoveFurniture(out _))
         {
-            FurnitureDefinition definition =
-                furniture.FurnitureDefinition;
+            FurnitureDefinition definition = furniture.FurnitureDefinition;
 
-            string furnitureName =
-                definition != null
-                    ? definition.DisplayName
-                    : "furniture";
+            string furnitureName = definition != null ? definition.DisplayName : "furniture";
 
-            interactionUI.ShowPrompt(
-                $"LMB Move {furnitureName}");
+            interactionUI.ShowPrompt($"LMB Move {furnitureName}");
 
             return;
         }
@@ -354,6 +347,12 @@ public class FurniturePlacementController : MonoBehaviour
 
         clearanceZones = FindObjectsByType<LayoutClearanceZone>(FindObjectsSortMode.None);
 
+        selectedSnapSockets = furniture.GetComponentsInChildren<FurnitureSnapSocket>(true);
+
+        snapSocketCandidates = FindObjectsByType<FurnitureSnapSocket>(FindObjectsSortMode.None);
+
+        ClearActiveMagneticSnap();
+
         selectedColliders = furniture.GetComponentsInChildren<Collider>(true);
 
         originallyEnabled = new bool[selectedColliders.Length];
@@ -409,20 +408,21 @@ public class FurniturePlacementController : MonoBehaviour
             {
                 float step = GridSize;
 
-                target = new Vector3(
-                    Mathf.Round(surfacePoint.x / step) * step,
-                    surfacePoint.y,
-                    Mathf.Round(surfacePoint.z / step) * step
-                );
-
-                target = ApplyFurnitureSnap(target, rotation);
+                target = new Vector3(Mathf.Round(surfacePoint.x / step) * step, surfacePoint.y,
+                    Mathf.Round(surfacePoint.z / step) * step);
             }
             else
             {
                 target = surfacePoint;
             }
 
+            target = ApplyMagneticSocketSnap(target, rotation);
+
             selectedFurniture.transform.SetPositionAndRotation(target, rotation);
+        }
+        else
+        {
+            ClearActiveMagneticSnap();
         }
 
         canPlace = foundFloor && ValidatePlacement(target, rotation);
@@ -431,6 +431,10 @@ public class FurniturePlacementController : MonoBehaviour
         {
             placementVisualizer.UpdateFootprints(selectedFurniture.transform, CurrentBodyCenter, CurrentBodyHalfExtents,
                 CurrentAccessCenter, CurrentAccessHalfExtents, canPlace);
+
+            Vector3 snapPosition = IsMagneticallySnapped ? activeTargetSnapSocket.transform.position : Vector3.zero;
+
+            placementVisualizer.UpdateSnapGuide(snapPosition, IsMagneticallySnapped, canPlace);
         }
 
         Color previewColor = canPlace ? validColor : invalidColor;
@@ -446,136 +450,216 @@ public class FurniturePlacementController : MonoBehaviour
         return placementCamera.ScreenPointToRay(pointerPosition);
     }
 
-    private Vector3 ApplyFurnitureSnap(Vector3 gridTarget, Quaternion selectedRotation)
+    private Vector3 ApplyMagneticSocketSnap(Vector3 baseTarget, Quaternion selectedRotation)
     {
-        if (selectedFurniture == null || furnitureCandidates == null || furnitureSnapDistance <= 0f)
+        if (!magneticSnapEnabled || IsMagneticSnapBypassed || selectedFurniture == null ||
+            selectedSnapSockets == null || selectedSnapSockets.Length == 0 || snapSocketCandidates == null)
         {
-            return gridTarget;
+            ClearActiveMagneticSnap();
+            return baseTarget;
         }
 
-        Vector3 selectedBodyCenter = gridTarget + selectedRotation * CurrentBodyCenter;
-
-        Vector2 selectedHalf = GetHorizontalHalfExtents(selectedRotation, CurrentBodyHalfExtents);
-
-        Vector3 bestTarget = gridTarget;
-
-        float bestMovement = float.MaxValue;
-
-        foreach (FurnitureIdentity candidate in furnitureCandidates)
+        if (TryKeepActiveMagneticSnap(baseTarget, selectedRotation, out Vector3 retainedTarget))
         {
-            if (candidate == null || candidate == selectedFurniture || !candidate.gameObject.activeInHierarchy)
-            {
-                continue;
-            }
-
-            FurnitureDefinition definition = candidate.FurnitureDefinition;
-
-            if (definition == null || definition.PlacementArea != CurrentPlacementArea)
-            {
-                continue;
-            }
-
-            Quaternion otherRotation = candidate.transform.rotation;
-
-            Vector3 otherBodyCenter = candidate.transform.position + otherRotation * definition.BodyCenter;
-
-            Vector2 otherHalf = GetHorizontalHalfExtents(otherRotation, definition.BodyHalfExtents);
-
-            float maximumZSeparation = selectedHalf.y + otherHalf.y + furnitureSnapDistance;
-
-            if (Mathf.Abs(selectedBodyCenter.z - otherBodyCenter.z) <= maximumZSeparation)
-            {
-                float horizontalGap = selectedHalf.x + otherHalf.x + furnitureSnapGap;
-
-                EvaluateSnapCandidate(
-                    new Vector3(otherBodyCenter.x - horizontalGap, selectedBodyCenter.y, selectedBodyCenter.z),
-                    otherBodyCenter, true, gridTarget, selectedRotation, ref bestTarget, ref bestMovement);
-
-                EvaluateSnapCandidate(
-                    new Vector3(otherBodyCenter.x + horizontalGap, selectedBodyCenter.y, selectedBodyCenter.z),
-                    otherBodyCenter, true, gridTarget, selectedRotation, ref bestTarget, ref bestMovement);
-            }
-
-            float maximumXSeparation = selectedHalf.x + otherHalf.x + furnitureSnapDistance;
-
-            if (Mathf.Abs(selectedBodyCenter.x - otherBodyCenter.x) <= maximumXSeparation)
-            {
-                float verticalGap = selectedHalf.y + otherHalf.y + furnitureSnapGap;
-
-                EvaluateSnapCandidate(
-                    new Vector3(selectedBodyCenter.x, selectedBodyCenter.y, otherBodyCenter.z - verticalGap),
-                    otherBodyCenter, false, gridTarget, selectedRotation, ref bestTarget, ref bestMovement);
-
-                EvaluateSnapCandidate(
-                    new Vector3(selectedBodyCenter.x, selectedBodyCenter.y, otherBodyCenter.z + verticalGap),
-                    otherBodyCenter, false, gridTarget, selectedRotation, ref bestTarget, ref bestMovement);
-            }
+            return retainedTarget;
         }
 
-        return bestTarget;
+        if (TryFindMagneticSnap(baseTarget, selectedRotation, out Vector3 snappedTarget,
+                out FurnitureSnapSocket selectedSocket, out FurnitureSnapSocket targetSocket))
+        {
+            activeSelectedSnapSocket = selectedSocket;
+
+            activeTargetSnapSocket = targetSocket;
+
+            return snappedTarget;
+        }
+
+        ClearActiveMagneticSnap();
+
+        return baseTarget;
     }
 
-    private void EvaluateSnapCandidate(Vector3 candidateBodyCenter,
-        Vector3 otherBodyCenter,
-        bool snappingX,
-        Vector3 gridTarget,
+    private bool TryKeepActiveMagneticSnap(Vector3 baseTarget, Quaternion selectedRotation, out Vector3 snappedTarget)
+    {
+        snappedTarget = baseTarget;
+
+        if (!IsActiveSnapPairValid())
+        {
+            ClearActiveMagneticSnap();
+            return false;
+        }
+
+        if (!AreSocketsFacing(activeSelectedSnapSocket, activeTargetSnapSocket, selectedRotation))
+        {
+            ClearActiveMagneticSnap();
+            return false;
+        }
+
+        Vector3 projectedSocketPosition =
+            GetProjectedSelectedSocketPosition(activeSelectedSnapSocket, baseTarget, selectedRotation);
+
+        float distance = HorizontalDistance(projectedSocketPosition, activeTargetSnapSocket.transform.position);
+
+        if (distance > EffectiveSocketReleaseDistance)
+        {
+            ClearActiveMagneticSnap();
+            return false;
+        }
+
+        snappedTarget = AlignRootToTargetSocket(activeSelectedSnapSocket, activeTargetSnapSocket, baseTarget,
+            selectedRotation);
+
+        return true;
+    }
+
+    private bool TryFindMagneticSnap(Vector3 baseTarget,
         Quaternion selectedRotation,
-        ref Vector3 bestTarget,
-        ref float bestMovement)
+        out Vector3 snappedTarget,
+        out FurnitureSnapSocket selectedSocket,
+        out FurnitureSnapSocket targetSocket)
     {
-        Vector3 currentBodyCenter = gridTarget + selectedRotation * CurrentBodyCenter;
+        snappedTarget = baseTarget;
+        selectedSocket = null;
+        targetSocket = null;
 
-        float edgeDistance = snappingX
-            ? Mathf.Abs(currentBodyCenter.x - candidateBodyCenter.x)
-            : Mathf.Abs(currentBodyCenter.z - candidateBodyCenter.z);
+        float bestDistance = Mathf.Max(0.01f, socketCaptureDistance);
 
-        if (edgeDistance > furnitureSnapDistance)
+        foreach (FurnitureSnapSocket source in selectedSnapSockets)
         {
-            return;
-        }
-
-        if (snappingX)
-        {
-            if (Mathf.Abs(candidateBodyCenter.z - otherBodyCenter.z) <= alignmentSnapDistance)
+            if (source == null)
             {
-                candidateBodyCenter.z = otherBodyCenter.z;
+                continue;
+            }
+
+            Vector3 projectedSource = GetProjectedSelectedSocketPosition(source, baseTarget, selectedRotation);
+
+            foreach (FurnitureSnapSocket candidate in snapSocketCandidates)
+            {
+                if (!CanUseTargetSocket(source, candidate))
+                {
+                    continue;
+                }
+
+                if (!AreSocketsFacing(source, candidate, selectedRotation))
+                {
+                    continue;
+                }
+
+                float distance = HorizontalDistance(projectedSource, candidate.transform.position);
+
+                if (distance > bestDistance)
+                {
+                    continue;
+                }
+
+                bestDistance = distance;
+                selectedSocket = source;
+                targetSocket = candidate;
             }
         }
-        else
+
+        if (selectedSocket == null || targetSocket == null)
         {
-            if (Mathf.Abs(candidateBodyCenter.x - otherBodyCenter.x) <= alignmentSnapDistance)
-            {
-                candidateBodyCenter.x = otherBodyCenter.x;
-            }
+            return false;
         }
 
-        Vector3 candidateRoot = candidateBodyCenter - selectedRotation * CurrentBodyCenter;
+        snappedTarget = AlignRootToTargetSocket(selectedSocket, targetSocket, baseTarget, selectedRotation);
 
-        candidateRoot.y = gridTarget.y;
-
-        float movement = Vector2.Distance(new Vector2(gridTarget.x, gridTarget.z),
-            new Vector2(candidateRoot.x, candidateRoot.z));
-
-        if (movement >= bestMovement)
-        {
-            return;
-        }
-
-        bestMovement = movement;
-        bestTarget = candidateRoot;
+        return true;
     }
 
-    private static Vector2 GetHorizontalHalfExtents(Quaternion rotation, Vector3 halfExtents)
+    private bool CanUseTargetSocket(FurnitureSnapSocket source, FurnitureSnapSocket target)
     {
-        Vector3 right = rotation * Vector3.right;
+        if (source == null || target == null || !source.IsCompatibleWith(target))
+        {
+            return false;
+        }
 
-        Vector3 forward = rotation * Vector3.forward;
+        FurnitureIdentity targetOwner = target.Owner;
 
-        float worldHalfX = Mathf.Abs(right.x) * halfExtents.x + Mathf.Abs(forward.x) * halfExtents.z;
+        if (targetOwner == null || targetOwner == selectedFurniture || !targetOwner.gameObject.activeInHierarchy)
+        {
+            return false;
+        }
 
-        float worldHalfZ = Mathf.Abs(right.z) * halfExtents.x + Mathf.Abs(forward.z) * halfExtents.z;
+        FurnitureDefinition definition = targetOwner.FurnitureDefinition;
 
-        return new Vector2(worldHalfX, worldHalfZ);
+        return definition != null && definition.PlacementArea == CurrentPlacementArea;
+    }
+
+    private bool IsActiveSnapPairValid()
+    {
+        if (activeSelectedSnapSocket == null || activeTargetSnapSocket == null)
+        {
+            return false;
+        }
+
+        return CanUseTargetSocket(activeSelectedSnapSocket, activeTargetSnapSocket);
+    }
+
+    private bool AreSocketsFacing(FurnitureSnapSocket source, FurnitureSnapSocket target, Quaternion selectedRotation)
+    {
+        if (source == null || target == null || selectedFurniture == null)
+        {
+            return false;
+        }
+
+        Vector3 sourceOutward = selectedRotation * source.GetLocalOutward(selectedFurniture);
+
+        sourceOutward.y = 0f;
+
+        Vector3 targetInward = -target.WorldOutward;
+
+        targetInward.y = 0f;
+
+        if (sourceOutward.sqrMagnitude < 0.0001f || targetInward.sqrMagnitude < 0.0001f)
+        {
+            return false;
+        }
+
+        float angle = Vector3.Angle(sourceOutward.normalized, targetInward.normalized);
+
+        return angle <= maximumSocketFacingAngle;
+    }
+
+    private Vector3 GetProjectedSelectedSocketPosition(FurnitureSnapSocket socket,
+        Vector3 baseTarget,
+        Quaternion selectedRotation)
+    {
+        Vector3 localPosition = socket.GetLocalPosition(selectedFurniture);
+
+        return baseTarget + selectedRotation * localPosition;
+    }
+
+    private Vector3 AlignRootToTargetSocket(FurnitureSnapSocket source,
+        FurnitureSnapSocket target,
+        Vector3 baseTarget,
+        Quaternion selectedRotation)
+    {
+        Vector3 projectedSource = GetProjectedSelectedSocketPosition(source, baseTarget, selectedRotation);
+
+        Vector3 delta = target.transform.position - projectedSource;
+
+        // Furniture remains floor-anchored.
+        delta.y = 0f;
+
+        return baseTarget + delta;
+    }
+
+    private static float HorizontalDistance(Vector3 a, Vector3 b)
+    {
+        return Vector2.Distance(new Vector2(a.x, a.z), new Vector2(b.x, b.z));
+    }
+
+    private void ClearActiveMagneticSnap()
+    {
+        activeSelectedSnapSocket = null;
+        activeTargetSnapSocket = null;
+
+        if (placementVisualizer != null)
+        {
+            placementVisualizer.UpdateSnapGuide(Vector3.zero, false, false);
+        }
     }
 
     private bool ValidatePlacement(Vector3 position, Quaternion rotation)
@@ -695,11 +779,20 @@ public class FurniturePlacementController : MonoBehaviour
         Quaternion rotation,
         Vector3 offset,
         Vector3 halfExtents,
-        bool ignorePlayer)
+        bool isAccessFootprint)
     {
         Vector3 center = position + rotation * offset;
 
-        Collider[] hits = Physics.OverlapBox(center, halfExtents, rotation, ~0, QueryTriggerInteraction.Ignore);
+        Vector3 overlapHalfExtents = halfExtents;
+
+        if (!isAccessFootprint && bodyContactTolerance > 0f)
+        {
+            overlapHalfExtents.x = Mathf.Max(0.01f, overlapHalfExtents.x - bodyContactTolerance);
+
+            overlapHalfExtents.z = Mathf.Max(0.01f, overlapHalfExtents.z - bodyContactTolerance);
+        }
+
+        Collider[] hits = Physics.OverlapBox(center, overlapHalfExtents, rotation, ~0, QueryTriggerInteraction.Ignore);
 
         foreach (Collider hit in hits)
         {
@@ -713,7 +806,7 @@ public class FurniturePlacementController : MonoBehaviour
                 continue;
             }
 
-            if (ignorePlayer && hit.transform.IsChildOf(transform))
+            if (isAccessFootprint && hit.transform.IsChildOf(transform))
             {
                 continue;
             }
@@ -763,9 +856,7 @@ public class FurniturePlacementController : MonoBehaviour
         accessOutline.positionCount = 5;
         accessOutline.widthMultiplier = outlineWidth;
         accessOutline.numCornerVertices = 2;
-
         accessOutline.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
-
         accessOutline.receiveShadows = false;
 
         outlineMaterial = new Material(shader);
@@ -954,6 +1045,8 @@ public class FurniturePlacementController : MonoBehaviour
             }
         }
 
+        ClearActiveMagneticSnap();
+
         if (placementVisualizer != null)
         {
             placementVisualizer.Hide();
@@ -964,6 +1057,9 @@ public class FurniturePlacementController : MonoBehaviour
         selectedFurniture = null;
         furnitureCandidates = null;
         clearanceZones = null;
+
+        selectedSnapSockets = null;
+        snapSocketCandidates = null;
 
         isNewFurniturePurchase = false;
         pendingPurchase = null;

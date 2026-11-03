@@ -1,16 +1,16 @@
 # Little Market — System Architecture
 
-Current proposed architecture after **Lesson 120 — Grid Snap Readability & Permanent UX Rules**.
+Current proposed architecture after **Lesson 121 — Magnetic Socket Snapping**.
 
 ## Verified source of truth
 
-Lesson 120 was designed after inspecting GitHub `main` at:
+Lesson 121 was designed after inspecting GitHub `main` at:
 
-`1777dc6c1c258502f389efa4baaa62425bb8786a`
+`d59fc0d1a094c1be0879125862b1113836291a2b`
 
 Commit:
 
-`Lesson 119 complete - layout HUD hierarchy and control legend`
+`Lesson 120 complete - readable grid snap and permanent UX rules`
 
 Re-verify GitHub `main` before every future lesson.
 
@@ -32,65 +32,50 @@ Re-verify GitHub `main` before every future lesson.
 
 Little Market is a cozy first-person grocery-management game. Placement is a major design pillar.
 
-## Permanent project UX/UI rules
+## Permanent UX/UI rules
 
-These are permanent project rules and must be carried into every fresh-chat continuation prompt.
+### UI implementation detail
 
-### UI implementation detail rule
-
-Whenever a lesson asks the user to create or edit UI, provide:
+Every UI lesson must provide:
 
 - exact Hierarchy path
 - exact GameObject names
-- exact RectTransform anchors
-- exact pivot
-- exact anchored position
-- exact width/height or stretch offsets
+- anchors
+- pivot
+- anchored position
+- width/height or offsets
 - font size
 - alignment
-- Raycast Target state
-- required component references
-- exact color HEX values
-- RGBA values when useful
-- explanation of why that layout is being chosen
+- Raycast Target
+- references
+- exact HEX colors
+- RGBA when helpful
+- UX rationale
 
-Never tell the user to choose/find an approximate color without also giving the intended HEX.
+Never make the user derive or search for a color.
 
-### UX research rule
+### UX research
 
-Before making or locking in a meaningful player-facing UX decision, search current game-UX/game-interface best practices and relevant examples from established games/tools.
+Before locking meaningful player-facing UX decisions:
 
-Prefer:
+- research current game UX/UI best practices
+- inspect relevant established game/tool patterns
+- prefer official engine/game/platform/accessibility sources
+- adapt the principle to Little Market
+- treat user playtesting as evidence and iterate when the real interaction feels wrong
 
-- official engine/game documentation
-- platform design guidance
-- accessibility guidance
-- reputable game UX sources
-
-Do not copy another game mechanically. Use research to validate the principle, then adapt it to Little Market.
-
-User playtest feedback outranks theory when the actual interaction clearly feels wrong. Treat that feedback as evidence and iterate.
-
-### Accessibility rule
+### Accessibility
 
 Do not rely on color alone for essential state.
 
-Pair important color changes with at least one of:
+Use text, geometry, iconography, animation or sound in combination where appropriate.
 
-- text
-- shape
-- icon
-- spatial change
-- animation
-- sound where appropriate
-
-Maintain readable contrast and avoid unnecessary HUD clutter.
-
-## Layout Mode controls
+## Layout controls after Lesson 121
 
 - LMB: select / place
 - R / T: rotate
 - G: Grid Snap ON/OFF
+- Alt: temporarily bypass Magnetic Snap
 - MMB drag: orbit / tilt
 - Wheel: zoom
 - WASD: pan
@@ -98,167 +83,329 @@ Maintain readable contrast and avoid unnecessary HUD clutter.
 - RMB / Esc / Q: cancel
 - L: exit
 
-## Lesson 120 — Grid Snap readability
+## Placement constraints remain layered
 
-The previous `.1 m` snap interval felt effectively free in playtesting.
+### Physical body
+Furniture/object colliders and authored body footprint.
 
-Lesson 120 changes the default/current Grid Snap interval to:
+### Navigation blocker
+Customer non-walkable body volume.
 
-`0.5 m`
+### Operational access
+Customer/staff usage space. Navigable, but furniture bodies may not occupy it.
 
-Reasoning:
+These remain independent.
 
-- the visible floor grid is already `.5 m`
-- a snapped mode should feel perceptibly different from unrestricted placement
-- matching the visible reference grid to the snap interval makes the system predictable
-- Grid OFF remains the precision/free-placement mode
-- future magnetic sockets will handle intentional furniture-to-furniture adjacency
+## Grid Snap
 
-This aligns with established build-mode patterns where grid placement and off-grid/free placement are distinct modes.
+FurniturePlacementController owns Grid Snap.
 
-### Grid Snap ON
+- enabled by default
+- Grid Size `.5 m`
 
-- floor target quantizes X/Z to `.5 m`
-- visible `.5 m` grid predicts the base snap locations
-- the existing provisional body/alignment furniture assist still runs near other furniture until replaced by explicit socket snapping
-- placement validation remains unchanged
+Grid ON:
 
-### Grid Snap OFF
+- floor X/Z quantize to `.5m`
+- then Magnetic Snap may override the base grid position when a compatible socket is captured
+- validation runs normally
 
-- raw permitted floor position
-- old provisional body/alignment assist bypassed
-- normal validation remains active
+Grid OFF:
 
-### Important temporary caveat
+- raw floor point
+- Magnetic Snap may still capture a compatible socket
+- validation runs normally
 
-The old `ApplyFurnitureSnap` system can still move a Grid-ON object away from the exact `.5 m` root point when it detects nearby furniture.
+Grid Snap and Magnetic Snap are intentionally independent.
 
-This is temporary compatibility behavior so shelf adjacency is not lost before socket snapping exists.
+## Magnetic Socket Snapping — Lesson 121
 
-Lesson 121 should replace the architectural role of that provisional assist with explicit magnetic sockets.
+Lesson 121 retires the old generic body-bounds furniture snapping fields/methods:
 
-## Current grid values after Lesson 120
+- `furnitureSnapDistance`
+- `furnitureSnapGap`
+- `alignmentSnapDistance`
+- `ApplyFurnitureSnap`
+- `EvaluateSnapCandidate`
+- `GetHorizontalHalfExtents`
 
-### Player -> FurniturePlacementController
+The replacement is explicit semantic sockets.
 
-- Grid Snap Enabled `true`
-- **Grid Size `.5`**
-- Furniture Snap Distance `.35`
-- Furniture Snap Gap `.01`
-- Alignment Snap Distance `.3`
+### FurnitureSnapSocket
 
-The source initializer should also be `.5f`, matching the scene.
+New component:
 
-### StoreSystems -> LayoutWorldVisualizer
+`Assets/_Game/Scripts/Store/Furniture/FurnitureSnapSocket.cs`
 
-- Visible Grid Size `.5`
-- Grid Line Width `.015`
-- Grid Surface Offset `.025`
-- Grid Color `#CFF7FA26`
-    - RGBA `(207, 247, 250, 38)`
+Current enums:
 
-The visual grid and snapping remain conceptually separate systems, even though they intentionally use the same interval now.
+- `FurnitureSnapSocketType.RunEdge`
+- `FurnitureSnapSocketSide.Left`
+- `FurnitureSnapSocketSide.Right`
 
-If a future fine snap option is added, it must be communicated clearly rather than silently using an invisible subdivision.
+Compatibility:
 
-## Layout Mode HUD after Lesson 119
+- same SocketType
+- opposite Side
+- different FurnitureIdentity
+- same StoreAreaType
+- socket outward directions must face one another within the controller's facing-angle tolerance
 
-### Top-left Grid status
+A socket's Transform is meaningful data:
+
+- position = exact attachment location
+- forward = outward direction from the furniture edge
+
+The component's editor gizmo uses:
+
+- `#5FE3F0FF`
+- RGBA `(95,227,240,255)`
+
+### Current socket scope
+
+Lesson 121 intentionally supports **side-to-side furniture runs only**.
+
+Sales floor:
+
+- Standard Shelf
+- Refrigerated Display
+
+Backroom:
+
+- Ambient Storage Rack
+- Chilled Storage Rack
+
+Because compatibility is RunEdge-based and area-restricted:
+
+- shelf ↔ shelf works
+- shelf ↔ refrigerated display works
+- refrigerated ↔ refrigerated works
+- ambient ↔ chilled rack works
+- sales-floor furniture cannot magnetically join backroom furniture
+
+No front/back sockets yet.
+
+Back-to-back gondolas/double-sided fixtures need a deliberate future access policy and should not emerge accidentally.
+
+### Socket authoring positions
+
+#### PF_Shelf
+
+Direct children of root:
+
+`Snap_Left`
+- local position `(-1.30, 0, 0)`
+- local rotation `(0, -90, 0)`
+- scale `(1,1,1)`
+- Type `RunEdge`
+- Side `Left`
+
+`Snap_Right`
+- local position `(1.30, 0, 0)`
+- local rotation `(0, 90, 0)`
+- scale `(1,1,1)`
+- Type `RunEdge`
+- Side `Right`
+
+#### PF_RefrigeratedDisplay
+
+Same as PF_Shelf:
+
+- X `-1.30 / 1.30`
+- Y `0`
+- Z `0`
+- outward rotations `-90 / 90`
+
+#### PF_StorageRack_Ambient
+
+`Snap_Left`
+- local position `(-1.22, 0, 0)`
+- rotation `(0,-90,0)`
+
+`Snap_Right`
+- local position `(1.22,0,0)`
+- rotation `(0,90,0)`
+
+#### PF_StorageRack_Chilled
+
+Same rack values:
+
+- X `-1.22 / 1.22`
+- Y `0`
+- Z `0`
+
+### Magnetic controller values
+
+Player -> FurniturePlacementController:
+
+Placement:
+- Selection Ray Distance `35`
+- Preview Ray Distance `30`
+- Body Contact Tolerance `.01`
+
+Grid Snap:
+- Enabled `true`
+- Grid Size `.5`
+
+Magnetic Snap:
+- Magnetic Snap Enabled `true`
+- Socket Capture Distance `.30`
+- Socket Release Distance `.55`
+- Maximum Socket Facing Angle `15`
+
+Capture/release hysteresis prevents snap flicker:
+
+- enter magnet at `.30m`
+- remain magnetized until pointer's unsnapped/base target exceeds `.55m`
+
+### Player control
+
+Magnetic Snap never rotates furniture automatically.
+
+Player controls orientation using R/T.
+
+Holding either Alt key temporarily bypasses Magnetic Snap. This allows precision escape without toggling Grid Snap or changing persistent state.
+
+### Priority order
+
+When moving furniture:
+
+1. raycast permitted floor
+2. apply Grid Snap if enabled
+3. attempt/retain compatible Magnetic Snap unless Alt is held
+4. move preview
+5. validate all placement rules
+6. render feedback
+
+This means a captured semantic socket has higher positional priority than the base grid. This override is explicit because the UI and world guide announce MAGNET state.
+
+## Magnetic feedback
+
+FurniturePlacementVisualizer remains the selected-object presentation component and gains a magnetic snap guide.
+
+When captured:
+
+- a diamond appears at the target socket
+- top-left status appends `MAGNET`
+- the furniture physically locks to the socket
+
+This avoids color-only feedback.
+
+Guide valid color:
+
+- `#5FE3F0E6`
+- RGBA `(95,227,240,230)`
+
+Guide invalid color:
+
+- `#C46B6BE6`
+- RGBA `(196,107,107,230)`
+
+Guide values:
+
+- Size `.18`
+- Width `.035`
+- Surface Offset `.085`
+
+## Layout HUD
+
+### GridSnapStatusText
+
+Path:
 
 `GameUI -> LayoutModeFrame -> GridSnapStatusText`
 
-Runtime states after Lesson 120:
+Resize Width from `340` to `520` so MAGNET state fits.
+
+Keep:
+
+- Anchor Min `(0,1)`
+- Anchor Max `(0,1)`
+- Pivot `(0,1)`
+- Anchored Position `(28,-28)`
+- Height `28`
+- Font Size `18`
+- Alignment Left / Middle
+- Raycast Target Off
+- Color `#CFF7FADC`
+- RGBA `(207,247,250,220)`
+
+Runtime examples:
 
 - `GRID SNAP ON · 0.50 m`
 - `GRID SNAP OFF · FREE`
+- `GRID SNAP ON · 0.50 m · MAGNET`
+- `GRID SNAP OFF · FREE · MAGNET`
 
-Current text color:
+### LayoutControlsPanel
 
-- `#CFF7FADC`
-- RGBA `(207, 247, 250, 220)`
-
-Raycast Target OFF.
-
-### Bottom-right controls
+Path:
 
 `GameUI -> LayoutModeFrame -> LayoutControlsPanel`
 
-Current verified values:
+Keep:
 
-- Anchor Min `(1,0)`
-- Anchor Max `(1,0)`
-- Pivot `(1,0)`
-- Anchored Position `(-28,28)`
-- Size `360 x 190`
-- Raycast Target OFF
+- bottom-right
+- position `(-28,28)`
+- size `360 x 190`
+- Raycast Target Off
+- background `#FFF9EEDC`
+- text `#594640FF`
 
-Panel color:
+ControlsText must include:
 
-- `#FFF9EEDC`
-- RGBA `(255,249,238,220)`
+`Alt   Bypass Magnet`
 
-`ControlsText`:
+No new color is required.
 
-- stretch inside panel with 16 px padding
-- Font Size `17`
-- Raycast Target OFF
-- text color `#594640FF`
-- RGBA `(89,70,64,255)`
+## Contact tolerance
 
-### ClockPanel
+Exact socket alignment intentionally places authored body edges against one another.
 
-`GameUI -> ClockPanel`
+Physics overlap queries can treat exact contact as an overlap, so FurniturePlacementController now shrinks only the selected BODY collider-check half extents horizontally by `.01m` during broad collision validation.
 
-Hidden during Layout Mode and restored to its previous active state on exit.
+Important:
 
-This remains appropriate because Layout Mode suspends StoreClock.
+- authored body dimensions are unchanged
+- build-area containment uses full body dimensions
+- body-vs-access SAT uses full body dimensions
+- clearance-zone checks use full body dimensions
+- only the body Physics.OverlapBox broad collision test receives the small contact tolerance
 
-Money remains visible because furniture purchases can occur during Layout Mode.
-
-### InteractionPrompt
-
-Center-lower generic prompt is reserved for contextual information only:
-
-- hover movable furniture
-- purchase confirmation/action
-- invalid placement explanation
-
-It is not a permanent control legend.
+This permits clean surface contact without redefining furniture geometry.
 
 ## Furniture placement validation
 
-Unchanged:
+Still:
 
-1. body inside permitted build area
-2. access inside permitted build area
-3. body vs explicit LayoutClearanceZone
-4. access vs explicit LayoutClearanceZone
-5. body vs another furniture's access
+1. body inside build area
+2. access inside build area
+3. body vs LayoutClearanceZone
+4. access vs LayoutClearanceZone
+5. selected body vs other furniture access
 6. body vs colliders
 7. access vs colliders
 
-Body vs other access = forbidden.
+Body vs another furniture access = forbidden.
 
-Access vs access = allowed.
+Access vs access = allowed/shared aisle.
 
-## Visual language
+## Existing visual language
 
-- cyan grid `#CFF7FA26`
-- fixed operational clearance purple `#977EFF42`
-- selected valid body green `#6FCF97`
-- existing/valid access amber family
-- conflicts/invalid red family
+- Grid `#CFF7FA26`
+- Fixed clearance `#977EFF42`
+- Valid body `#6FCF9766`
+- Invalid body `#C46B6B80`
+- Selected access `#F0C96A66`
+- Existing access `#F0C96A30`
+- Existing access conflict `#C46B6B96`
+- Magnetic guide valid `#5FE3F0E6`
+- Magnetic guide invalid `#C46B6BE6`
 
-Current existing furniture access:
+Important states are not color-only.
 
-- amber `#F0C96A30`
-- conflict red `#C46B6B96`
+## FurnitureDefinition
 
-Do not rely on these colors alone; placement state also uses text and geometry.
-
-## FurnitureDefinition authority
-
-FurnitureDefinition remains authoritative for:
+Remains authoritative for:
 
 - PlacementArea
 - BodyCenter
@@ -266,23 +413,19 @@ FurnitureDefinition remains authoritative for:
 - AccessCenter
 - AccessHalfExtents
 
-Local `-Z` remains functional/front direction.
+Sockets are prefab-authored relational attachment points, not a replacement for FurnitureDefinition geometry.
 
-## Modular production standard
-
-For new/revised placeable furniture:
+## Modular asset standard
 
 - 1 Unity unit = 1 metre
-- root position `(0,0,0)`
+- root `(0,0,0)`
 - root rotation identity
 - root scale `(1,1,1)`
-- floor-level root pivot
-- local `-Z` = front/functional
-- prefer `.25 m` modular dimensions/offsets/socket locations where practical
-- child meshes may use local scaling
-- avoid arbitrary root scaling
-
-The `.25 m` asset-module guideline does not require the interactive Grid Snap interval to also be `.25 m`.
+- floor-level root
+- local `-Z` functional/front
+- prefer `.25m` modules/socket positions where practical
+- authored gameplay dimensions may use necessary exceptions
+- socket transforms are authored relative to scale-one furniture roots
 
 ## Camera baseline
 
@@ -306,39 +449,52 @@ Preserve:
 
 Unchanged.
 
-- fixed fixtures use FixedNavigationBlocker + NavMeshModifier
-- movable furniture uses FurnitureNavigationBlocker + NavMeshModifierVolume
-- operational access is navigable and not a NavMesh blocker
-- dirty Layout Mode rebuilds NavMesh once on exit
+- fixed fixtures: FixedNavigationBlocker + NavMeshModifier
+- movable furniture: FurnitureNavigationBlocker + NavMeshModifierVolume
+- access spaces remain navigable
+- dirty Layout Mode rebuilds once on exit
 
 ## Save
 
 - schema `2`
 - `little_market_dev_v2_save.json`
 
-Grid Snap remains a runtime Layout preference, not saved in Lesson 120.
+Sockets are prefab configuration and require no save-schema change.
+
+Furniture transforms continue to persist as before.
 
 ## Forward roadmap
 
-### Lesson 121 — Magnetic Socket Snapping
+### Lesson 122 — Magnetic Snap Feel & Alignment Validation
 
-Build a real furniture-to-furniture snapping system independent from Grid Snap:
+Do not immediately add more socket types.
 
-- explicit socket component/data
-- compatible socket types
-- side/end attachment semantics
-- zero-gap adjacency
-- capture radius
-- attach/detach hysteresis
-- visual alignment feedback
-- Grid ON and Grid OFF both remain meaningful
-- retire the old generic body-bounds snapping architecture once sockets replace it safely
+First playtest Lesson 121:
+
+- capture strength
+- release feel
+- Alt bypass
+- snap stability while rotating
+- shelf/refrigerator mixed runs
+- rack runs
+- exact-contact validity
+- visual clarity of the diamond/MAGNET status
+
+Tune capture/release before expanding the system.
+
+If the feel is good, then evaluate:
+
+- back-to-back/double-sided fixture policy
+- endcaps
+- wall fixtures
+- alignment/socket previews before capture
+- optional sound/haptic feedback later
 
 ### Later — Layout Camera & Feel Pass
 
-- sales-floor/backroom entry context
-- comfortable fixed editing distance
-- manual full-store zoom-out
+- sales-floor/backroom focus context
+- fixed useful editing distance
+- manual full-store overview
 - exterior build/focus regions
 - easing/smoothing
 - selected-object follow
@@ -347,16 +503,19 @@ Build a real furniture-to-furniture snapping system independent from Grid Snap:
 ## Permanent engineering/teaching rules
 
 - GitHub `main` is source of truth
-- inspect actual project before every lesson
+- inspect actual current project before every lesson
 - preserve user-authored tuning
 - search current game UX best practices for meaningful player-facing UX decisions
 - give exact UI setup details
-- always give HEX for any requested UI/gameplay color
-- user playtest feedback is evidence and should drive iteration
-- protect the center from persistent HUD clutter
-- non-interactive HUD must not intercept pointer raycasts
-- do not convey essential state by color alone
-- keep placement, visualization and navigation separate
-- FurnitureDefinition remains the movable furniture spatial authority
+- always give exact HEX for any color the user must set
+- user playtest feedback is evidence
+- protect the center from persistent clutter
+- informational HUD must not intercept pointer input
+- do not communicate essential state only through color
+- Grid Snap and Magnetic Snap are independent
+- Magnetic Snap must be predictable and escapable
+- placement, visualization, navigation and persistence remain separate
+- FurnitureDefinition remains spatial geometry authority
+- socket transforms define relational attachment semantics
 - avoid god classes
-- end each lesson with complete architecture and fresh-chat continuation files
+- end every lesson with complete architecture and fresh-chat continuation files
