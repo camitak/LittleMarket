@@ -1063,7 +1063,7 @@ Transform:
   m_GameObject: {fileID: 118999197}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 10, y: 3.3, z: 0}
+  m_LocalPosition: {x: 10, y: 3.2, z: 0}
   m_LocalScale: {x: 4, y: 0.2, z: 10}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -9929,7 +9929,7 @@ Transform:
   m_GameObject: {fileID: 909705444}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 3.3, z: 0}
+  m_LocalPosition: {x: 0, y: 3.2, z: 0}
   m_LocalScale: {x: 16, y: 0.2, z: 10}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -10332,7 +10332,7 @@ Transform:
   m_GameObject: {fileID: 924177151}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 2, y: 3.3, z: 7}
+  m_LocalPosition: {x: 2, y: 3.2, z: 7}
   m_LocalScale: {x: 12, y: 0.2, z: 4}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -11894,6 +11894,7 @@ GameObject:
   - component: {fileID: 1117834547}
   - component: {fileID: 1117834548}
   - component: {fileID: 1117834549}
+  - component: {fileID: 1117834550}
   m_Layer: 0
   m_Name: StoreSystems
   m_TagString: Untagged
@@ -12294,6 +12295,23 @@ MonoBehaviour:
   gridColor: {r: 0.8117647, g: 0.96862745, b: 0.98039216, a: 0.14901961}
   clearanceSurfaceOffset: 0.035
   clearanceColor: {r: 0.5921569, g: 0.49411765, b: 1, a: 0.25882354}
+--- !u!114 &1117834550
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1117834526}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 31ce1e6639e318143b8f8d30c299ee4c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::LayoutFurnitureAccessVisualizer
+  layoutMode: {fileID: 1117834548}
+  placementController: {fileID: 1349577616}
+  surfaceOffset: 0.04
+  availableColor: {r: 0.9411765, g: 0.7882353, b: 0.41568628, a: 0.1882353}
+  blockedColor: {r: 0.76862746, g: 0.41960785, b: 0.41960785, a: 0.5882353}
 --- !u!1 &1120029493
 GameObject:
   m_ObjectHideFlags: 0
@@ -17175,7 +17193,7 @@ Transform:
   m_GameObject: {fileID: 1612867431}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -10, y: 3.3, z: 0}
+  m_LocalPosition: {x: -10, y: 3.2, z: 0}
   m_LocalScale: {x: 4, y: 0.2, z: 10}
   m_ConstrainProportionsScale: 0
   m_Children: []

@@ -66,6 +66,39 @@ public class FurniturePlacementController : MonoBehaviour
 
     public bool IsPlacementActive => selectedFurniture != null;
 
+    // Read-only access for Layout Mode presentation.
+    public FurnitureIdentity SelectedFurniture => selectedFurniture;
+
+    public bool TryGetSelectedBodyFootprint(
+        out Vector3 worldCenter,
+        out Quaternion rotation,
+        out Vector2 halfExtents,
+        out StoreAreaType placementArea)
+    {
+        worldCenter = Vector3.zero;
+        rotation = Quaternion.identity;
+        halfExtents = Vector2.zero;
+        placementArea = StoreAreaType.SalesFloor;
+
+        if (selectedFurniture == null)
+        {
+            return false;
+        }
+
+        rotation = selectedFurniture.transform.rotation;
+
+        worldCenter = selectedFurniture.transform.position +
+                      rotation * CurrentBodyCenter;
+
+        halfExtents = new Vector2(
+            Mathf.Abs(CurrentBodyHalfExtents.x),
+            Mathf.Abs(CurrentBodyHalfExtents.z));
+
+        placementArea = CurrentPlacementArea;
+
+        return true;
+    }
+
     private Camera PlacementCamera => layoutMode != null ? layoutMode.PlacementCamera : null;
 
     private FurnitureDefinition CurrentDefinition =>
