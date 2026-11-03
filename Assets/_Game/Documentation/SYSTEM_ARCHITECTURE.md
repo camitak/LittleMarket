@@ -1,119 +1,115 @@
 # Little Market — System Architecture
 
-Current architecture after **Lesson 112 — Layout Reliability, Navigation Safety & Camera Usability**.
+Current architecture after **Lesson 113 — Mouse-Driven Layout Editing & Operational Clearance**.
 
-## Baseline
-Designed from GitHub `main` commit `7c6adba598527a99b93cca37eb80f8ef1c7f2656` (`Lesson 111 complete - reliable layout presentation and dedicated camera`).
+Baseline: GitHub `main` commit `1945af5b5be799d6402c231c7a91a9cdd4904d9a` (`Lesson 112 complete - layout navigation safety camera and visual refinement`).
 
-GitHub `main` is the source of truth. At the start of Lesson 112, the committed `SYSTEM_ARCHITECTURE.md` still described Lesson 110, so replace it with this file after completing the lesson.
+## Layout controls
+Layout Mode is now a cursor-driven editing tool:
+- Left Mouse: select furniture / confirm placement
+- mouse movement: move selected furniture on the floor
+- Middle Mouse drag: orbit/tilt layout camera
+- mouse wheel: zoom
+- WASD: pan
+- Left Shift + WASD: faster pan
+- R/T: rotate selected furniture
+- Right Mouse, Esc or Q: cancel placement
+- L: exit Layout Mode
 
-## Invisible-customer root cause
-The remaining bug was spatial recovery, not primarily customer rendering. Lesson 111 used `NavMesh.SamplePosition` near the customer's old position and immediately warped to the returned NavMesh point. A NavMesh point is not guaranteed to be physically clear or on the intended floor.
+The cursor is visible/unlocked in Layout Mode. The first-person crosshair is hidden and restored on exit.
 
-Lesson 112 adds `CustomerNavigationRecovery`, which searches outward from the position captured on Layout Mode entry and accepts only candidates that:
-- match the customer's NavMesh agent type/area mask
-- remain within a small vertical tolerance
-- have physical capsule clearance
-- are not inside furniture/walls
-- are selected from the nearest successful search ring
+## LayoutCameraController
+Raw mouse movement no longer rotates the camera. Camera orbit only occurs while Middle Mouse is held. `IsOrbiting` is exposed so placement pauses during camera manipulation.
 
-Fallback recovery near entrance/exit remains only for cases where the original area has no safe candidate.
-
-Prototype values: 4 m max radius and 0.5 m vertical tolerance.
-
-## Furniture navigation
-New `FurnitureNavigationBlocker` requires `FurnitureIdentity` and `NavMeshModifierVolume`.
-
-It derives a Not Walkable modifier volume from `FurnitureDefinition.BodyCenter` and `BodyHalfExtents`, with 0.05 m horizontal padding and 0.20 m floor overlap. The body footprint becomes non-walkable while the access footprint stays walkable.
-
-Add it to:
-- PF_Shelf
-- PF_RefrigeratedDisplay
-- PF_StorageRack_Ambient
-- PF_StorageRack_Chilled
-
-## Ceiling layer
-Custom layer 6: `Ceiling`.
-
-Exact ceiling objects:
-- StoreBuilding/Base/Ceiling_Base
-- StoreBuilding/Expansion_Sales_01/UnlockedGeometry/Ceiling_SalesExpansion_01
-- StoreBuilding/Expansion_SalesRear_01/UnlockedGeometry/Ceiling_SalesRearExpansion_01
-- StoreBuilding/Expansion_Backroom_01/UnlockedGeometry/Ceiling_BackroomExpansion_01
-
-`LayoutCamera` excludes `Ceiling` from its Culling Mask. `Navigation/NavMeshSurface` excludes `Ceiling` from its Layer Mask. Player/Main Camera still includes it.
-
-This hides roofs only in Layout Mode and prevents ceiling colliders from becoming navigation build sources.
-
-## Layout camera
-LayoutCameraController values:
-- start pitch 60
-- min pitch 15
-- max pitch 88
-- start distance 11 m
-- min distance 4 m
-- max distance 24 m
-- pan 7 m/s
-- Shift boost 2x
+Current committed scene values are preserved unless deliberately changed later:
+- starting pitch 15
+- minimum pitch 15
+- maximum pitch 88
+- starting distance 11
+- minimum distance 4
+- maximum distance 24
+- pan speed 7
+- boost 2
 - yaw sensitivity .12
 - pitch sensitivity .10
-- wheel zoom sensitivity .02
+- zoom sensitivity .02
 
-Controls remain WASD, mouse look, wheel zoom, Shift boost, L exit.
+## FurniturePlacementController
+Pointer-based rays use `Camera.ScreenPointToRay(Mouse.current.position.ReadValue())` instead of camera-centre rays.
 
-## Furniture selection
-Lesson 111 kept the old first-person 4 m grab ray even though the layout camera starts roughly 10 m away.
+Current values remain:
+- selection ray distance 35
+- preview ray distance 30
+- grid size .1
+- furniture snap distance .35
+- furniture snap gap .01
+- alignment snap distance .30
 
-Lesson 112 replaces it with:
-- selectionRayDistance = 35 m
-- previewRayDistance = 30 m
+Placement ignores raycastable UI. Existing colliders, preview tinting, access outline, snapping and purchase behavior remain.
 
-G continues to select/move furniture under the centre reticle.
+## FixedNavigationBlocker
+New generic component for fixed physical fixtures:
+- requires BoxCollider
+- requires NavMeshModifierVolume
+- derives a Not Walkable modifier volume from the BoxCollider
+- horizontal padding .05
+- floor overlap .20
 
-## Layout border
-`GameUI/LayoutModeFrame` becomes an inset neon frame.
+Add to:
+- CustomerBasketStation
+- CheckoutCounter
 
-Inset: 16 px.
+CustomerBasketStation's collider is 0.95 × 0.45 × 0.72. Because Humanoid agent climb is .75, raw geometry allowed customers to walk over it. The explicit Not Walkable modifier expresses gameplay intent.
 
-Core bars:
-- FrameTop/Bottom/Left/Right
-- thickness 5 px
-- color #A7F8FFFF
+## LayoutClearanceZone
+New generic semantic operational-space component. It is not a NavMesh obstacle.
 
-Glow bars:
-- GlowTop/Bottom/Left/Right
-- thickness 18 px
-- color #31DFFF55
-- rendered behind the core
-- Raycast Target off
+It represents walkable space that furniture must not occupy, and can independently block furniture body/access footprints.
 
-## Customer presentation
-`CustomerLayoutPresentation` remains presentation-only. It uses `Renderer.forceRenderingOff` during Layout Mode and restores prior values afterward. Customer colliders remain disabled while hidden so they do not block placement.
+CheckoutCounter gets:
+- Area Type: SalesFloor
+- Center `(0, 0.75, -2.0)`
+- Half Extents `(0.8, 0.75, 1.55)`
+- Block Furniture Body: true
+- Block Furniture Access: true
 
-Navigation safety and presentation remain separate responsibilities.
+Current CheckoutCounter:
+- root `(0.3,0,-3.4)`
+- Y rotation 180
+- collider `1.8 × 1.0 × 0.8`
+- queue points local Z: -1.2, -2.1, -3.0
 
-## Layout Mode lifecycle
-Enter: suspend clock/customers, hide customer presentation, disable normal player controls/camera, enable layout camera/UI.
+The zone protects the customer queue/service lane while keeping it walkable.
 
-During: move/buy stocked furniture freely; mark navigation dirty; no per-object NavMesh rebuild.
+## LayoutModeUI
+Now owns:
+- LayoutModeFrame
+- GameUI/Crosshair
 
-Exit: rebuild NavMesh once if dirty, safely recover customers, reissue activity, restore customer presentation, resume simulation, restore player camera/controls.
+It preserves Crosshair state, hides it in Layout Mode, and restores it afterward.
+
+## Existing navigation safety
+Lesson 112 remains:
+- CustomerNavigationRecovery validates same-floor NavMesh + physical capsule clearance
+- FurnitureNavigationBlocker derives Not Walkable volumes from FurnitureDefinition
+- Ceiling layer excluded from LayoutCamera and NavMeshSurface
+- NavMesh rebuild once on Layout Mode exit
 
 ## Roadmap
-Lesson 113 — Grid & Footprint Visual Language.
-Lesson 114 — Grid/Precision Controls & Modular Asset Standard.
-Lesson 115 — Magnetic Socket Snapping.
-
-Add refinement lessons if placement still does not feel good.
+Lesson 114 — Grid & Footprint Visual Language.
+Lesson 115 — Grid/Precision Controls & Modular Asset Standard.
+Lesson 116 — Magnetic Socket Snapping.
 
 ## Permanent principles
-- Inspect latest GitHub before every lesson.
+- GitHub `main` is source of truth.
+- Inspect scripts/prefabs/scene before every lesson.
 - Never guess object names, paths, fields or values.
-- Keep responsibilities separated; avoid god classes.
-- Do not fix architecture bugs with presentation workarounds.
+- Prefer semantic gameplay zones over accidental collider behavior.
+- Navigation blockers and layout clearance zones are different concepts.
+- Avoid god classes.
 - The building provides space; the player decides how the grocery operates inside it.
 - Layout Mode works while the store is open.
-- Stocked furniture may move.
+- Stocked furniture can move.
 - Grid and magnetic snapping are independent.
 - 1 Unity unit = 1 metre.
-- End every lesson with an updated architecture `.md` and continuation-prompt `.md`.
+- End every lesson with updated architecture and continuation-prompt `.md` files.

@@ -5,37 +5,36 @@ using UnityEngine.InputSystem;
 [DisallowMultipleComponent]
 public class StoreLayoutModeController : MonoBehaviour
 {
-    [Header("Store")]
+    [Header("Store")] 
     [SerializeField] private StoreClock storeClock;
     [SerializeField] private CustomerFlow customerFlow;
     [SerializeField] private NavMeshSurface navMeshSurface;
 
-    [Header("Player")]
+    [Header("Player")] 
     [SerializeField] private PlayerController playerController;
     [SerializeField] private PlayerInteraction playerInteraction;
     [SerializeField] private FurniturePlacementController furniturePlacementController;
 
-    [Header("Cameras")]
+    [Header("Cameras")] 
     [SerializeField] private Camera playerCamera;
     [SerializeField] private LayoutCameraController layoutCameraController;
 
-    [Header("UI")]
+    [Header("UI")] 
     [SerializeField] private InteractionUI interactionUI;
     [SerializeField] private LayoutModeUI layoutModeUI;
 
     private bool isActive;
     private bool navigationDirty;
 
-    public bool IsActive =>
-        isActive;
+    public bool IsActive => isActive;
+
+    public bool IsCameraManipulating => isActive && layoutCameraController != null && layoutCameraController.IsOrbiting;
 
     public Camera PlacementCamera
     {
         get
         {
-            if (isActive &&
-                layoutCameraController != null &&
-                layoutCameraController.LayoutCamera != null)
+            if (isActive && layoutCameraController != null && layoutCameraController.LayoutCamera != null)
             {
                 return layoutCameraController.LayoutCamera;
             }
@@ -46,17 +45,13 @@ public class StoreLayoutModeController : MonoBehaviour
 
     private void Update()
     {
-        if (Keyboard.current == null ||
-            !Keyboard.current.lKey.wasPressedThisFrame)
+        if (Keyboard.current == null || !Keyboard.current.lKey.wasPressedThisFrame)
         {
             return;
         }
 
-        if (Time.timeScale <= 0f ||
-            Cursor.lockState != CursorLockMode.Locked)
-        {
+        if (Time.timeScale <= 0f)
             return;
-        }
 
         if (isActive)
         {
@@ -64,11 +59,15 @@ public class StoreLayoutModeController : MonoBehaviour
             return;
         }
 
+        if (Cursor.lockState != CursorLockMode.Locked)
+        {
+            return;
+        }
+
         TryEnterLayoutMode(out _);
     }
 
-    public bool TryEnterLayoutMode(
-        out string reason)
+    public bool TryEnterLayoutMode(out string reason)
     {
         if (isActive)
         {
@@ -78,36 +77,29 @@ public class StoreLayoutModeController : MonoBehaviour
 
         if (!HasValidConfiguration())
         {
-            reason =
-                "Layout Mode is not configured.";
+            reason = "Layout Mode is not configured.";
 
             return false;
         }
 
-        if (Cursor.lockState !=
-                CursorLockMode.Locked ||
-            Time.timeScale <= 0f)
+        if (Cursor.lockState != CursorLockMode.Locked || Time.timeScale <= 0f)
         {
-            reason =
-                "Close other menus before entering Layout Mode.";
+            reason = "Close other menus before entering Layout Mode.";
 
             return false;
         }
 
         if (playerInteraction.HasAnythingHeld)
         {
-            reason =
-                "Put down what you're carrying before entering Layout Mode.";
+            reason = "Put down what you're carrying before entering Layout Mode.";
 
             interactionUI.ShowPrompt(reason);
             return false;
         }
 
-        if (furniturePlacementController
-            .IsPlacementActive)
+        if (furniturePlacementController.IsPlacementActive)
         {
-            reason =
-                "Finish or cancel the current furniture placement first.";
+            reason = "Finish or cancel the current furniture placement first.";
 
             return false;
         }
@@ -123,15 +115,13 @@ public class StoreLayoutModeController : MonoBehaviour
 
         playerCamera.gameObject.SetActive(false);
 
-        layoutCameraController.ActivateFrom(
-            playerController.transform
-        );
+        layoutCameraController.ActivateFrom(playerController.transform);
+
+        playerController.ReleaseCursor();
 
         layoutModeUI.SetLayoutModeActive(true);
 
-        interactionUI.ShowPrompt(
-            "LAYOUT MODE  |  WASD Move  •  Mouse Look  •  Wheel Zoom  •  [G] Furniture  •  [L] Exit"
-        );
+        interactionUI.ShowPrompt("LAYOUT MODE  •  LMB Select  •  MMB Orbit  •  Wheel Zoom  •  WASD Pan  •  [L] Exit");
 
         reason = "";
         return true;
@@ -142,16 +132,15 @@ public class StoreLayoutModeController : MonoBehaviour
         if (!isActive)
             return;
 
-        if (furniturePlacementController != null &&
-            furniturePlacementController.IsPlacementActive)
+        if (furniturePlacementController != null && furniturePlacementController.IsPlacementActive)
         {
-            furniturePlacementController
-                .CancelActivePlacement();
+            furniturePlacementController.CancelActivePlacement();
         }
 
         if (navigationDirty)
         {
             Physics.SyncTransforms();
+
             navMeshSurface.BuildNavMesh();
         }
 
@@ -184,16 +173,8 @@ public class StoreLayoutModeController : MonoBehaviour
 
     private bool HasValidConfiguration()
     {
-        return
-            storeClock != null &&
-            customerFlow != null &&
-            navMeshSurface != null &&
-            playerController != null &&
-            playerInteraction != null &&
-            furniturePlacementController != null &&
-            playerCamera != null &&
-            layoutCameraController != null &&
-            interactionUI != null &&
-            layoutModeUI != null;
+        return storeClock != null && customerFlow != null && navMeshSurface != null && playerController != null &&
+               playerInteraction != null && furniturePlacementController != null && playerCamera != null &&
+               layoutCameraController != null && interactionUI != null && layoutModeUI != null;
     }
 }
