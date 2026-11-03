@@ -354,17 +354,19 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::LayoutCameraController
   layoutCamera: {fileID: 900601420}
-  startingPitch: 15
+  overviewPitch: 62
+  overviewYaw: 0
+  overviewPadding: 1.08
+  fallbackDistance: 4
   minimumPitch: 15
   maximumPitch: 88
-  startingDistance: 11
   minimumDistance: 4
-  maximumDistance: 24
+  maximumDistance: 32
   panSpeed: 7
   boostMultiplier: 2
   yawSensitivity: 0.12
   pitchSensitivity: 0.1
-  scrollZoomSensitivity: 0.02
+  scrollZoomSensitivity: 2
 --- !u!1 &26434372
 GameObject:
   m_ObjectHideFlags: 0
@@ -4627,9 +4629,9 @@ GameObject:
   - component: {fileID: 450375791}
   - component: {fileID: 450375792}
   - component: {fileID: 450375793}
-  - component: {fileID: 450375795}
   - component: {fileID: 450375794}
   - component: {fileID: 450375796}
+  - component: {fileID: 450375797}
   m_Layer: 0
   m_Name: CheckoutCounter
   m_TagString: Untagged
@@ -4742,25 +4744,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 230eeb749b680cb40ab5387c9a20dca6, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::FixedNavigationBlocker
-  horizontalPadding: 0.05
-  floorOverlap: 0.2
---- !u!114 &450375795
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 450375788}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 35e95dc5ff2b64380880dd7ac5922847, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Unity.AI.Navigation::Unity.AI.Navigation.NavMeshModifierVolume
-  m_SerializedVersion: 0
-  m_Size: {x: 1.9, y: 1.2, z: 0.90000004}
-  m_Center: {x: 0, y: 0.4, z: 0}
-  m_Area: 1
-  m_AffectedAgents: ffffffffi
 --- !u!114 &450375796
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -4778,6 +4761,26 @@ MonoBehaviour:
   halfExtents: {x: 0.8, y: 0.75, z: 1.55}
   blockFurnitureBody: 1
   blockFurnitureAccess: 1
+--- !u!114 &450375797
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 450375788}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1e3fdca004f2d45fe8abbed571a8abd5, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Unity.AI.Navigation::Unity.AI.Navigation.NavMeshModifier
+  m_SerializedVersion: 0
+  m_OverrideArea: 1
+  m_Area: 1
+  m_OverrideGenerateLinks: 0
+  m_GenerateLinks: 0
+  m_IgnoreFromBuild: 0
+  m_ApplyToChildren: 1
+  m_AffectedAgents: ffffffffi
 --- !u!1 &456222269
 GameObject:
   m_ObjectHideFlags: 0
@@ -10575,8 +10578,8 @@ GameObject:
   - component: {fileID: 932730582}
   - component: {fileID: 932730583}
   - component: {fileID: 932730584}
-  - component: {fileID: 932730586}
   - component: {fileID: 932730585}
+  - component: {fileID: 932730586}
   m_Layer: 0
   m_Name: CustomerBasketStation
   m_TagString: Untagged
@@ -10648,8 +10651,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 230eeb749b680cb40ab5387c9a20dca6, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::FixedNavigationBlocker
-  horizontalPadding: 0.05
-  floorOverlap: 0.2
 --- !u!114 &932730586
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -10659,13 +10660,16 @@ MonoBehaviour:
   m_GameObject: {fileID: 932730581}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 35e95dc5ff2b64380880dd7ac5922847, type: 3}
+  m_Script: {fileID: 11500000, guid: 1e3fdca004f2d45fe8abbed571a8abd5, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Unity.AI.Navigation::Unity.AI.Navigation.NavMeshModifierVolume
+  m_EditorClassIdentifier: Unity.AI.Navigation::Unity.AI.Navigation.NavMeshModifier
   m_SerializedVersion: 0
-  m_Size: {x: 1.05, y: 0.84999996, z: 0.82000005}
-  m_Center: {x: 0, y: 0.1, z: 0}
+  m_OverrideArea: 1
   m_Area: 1
+  m_OverrideGenerateLinks: 0
+  m_GenerateLinks: 0
+  m_IgnoreFromBuild: 0
+  m_ApplyToChildren: 1
   m_AffectedAgents: ffffffffi
 --- !u!1 &960341343
 GameObject:
@@ -12261,6 +12265,7 @@ MonoBehaviour:
   storeClock: {fileID: 1117834532}
   customerFlow: {fileID: 1117834531}
   navMeshSurface: {fileID: 436418470}
+  buildArea: {fileID: 1117834546}
   playerController: {fileID: 1349577614}
   playerInteraction: {fileID: 1349577615}
   furniturePlacementController: {fileID: 1349577616}

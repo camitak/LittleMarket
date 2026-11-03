@@ -9,6 +9,7 @@ public class StoreLayoutModeController : MonoBehaviour
     [SerializeField] private StoreClock storeClock;
     [SerializeField] private CustomerFlow customerFlow;
     [SerializeField] private NavMeshSurface navMeshSurface;
+    [SerializeField] private StoreBuildArea buildArea;
 
     [Header("Player")] 
     [SerializeField] private PlayerController playerController;
@@ -94,6 +95,7 @@ public class StoreLayoutModeController : MonoBehaviour
             reason = "Put down what you're carrying before entering Layout Mode.";
 
             interactionUI.ShowPrompt(reason);
+
             return false;
         }
 
@@ -108,6 +110,7 @@ public class StoreLayoutModeController : MonoBehaviour
         navigationDirty = false;
 
         storeClock.SetLayoutSuspended(true);
+
         customerFlow.SuspendForLayout();
 
         playerInteraction.enabled = false;
@@ -115,7 +118,14 @@ public class StoreLayoutModeController : MonoBehaviour
 
         playerCamera.gameObject.SetActive(false);
 
-        layoutCameraController.ActivateFrom(playerController.transform);
+        if (buildArea.TryGetAvailableBounds(StoreAreaType.SalesFloor, out Bounds salesFloorBounds))
+        {
+            layoutCameraController.ActivateForBounds(salesFloorBounds);
+        }
+        else
+        {
+            layoutCameraController.ActivateFrom(playerController.transform);
+        }
 
         playerController.ReleaseCursor();
 
@@ -145,11 +155,13 @@ public class StoreLayoutModeController : MonoBehaviour
         }
 
         customerFlow.ResumeFromLayout();
+
         storeClock.SetLayoutSuspended(false);
 
         layoutModeUI.SetLayoutModeActive(false);
 
         layoutCameraController.Deactivate();
+
         playerCamera.gameObject.SetActive(true);
 
         isActive = false;
@@ -173,8 +185,8 @@ public class StoreLayoutModeController : MonoBehaviour
 
     private bool HasValidConfiguration()
     {
-        return storeClock != null && customerFlow != null && navMeshSurface != null && playerController != null &&
-               playerInteraction != null && furniturePlacementController != null && playerCamera != null &&
-               layoutCameraController != null && interactionUI != null && layoutModeUI != null;
+        return storeClock != null && customerFlow != null && navMeshSurface != null && buildArea != null &&
+               playerController != null && playerInteraction != null && furniturePlacementController != null &&
+               playerCamera != null && layoutCameraController != null && interactionUI != null && layoutModeUI != null;
     }
 }

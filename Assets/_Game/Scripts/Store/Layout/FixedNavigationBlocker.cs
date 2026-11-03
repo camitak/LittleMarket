@@ -4,34 +4,30 @@ using UnityEngine.AI;
 
 [DisallowMultipleComponent]
 [RequireComponent(typeof(BoxCollider))]
-[RequireComponent(typeof(NavMeshModifierVolume))]
+[RequireComponent(typeof(NavMeshModifier))]
 public class FixedNavigationBlocker : MonoBehaviour
 {
-    [Header("Navigation Footprint")] 
-    [Min(0f)] [SerializeField] private float horizontalPadding = 0.05f;
-    [Min(0f)] [SerializeField] private float floorOverlap = 0.20f;
-
-    private BoxCollider sourceCollider;
-    private NavMeshModifierVolume modifierVolume;
+    private NavMeshModifier navMeshModifier;
 
     private void Awake()
     {
-        CacheReferences();
-        RefreshFromCollider();
+        ConfigureModifier();
     }
 
     private void OnValidate()
     {
-        CacheReferences();
-        RefreshFromCollider();
+        ConfigureModifier();
     }
 
-    private void RefreshFromCollider()
+    private void ConfigureModifier()
     {
-        if (sourceCollider == null || modifierVolume == null)
+        if (navMeshModifier == null)
         {
-            return;
+            navMeshModifier = GetComponent<NavMeshModifier>();
         }
+
+        if (navMeshModifier == null)
+            return;
 
         int notWalkableArea = NavMesh.GetAreaFromName("Not Walkable");
 
@@ -42,35 +38,8 @@ public class FixedNavigationBlocker : MonoBehaviour
             return;
         }
 
-        Vector3 center = sourceCollider.center;
-
-        Vector3 size = sourceCollider.size;
-
-        center.y -= floorOverlap * 0.5f;
-
-        size.x += horizontalPadding * 2f;
-
-        size.y += floorOverlap;
-
-        size.z += horizontalPadding * 2f;
-
-        modifierVolume.center = center;
-
-        modifierVolume.size = size;
-
-        modifierVolume.area = notWalkableArea;
-    }
-
-    private void CacheReferences()
-    {
-        if (sourceCollider == null)
-        {
-            sourceCollider = GetComponent<BoxCollider>();
-        }
-
-        if (modifierVolume == null)
-        {
-            modifierVolume = GetComponent<NavMeshModifierVolume>();
-        }
+        navMeshModifier.overrideArea = true;
+        navMeshModifier.area = notWalkableArea;
+        navMeshModifier.ignoreFromBuild = false;
     }
 }
