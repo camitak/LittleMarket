@@ -15,6 +15,25 @@ public class StoreReportHistory : MonoBehaviour
     private readonly List<DailyReportData> reports = new();
 
     public int ReportCount => reports.Count;
+    
+    public bool HasReportForDay(int day)
+    {
+        if (day < 1)
+        {
+            return false;
+        }
+
+        foreach (DailyReportData report in reports)
+        {
+            if (report != null &&
+                report.day == day)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
 
     public DailyReportData GetReport(int index)
     {

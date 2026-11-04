@@ -1,274 +1,195 @@
 # Little Market — System Architecture
 
-Current proposed architecture after **Lesson 124 — Natural Anytime Management & Safe Saves**.
+Current architecture after **Lesson 125 — Idempotent End-of-Day Saves & Natural Save Access**.
 
 ## Verified source of truth
 
-Lesson 124 was designed from GitHub `main`:
+Lesson 125 was designed after verifying GitHub `main` at:
 
-`9fac2774b58dce0ee4414f968cf9e4182351693e`
+`0e772107d0c47e1aab49c0dfaf311821c4743304`
 
 Commit:
 
-`Lesson 123 complete - store design mode mechanics blueprint`
+`Lesson 124 complete - anytime management and safe live saves`
 
-Re-verify latest `main` before every future lesson.
+Before every future lesson, re-verify the newest `main`.
 
-## Core design principles
+## Permanent lesson-format rule
+
+The user explicitly requested that lesson implementation must never be split across chat plus separate code/setup files.
+
+From now on:
+- the complete lesson, code changes, explanations, Inspector steps and tests stay together in the chat
+- only the required handoff `.md` files are generated separately for download
+- do not create separate lesson-code ZIPs or code-edit documents unless the user explicitly asks
+
+## Core principles
 
 > The building provides space; the player decides how the grocery operates inside that space.
 
-New permanent principle:
+> The clock describes the store's day; it does not grant permission to manage the store.
 
-> **The clock describes the store's day; it does not grant permission to manage the store.**
-
-Time-of-day must not gate:
-- entering Store Design/Layout Mode
+Time-of-day and active customers must not artificially gate:
+- Store Design/Layout Mode
 - moving furniture
 - buying furniture/decor
 - buying expansions
 - saving
 
-Progression/economic requirements can still gate purchases:
-- Store Level
+Real restrictions remain:
 - money
-- ownership
-- unlock state
-- configuration
-- genuine spatial validity
+- Store Level
+- ownership/unlocks
+- valid placement
+- atomic uncommitted interactions that cannot yet be serialized safely
 
-Atomic uncommitted interactions may require resolution when they cannot yet be serialized safely.
+## Lesson 124 verification
 
-## Why this changed
+Verified in current GitHub source and scene:
+- StoreExpansionSystem no longer references StoreClock or CustomerFlow
+- expansion eligibility is configuration + ownership + Store Level + money
+- SaveManager has CheckoutRegister assigned to the real CheckoutCounter
+- customer transient-inventory reconciliation is present
+- CustomerController.DiscardForLoad exists
+- CustomerFlow.ClearForLoad exists
+- CheckoutQueue.ClearForLoad exists
+- CheckoutRegister.ResetForLoad exists
+- RestockBasket.GetProductDataAt exists
+- SaveManager uses CanSaveNow / CanLoadNow
+- schema remains version 2
 
-Little Market is a cozy management/building game.
+### Correctness gap found
 
-Creative inspiration should not be answered with:
-- "wait until closing"
-- "wait until customers leave"
-- "wait until tomorrow"
+End-of-day saves were not fully idempotent.
 
-The simulation should absorb management changes safely.
+`StoreDayLifecycle.completedDay` is runtime-only and is not serialized.
 
-This also matches relevant genre patterns:
-- Two Point Museum's developers explicitly rejected fully closing the museum as a normal construction requirement because it could disrupt game flow and reactive management.
-- The Sims supports manual saves from both Live Mode and Build Mode and now supports autosave during play/build.
+A save made after `CompleteDay()` could load with:
+- StoreClock.HasDayEnded = true
+- StoreReportHistory already containing that day's report
+- StoreDayLifecycle.completedDay reset to -1
 
-## Store Design Mode while customers exist
+Without protection, StoreDayLifecycle could process the same day again, duplicating:
+- daily reputation processing
+- goal rewards
+- store-level experience/progression
+- unlock refresh work
 
-Already-supported architecture:
+The report itself already de-duplicates by day, but earlier side effects could still run twice.
 
-1. player enters Layout/Store Design Mode
-2. StoreClock is suspended
-3. CustomerFlow suspends active customers
-4. CustomerController stops NavMeshAgent
-5. CustomerLayoutPresentation hides renderers/disables customer colliders
-6. player changes layout
-7. navigation rebuilds
-8. CustomerController recovers to usable NavMesh
-9. customers resume their activity
+## Lesson 125 fix — report history is the durable completion marker
 
-Therefore active customers are not a reason to deny furniture/design access.
+`StoreReportHistory` gains:
 
-## Expansion rules after Lesson 124
+`HasReportForDay(int day)`
 
-`StoreExpansionSystem.CanPurchase()` no longer references:
-- StoreClock
-- CustomerFlow
+A completed-day report is written only after all day-completion side effects have run, so its presence is a durable marker that the day was already processed.
 
-It requires only:
+`StoreDayLifecycle.Update()` now:
+1. checks required references
+2. resets completion state while the day is active
+3. returns if already complete
+4. if the clock is ended AND StoreReportHistory already contains the current day, restores `completedDay` to the current day without re-running completion side effects
+5. otherwise waits for customers to finish if necessary
+6. processes the day exactly once
 
-1. system configured
-2. valid registered zone
-3. zone not already owned
-4. Store Level requirement met
-5. enough money
+This keeps save schema version 2 and makes end-of-day load idempotent.
 
-`TryPurchase()` still:
-- spends money
-- unlocks zone
-- syncs physics
-- rebuilds NavMesh
-- reports success
+### Important edge case
 
-So expansions can be purchased:
+If the clock has ended but the day had NOT yet been processed because customers were still present:
+- no report exists
+- Load clears transient customers
+- StoreDayLifecycle sees no completed report
+- CompleteDay runs once
+- correct behavior
+
+## Natural save access on end-of-day summary
+
+The backend already permits saving after day end, but PauseMenuUI intentionally refuses to open over EndOfDayUI.
+
+Rather than stacking Pause over a modal summary and risking conflicting cursor/time/player state, Lesson 125 adds a dedicated SAVE GAME button directly to the EndOfDay summary.
+
+New EndOfDayUI references:
+- saveGameButton
+- saveStatusText
+- saveManager
+
+End-of-day summary layout:
+- SummaryCard remains `620 x 360`
+- SaveGameButton bottom-center-left at `(-120, 30)`, size `220 x 62`
+- StartNextDayButton bottom-center-right at `(120, 30)`, size `220 x 62`
+- EndOfDaySaveStatusText at `(0, 100)`, size `500 x 30`
+
+Save button palette:
+- normal `#E6D8C8FF`
+- highlighted `#F2E8DDFF`
+- pressed `#CDBAA6FF`
+- selected `#F2E8DDFF`
+- disabled `#A69A9080`
+- text `#594640FF`
+
+Save status:
+- neutral `#7A6860FF`
+- success `#6FCF97FF`
+- failure `#C46B6BFF`
+
+This keeps START DAY as the stronger primary action while still making Save obvious and available naturally.
+
+## Save behavior after Lesson 125
+
+SAVE can occur:
 - before opening
 - while open
+- with active customers
 - after closing
-- during any ordinary game hour
+- after the day has ended
+- from the end-of-day summary
 
-The future world-space expansion UI should reflect only real requirements such as level/money.
+Current SAVE blocker:
+- active unconfirmed furniture placement
 
-Remove all planned copy like:
-`Available when the store is closed and empty.`
+LOAD:
+- ignores time and active customers
+- clears transient customer/checkout state
+- still requires player carry state to be settled in schema 2
 
-That rule is obsolete.
+## Store Design Mode direction
 
-## Saving philosophy
-
-Saving is a player-protection system, not a challenge mechanic.
-
-### SAVE
-
-`SaveManager.SaveGame()` now ignores:
-- store open/closed
-- day ended
-- active customers
-- player held product
-- restock-basket contents
-- held delivery box
-
-The only current SAVE blocker is an active unconfirmed furniture placement.
-
-Reason:
-an active placement preview is an atomic uncommitted transaction whose intended final transform/purchase does not yet exist.
-
-### Transient inventory normalization
-
-Customers physically remove real PickupItems from shelf stock.
-
-These active customer visits are transient and are intentionally NOT persisted as NPC simulations in schema 2.
-
-Before serializing, SaveManager creates a durable snapshot:
-
-For each unpaid customer-carried product:
-1. try to re-credit it into an already-assigned matching saved shelf slot with capacity
-2. otherwise serialize it as a loose product near the customer's current position
-
-The live world is not mutated.
-
-The same snapshot normalization applies to:
-- player's held single PickupItem
-- RestockBasket contents
-
-Held DeliveryBoxes already participate in existing delivery serialization.
-
-This ensures saving does not delete economic inventory.
-
-### LOAD
-
-Loading may occur regardless of:
-- store hour
-- day ended
-- active customers
-
-Before applying save data:
-1. CheckoutRegister resets any unfinished scan/payment session
-2. each CustomerController explicitly destroys its transient carried products, including items temporarily reparented to the checkout scan point
-3. CustomerFlow clears current transient customers
-4. CheckoutQueue clears transient queue state
-5. durable saved state is restored
-6. customer spawning resumes naturally afterward
-
-LOAD still temporarily requires player carry state to be settled:
-- restock basket put down/empty
-- held delivery box put down
-- held item put away
-
-Exact player-carry restoration is not yet part of schema 2.
-
-This is an interaction-state limitation, not a time-of-day gate.
-
-## Save schema
-
-Still:
-
-- version `2`
-- `little_market_dev_v2_save.json`
-
-No version bump is needed.
-
-Lesson 124 normalizes transient product value into existing:
-- shelfSlots
-- looseProducts
-- deliveries
-
-No serialized schema fields were added.
-
-## Store Design Mode direction from Lesson 123
-
-Conceptual player-facing system:
-
+Player-facing concept:
 - Arrange
 - Build Catalog
 - Expansions
 - later decoration/finish tools
 
-Do not turn the project into free building-shell construction.
+Do not turn Little Market into free room-shell construction.
 
-## Planned placement model
+## Planned placement model — NEXT
 
 ### Structured
-
-- `.5m` grid
+- `.5 m` grid
 - magnetic sockets
-- 90° rotation
+- structured rotation
 
 ### Free
-
 - raw position
 - no magnetic assistance
 - continuous/fine rotation
 
-### Planned control
+Planned input:
+- G toggles persistent Structured/Free default
+- Ctrl held temporarily inverts the current default
+- remove Alt-only magnet bypass
+- structured R/T moves to the next/previous 90-degree world orientation
+- free R/T rotates continuously, initial test speed about `90°/sec`
 
-G:
-- persistent Structured/Free default
+Important nuance:
+after free-angle rotation, returning to Structured does not forcibly destroy the chosen angle; the next structured R/T press rejoins the nearest next/previous cardinal orientation.
 
-Ctrl held:
-- temporarily invert current mode
-
-When implemented, retire Alt as a separate magnet bypass.
-
-## Build Catalog
-
-Future Store Design Mode directly accesses the same:
-- FurnitureCatalog
-- FurnitureShop
-
-No duplicate purchasing system.
-
-Furniture/decor share FurnitureDefinition with future catalog metadata.
-
-## Expansion world interaction
-
-Locked adjacent expansion spaces will be visible/selectable directly from Store Design Mode.
-
-Future visual proposal:
-
-Base locked:
-- fill `#625D7040`
-- border `#B9AFCE99`
-
-Available/hover:
-- fill `#6FCF9738`
-- border `#A9E6D5E6`
-
-Level locked:
-- fill `#6B657A33`
-- border `#8A7F96A6`
-
-No time-locked visual state.
-
-Click:
-- camera frame
-- side details card
-- purchase when level/money allow
-
-## Decoration philosophy
-
-Decoration is core cozy gameplay.
-
-Future Ambience:
-- soft guest mood/reputation benefits
-- diminishing returns
-- variety over spam
-- creativity rather than hard decoration chores
-
-## Current Layout controls before the next mechanics pass
+## Current Store Design/Layout controls before Lesson 126
 
 - LMB select/place
-- R/T 90° rotate
+- R/T rotate 90°
 - G Grid Snap
 - Alt bypass magnet
 - MMB orbit
@@ -278,43 +199,9 @@ Future Ambience:
 - RMB/Esc/Q cancel
 - L exit
 
-## Current visual/UI colors
+## Camera values — scene source of truth
 
-Grid:
-`#CFF7FA26`
-
-Grid status:
-`#CFF7FADC`
-
-Controls:
-- `#FFF9EEDC`
-- text `#594640FF`
-
-Context prompt:
-- `#2C2523F2`
-- text `#FFF9EEFF`
-
-Magnet:
-- valid `#5FE3F0E6`
-- invalid `#C46B6BE6`
-
-## Placement validation
-
-Unchanged:
-
-1. body inside build area
-2. access inside build area
-3. body vs fixed clearance
-4. access vs fixed clearance
-5. body vs other furniture access
-6. body vs colliders
-7. access vs colliders
-
-Body vs access forbidden.
-Access vs access allowed.
-
-## Camera values currently preserved
-
+Preserve until dedicated camera pass:
 - Overview Pitch 62
 - Overview Yaw 0
 - Overview Padding 1.08
@@ -329,37 +216,42 @@ Access vs access allowed.
 - Pitch .10
 - Scroll Zoom Sensitivity 2
 
+Note: source-code initializers differ for some camera values; the scene Inspector overrides are authoritative.
+
+## Existing UI colors
+
+Layout grid:
+`#CFF7FA26`
+
+Placement/Grid status:
+`#CFF7FADC`
+
+Layout controls:
+- background `#FFF9EEDC`
+- text `#594640FF`
+
+Context prompt:
+- background `#2C2523F2`
+- text `#FFF9EEFF`
+
+Magnet:
+- valid `#5FE3F0E6`
+- invalid `#C46B6BE6`
+
 ## Revised roadmap
 
-### Lesson 125 — Structured vs Free Placement + Rotation Feel
+### Lesson 126 — Structured vs Free Placement + Rotation Feel
+Implement the Two Point / Sims-inspired unified placement assistance model.
 
-Implement:
-- explicit Structured/Free state
-- G persistent default
-- Ctrl temporary inversion
-- Structured = grid + magnet + 90°
-- Free = raw + no magnet + continuous R/T rotation
-- remove Alt-only magnetic-bypass model
-- update HUD and control legend
+### Lesson 127 — Layout Camera Feel
+Pan/orbit/zoom smoothing and working-region focus.
 
-### Lesson 126 — Layout Camera Feel
+### Lesson 128 — In-Mode Build Catalog
+Reuse FurnitureCatalog/FurnitureShop.
 
-- pan acceleration/deceleration
-- orbit smoothing
-- zoom easing
-- useful working-region focus
-- frame-target API for expansions
+### Lesson 129 — Decorations Foundation
 
-### Lesson 127 — In-Mode Build Catalog
-
-- direct catalog access
-- same FurnitureShop authority
-- categories
-- computer deep-link
-
-### Lesson 128 — Decorations Foundation
-
-### Lesson 129 — World-Space Expansion Preview & Purchase
+### Lesson 130 — World-Space Expansion Preview & Purchase
 
 Then:
 - copy/eyedrop
@@ -374,16 +266,17 @@ Then:
 ## Permanent engineering/UX rules
 
 - GitHub main first
-- exact current source before coding
-- preserve user tuning
-- exact UI setup + HEX colors
-- browse current UX/game patterns for important player-facing decisions
+- inspect actual complete source and scene
+- preserve scene-authored tuning
+- exact UI instructions and HEX colors
+- research meaningful player-facing UX
 - player playtesting drives iteration
 - time is simulation, not permission
-- saving should protect player progress rather than create friction
+- saving protects player progress
+- completed simulation transitions must be idempotent across save/load
 - one business authority, multiple UI entry points
-- Store Design Mode is core gameplay
-- no color-only important state
+- no color-only critical information
 - placement/navigation/presentation/persistence remain separate
 - avoid god classes
-- end lessons with updated architecture + continuation docs
+- end each lesson with updated architecture + continuation `.md`
+- lesson implementation must remain together in chat unless user explicitly requests another format
