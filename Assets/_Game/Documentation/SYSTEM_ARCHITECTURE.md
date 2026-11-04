@@ -1,27 +1,27 @@
 # Little Market — System Architecture
 
-Current architecture after **Lesson 125 — Idempotent End-of-Day Saves & Natural Save Access**.
+Current architecture after **Lesson 126 — Structured & Free Placement Modes**.
 
 ## Verified source of truth
 
-Lesson 125 was designed after verifying GitHub `main` at:
+Lesson 126 was designed after verifying GitHub `main` at:
 
-`0e772107d0c47e1aab49c0dfaf311821c4743304`
+`03434f5f13b1b78ea088b885a187f6510ee50596`
 
 Commit:
 
-`Lesson 124 complete - anytime management and safe live saves`
+`Lesson 125 complete - safe end-of-day saves`
 
-Before every future lesson, re-verify the newest `main`.
+Before every future lesson, re-verify newest `main`.
 
 ## Permanent lesson-format rule
 
-The user explicitly requested that lesson implementation must never be split across chat plus separate code/setup files.
+The user explicitly requested that implementation never be split across chat plus separate code/setup files.
 
 From now on:
-- the complete lesson, code changes, explanations, Inspector steps and tests stay together in the chat
-- only the required handoff `.md` files are generated separately for download
-- do not create separate lesson-code ZIPs or code-edit documents unless the user explicitly asks
+- complete lesson, code, explanation, Inspector/UI setup, and tests stay together in chat
+- only required handoff `.md` files are generated separately
+- no separate code/edit ZIPs unless explicitly requested
 
 ## Core principles
 
@@ -29,179 +29,246 @@ From now on:
 
 > The clock describes the store's day; it does not grant permission to manage the store.
 
-Time-of-day and active customers must not artificially gate:
-- Store Design/Layout Mode
-- moving furniture
-- buying furniture/decor
-- buying expansions
-- saving
+Store Design Mode is a core cozy-game reward loop.
 
-Real restrictions remain:
-- money
-- Store Level
-- ownership/unlocks
-- valid placement
-- atomic uncommitted interactions that cannot yet be serialized safely
+## Lesson 126 player-facing placement model
 
-## Lesson 124 verification
+The old independent controls:
+- G = Grid Snap
+- Alt = bypass magnetic snap
+- R/T = fixed 90-degree rotation
 
-Verified in current GitHub source and scene:
-- StoreExpansionSystem no longer references StoreClock or CustomerFlow
-- expansion eligibility is configuration + ownership + Store Level + money
-- SaveManager has CheckoutRegister assigned to the real CheckoutCounter
-- customer transient-inventory reconciliation is present
-- CustomerController.DiscardForLoad exists
-- CustomerFlow.ClearForLoad exists
-- CheckoutQueue.ClearForLoad exists
-- CheckoutRegister.ResetForLoad exists
-- RestockBasket.GetProductDataAt exists
-- SaveManager uses CanSaveNow / CanLoadNow
-- schema remains version 2
+are replaced by one coherent concept.
 
-### Correctness gap found
+### Structured placement
 
-End-of-day saves were not fully idempotent.
+Structured mode means:
+- `.5 m` grid position snapping
+- magnetic compatible furniture sockets enabled
+- R/T uses cardinal 90-degree world orientations
 
-`StoreDayLifecycle.completedDay` is runtime-only and is not serialized.
+Best suited to:
+- shelves
+- refrigerated displays
+- storage racks
+- orderly fixture runs
 
-A save made after `CompleteDay()` could load with:
-- StoreClock.HasDayEnded = true
-- StoreReportHistory already containing that day's report
-- StoreDayLifecycle.completedDay reset to -1
+### Free placement
 
-Without protection, StoreDayLifecycle could process the same day again, duplicating:
-- daily reputation processing
-- goal rewards
-- store-level experience/progression
-- unlock refresh work
+Free mode means:
+- raw continuous floor position
+- magnetic socket assistance disabled
+- holding R/T rotates continuously
 
-The report itself already de-duplicates by day, but earlier side effects could still run twice.
+Initial fine rotation speed:
+- `90 degrees / second`
 
-## Lesson 125 fix — report history is the durable completion marker
+Best suited to:
+- future decorations
+- plants
+- signs
+- deliberately angled layouts
+- fine positioning
 
-`StoreReportHistory` gains:
+## Controls
 
-`HasReportForDay(int day)`
+`G`
+- toggles the persistent default between Structured and Free
+- ignored while Ctrl is held, to avoid accidentally changing the default while using a temporary override
 
-A completed-day report is written only after all day-completion side effects have run, so its presence is a durable marker that the day was already processed.
+`Left Ctrl` / `Right Ctrl` held
+- temporarily inverts the current default
 
-`StoreDayLifecycle.Update()` now:
-1. checks required references
-2. resets completion state while the day is active
-3. returns if already complete
-4. if the clock is ended AND StoreReportHistory already contains the current day, restores `completedDay` to the current day without re-running completion side effects
-5. otherwise waits for customers to finish if necessary
-6. processes the day exactly once
+Examples:
 
-This keeps save schema version 2 and makes end-of-day load idempotent.
+Default Structured:
+- normal = Structured
+- hold Ctrl = Free
+- release Ctrl = Structured
 
-### Important edge case
+Default Free:
+- normal = Free
+- hold Ctrl = Structured
+- release Ctrl = Free
 
-If the clock has ended but the day had NOT yet been processed because customers were still present:
-- no report exists
-- Load clears transient customers
-- StoreDayLifecycle sees no completed report
-- CompleteDay runs once
-- correct behavior
+`Alt` no longer has a placement-mode role.
 
-## Natural save access on end-of-day summary
-
-The backend already permits saving after day end, but PauseMenuUI intentionally refuses to open over EndOfDayUI.
-
-Rather than stacking Pause over a modal summary and risking conflicting cursor/time/player state, Lesson 125 adds a dedicated SAVE GAME button directly to the EndOfDay summary.
-
-New EndOfDayUI references:
-- saveGameButton
-- saveStatusText
-- saveManager
-
-End-of-day summary layout:
-- SummaryCard remains `620 x 360`
-- SaveGameButton bottom-center-left at `(-120, 30)`, size `220 x 62`
-- StartNextDayButton bottom-center-right at `(120, 30)`, size `220 x 62`
-- EndOfDaySaveStatusText at `(0, 100)`, size `500 x 30`
-
-Save button palette:
-- normal `#E6D8C8FF`
-- highlighted `#F2E8DDFF`
-- pressed `#CDBAA6FF`
-- selected `#F2E8DDFF`
-- disabled `#A69A9080`
-- text `#594640FF`
-
-Save status:
-- neutral `#7A6860FF`
-- success `#6FCF97FF`
-- failure `#C46B6BFF`
-
-This keeps START DAY as the stronger primary action while still making Save obvious and available naturally.
-
-## Save behavior after Lesson 125
-
-SAVE can occur:
-- before opening
-- while open
-- with active customers
-- after closing
-- after the day has ended
-- from the end-of-day summary
-
-Current SAVE blocker:
-- active unconfirmed furniture placement
-
-LOAD:
-- ignores time and active customers
-- clears transient customer/checkout state
-- still requires player carry state to be settled in schema 2
-
-## Store Design Mode direction
-
-Player-facing concept:
-- Arrange
-- Build Catalog
-- Expansions
-- later decoration/finish tools
-
-Do not turn Little Market into free room-shell construction.
-
-## Planned placement model — NEXT
+## Rotation behavior
 
 ### Structured
-- `.5 m` grid
-- magnetic sockets
-- structured rotation
+
+R/T moves to the next/previous cardinal WORLD orientation.
+
+Examples:
+- 0 -> R -> 90
+- 90 -> R -> 180
+- 180 -> T -> 90
+
+Important free-angle bridge:
+- if Free rotation leaves an item at 17 degrees
+- returning to Structured does NOT immediately change 17 degrees
+- first R -> 90
+- first T -> 0
+
+This preserves player-authored decorative angles while still providing a deliberate way back to structured orientation.
 
 ### Free
-- raw position
-- no magnetic assistance
-- continuous/fine rotation
 
-Planned input:
-- G toggles persistent Structured/Free default
-- Ctrl held temporarily inverts the current default
-- remove Alt-only magnet bypass
-- structured R/T moves to the next/previous 90-degree world orientation
-- free R/T rotates continuously, initial test speed about `90°/sec`
+Hold:
+- R = positive continuous yaw
+- T = negative continuous yaw
 
-Important nuance:
-after free-angle rotation, returning to Structured does not forcibly destroy the chosen angle; the next structured R/T press rejoins the nearest next/previous cardinal orientation.
+Rotation uses frame-rate independent `Time.deltaTime`.
 
-## Current Store Design/Layout controls before Lesson 126
+## Position behavior
 
-- LMB select/place
-- R/T rotate 90°
-- G Grid Snap
-- Alt bypass magnet
-- MMB orbit
-- Wheel zoom
-- WASD pan
-- Shift faster
-- RMB/Esc/Q cancel
-- L exit
+Structured:
+- cursor floor position is quantized to `GridSize`
+- current `GridSize = .5 m`
+
+Free:
+- raw floor hit position
+
+Switching modes can therefore move the preview between raw cursor position and nearest grid position. This is intentional and provides immediate visual feedback about the active assistance mode.
+
+## Magnetic behavior
+
+Magnetic sockets participate only while Structured mode is active.
+
+Free mode:
+- clears active magnetic snap
+- does not capture or retain sockets
+
+Structured mode:
+- uses existing capture/release/facing logic unchanged
+
+Current values:
+- Magnetic enabled = true
+- capture = `.30`
+- release = `.55`
+- max facing = `15°`
+
+## Compatibility / serialization
+
+The serialized field formerly named:
+
+`gridSnapEnabled`
+
+is migrated with:
+
+`[FormerlySerializedAs("gridSnapEnabled")]`
+
+to:
+
+`structuredPlacementByDefault`
+
+This preserves the current Inspector default (`true`) without manually rebuilding the component.
+
+Placement-mode preference remains runtime/session state and is not added to save schema.
+
+Save schema remains version 2.
+
+## Placement validation
+
+Unchanged:
+
+1. body inside permitted build area
+2. access inside permitted build area
+3. body vs explicit clearance
+4. access vs explicit clearance
+5. selected body vs other furniture access
+6. body vs blocking colliders
+7. access vs blocking colliders
+
+Body vs other furniture access is forbidden.
+Access vs access is allowed.
+
+## Layout status UI
+
+The existing:
+
+`GridSnapStatusText`
+
+is renamed player-facing to:
+
+`PlacementModeStatusText`
+
+Hierarchy remains under the Layout/Store Design frame.
+
+RectTransform:
+- anchors `(0,1)` to `(0,1)`
+- pivot `(0,1)`
+- anchored position `(28,-28)`
+- size `720 x 28`
+
+TMP:
+- font size `18`
+- left / middle
+- Raycast Target OFF
+- color `#CFF7FADC`
+- RGBA `(207,247,250,220)`
+
+Runtime examples:
+
+`STRUCTURED · GRID 0.50 m`
+
+`STRUCTURED · GRID 0.50 m · MAGNET`
+
+`FREE · PRECISION`
+
+`FREE · PRECISION · CTRL TEMPORARY`
+
+`STRUCTURED · GRID 0.50 m · CTRL TEMPORARY`
+
+Status communicates mode with text, not color alone.
+
+## Controls panel
+
+Panel stays:
+- bottom-right
+- anchor/pivot `(1,0)`
+- anchored position `(-28,28)`
+- `360 x 190`
+- background `#FFF9EEDC`
+- RGBA `(255,249,238,220)`
+- Raycast OFF
+
+ControlsText:
+- full stretch with `16 px` padding
+- font `17`
+- left / top
+- color `#594640FF`
+- RGBA `(89,70,64,255)`
+- Raycast OFF
+
+Text:
+
+STORE DESIGN CONTROLS
+LMB   Select / Place
+R / T   Rotate      G   Placement Mode
+Ctrl   Temporary Opposite Mode
+MMB   Orbit         Wheel   Zoom
+WASD   Pan          Shift   Faster
+RMB / Esc   Cancel  L   Exit
+
+## Current placement Inspector values
+
+Preserve:
+- Selection Ray Distance `35`
+- Preview Ray Distance `30`
+- Body Contact Tolerance `.01`
+- Structured Placement By Default `true`
+- Grid Size `.5`
+- Free Rotation Degrees Per Second `90`
+- Magnetic Snap Enabled `true`
+- Socket Capture Distance `.30`
+- Socket Release Distance `.55`
+- Maximum Socket Facing Angle `15`
+- Outline Width `.01` (scene value; do not reset to source initializer)
 
 ## Camera values — scene source of truth
 
-Preserve until dedicated camera pass:
+Untouched in Lesson 126:
 - Overview Pitch 62
 - Overview Yaw 0
 - Overview Padding 1.08
@@ -216,35 +283,27 @@ Preserve until dedicated camera pass:
 - Pitch .10
 - Scroll Zoom Sensitivity 2
 
-Note: source-code initializers differ for some camera values; the scene Inspector overrides are authoritative.
+## Save / expansion rules
 
-## Existing UI colors
+Unchanged from Lessons 124–125.
 
-Layout grid:
-`#CFF7FA26`
+Time/customer state does not gate:
+- layout
+- expansion purchase
+- saving
 
-Placement/Grid status:
-`#CFF7FADC`
+End-of-day completion is idempotent via StoreReportHistory day presence.
 
-Layout controls:
-- background `#FFF9EEDC`
-- text `#594640FF`
-
-Context prompt:
-- background `#2C2523F2`
-- text `#FFF9EEFF`
-
-Magnet:
-- valid `#5FE3F0E6`
-- invalid `#C46B6BE6`
-
-## Revised roadmap
-
-### Lesson 126 — Structured vs Free Placement + Rotation Feel
-Implement the Two Point / Sims-inspired unified placement assistance model.
+## Roadmap
 
 ### Lesson 127 — Layout Camera Feel
-Pan/orbit/zoom smoothing and working-region focus.
+Implement:
+- acceleration/deceleration for WASD pan
+- orbit smoothing
+- zoom smoothing
+- useful working-region startup focus
+- preserve Scroll Zoom Sensitivity 2 as user-tuned input scale
+- prepare frame-target API for future expansions
 
 ### Lesson 128 — In-Mode Build Catalog
 Reuse FurnitureCatalog/FurnitureShop.
@@ -266,17 +325,17 @@ Then:
 ## Permanent engineering/UX rules
 
 - GitHub main first
-- inspect actual complete source and scene
+- inspect exact source and scene
 - preserve scene-authored tuning
+- lesson implementation stays together in chat
+- only handoff `.md` files separate
 - exact UI instructions and HEX colors
-- research meaningful player-facing UX
+- research important player-facing UX
 - player playtesting drives iteration
 - time is simulation, not permission
-- saving protects player progress
-- completed simulation transitions must be idempotent across save/load
-- one business authority, multiple UI entry points
-- no color-only critical information
+- save/load transitions must be safe/idempotent
+- one business authority
+- no color-only critical state
 - placement/navigation/presentation/persistence remain separate
 - avoid god classes
-- end each lesson with updated architecture + continuation `.md`
-- lesson implementation must remain together in chat unless user explicitly requests another format
+- end lesson with architecture + continuation `.md`

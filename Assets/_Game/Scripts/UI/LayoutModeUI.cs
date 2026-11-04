@@ -1,17 +1,21 @@
 using TMPro;
 using UnityEngine;
+using UnityEngine.Serialization;
 
 [DisallowMultipleComponent]
 public class LayoutModeUI : MonoBehaviour
 {
-    [Header("Layout Mode")] 
-    [SerializeField] private GameObject frameRoot;
+    [Header("Layout Mode")] [SerializeField]
+    private GameObject frameRoot;
+
     [SerializeField] private GameObject normalCrosshair;
     [SerializeField] private GameObject clockPanel;
 
-    [Header("Placement Status")] 
-    [SerializeField] private FurniturePlacementController placementController;
-    [SerializeField] private TMP_Text gridSnapStatusText;
+    [Header("Placement Status")] [SerializeField]
+    private FurniturePlacementController placementController;
+
+    [FormerlySerializedAs("gridSnapStatusText")] [SerializeField]
+    private TMP_Text placementModeStatusText;
 
     private bool previousCrosshairState;
     private bool hasStoredCrosshairState;
@@ -34,7 +38,7 @@ public class LayoutModeUI : MonoBehaviour
             return;
         }
 
-        RefreshGridSnapStatus();
+        RefreshPlacementModeStatus();
     }
 
     public void SetLayoutModeActive(bool active)
@@ -46,7 +50,7 @@ public class LayoutModeUI : MonoBehaviour
 
         if (active)
         {
-            RefreshGridSnapStatus();
+            RefreshPlacementModeStatus();
         }
 
         SetClockPanelForLayout(active);
@@ -65,6 +69,7 @@ public class LayoutModeUI : MonoBehaviour
             if (!hasStoredClockPanelState)
             {
                 previousClockPanelState = clockPanel.activeSelf;
+
                 hasStoredClockPanelState = true;
             }
 
@@ -78,6 +83,7 @@ public class LayoutModeUI : MonoBehaviour
         }
 
         clockPanel.SetActive(previousClockPanelState);
+
         hasStoredClockPanelState = false;
     }
 
@@ -93,6 +99,7 @@ public class LayoutModeUI : MonoBehaviour
             if (!hasStoredCrosshairState)
             {
                 previousCrosshairState = normalCrosshair.activeSelf;
+
                 hasStoredCrosshairState = true;
             }
 
@@ -106,31 +113,37 @@ public class LayoutModeUI : MonoBehaviour
         }
 
         normalCrosshair.SetActive(previousCrosshairState);
+
         hasStoredCrosshairState = false;
     }
 
-    private void RefreshGridSnapStatus()
+    private void RefreshPlacementModeStatus()
     {
-        if (gridSnapStatusText == null)
+        if (placementModeStatusText == null)
         {
             return;
         }
 
         if (placementController == null)
         {
-            gridSnapStatusText.text = "";
+            placementModeStatusText.text = "";
             return;
         }
 
-        string status = placementController.GridSnapEnabled
-            ? $"GRID SNAP  ON  ·  {placementController.GridSize:0.00} m"
-            : "GRID SNAP  OFF  ·  FREE";
+        string status = placementController.IsStructuredPlacementActive
+            ? $"STRUCTURED  ·  GRID {placementController.GridSize:0.00} m"
+            : "FREE  ·  PRECISION";
+
+        if (placementController.IsPlacementModeTemporarilyInverted)
+        {
+            status += "  ·  CTRL TEMPORARY";
+        }
 
         if (placementController.IsMagneticallySnapped)
         {
             status += "  ·  MAGNET";
         }
 
-        gridSnapStatusText.text = status;
+        placementModeStatusText.text = status;
     }
 }

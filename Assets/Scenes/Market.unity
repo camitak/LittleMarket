@@ -565,7 +565,7 @@ GameObject:
   - component: {fileID: 37364793}
   - component: {fileID: 37364792}
   m_Layer: 5
-  m_Name: GridSnapStatusText
+  m_Name: PlacementModeStatusText
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -588,7 +588,7 @@ RectTransform:
   m_AnchorMin: {x: 0, y: 1}
   m_AnchorMax: {x: 0, y: 1}
   m_AnchoredPosition: {x: 28, y: -28}
-  m_SizeDelta: {x: 529, y: 28}
+  m_SizeDelta: {x: 720, y: 28}
   m_Pivot: {x: 0, y: 1}
 --- !u!114 &37364792
 MonoBehaviour:
@@ -3244,13 +3244,13 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: 'LAYOUT CONTROLS
+  m_text: 'STORE DESIGN CONTROLS
 
     LMB   Select / Place
 
-    R / T   Rotate      G   Grid Snap
+    R / T   Rotate      G   Placement Mode
 
-    Alt   Bypass Magnet
+    Ctrl   Temporary Opposite Mode
 
     MMB   Orbit         Wheel   Zoom
 
@@ -8327,7 +8327,7 @@ MonoBehaviour:
   normalCrosshair: {fileID: 489281090}
   clockPanel: {fileID: 1090357585}
   placementController: {fileID: 1349577616}
-  gridSnapStatusText: {fileID: 37364792}
+  placementModeStatusText: {fileID: 37364792}
 --- !u!1 &766731596
 GameObject:
   m_ObjectHideFlags: 0
@@ -15207,8 +15207,9 @@ MonoBehaviour:
   selectionRayDistance: 35
   previewRayDistance: 30
   bodyContactTolerance: 0.01
-  gridSnapEnabled: 1
+  structuredPlacementByDefault: 1
   gridSize: 0.5
+  freeRotationDegreesPerSecond: 90
   magneticSnapEnabled: 1
   socketCaptureDistance: 0.3
   socketReleaseDistance: 0.55

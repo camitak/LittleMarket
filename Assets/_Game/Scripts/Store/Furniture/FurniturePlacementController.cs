@@ -2,47 +2,52 @@ using System;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
+using UnityEngine.Serialization;
 
 [DisallowMultipleComponent]
 public class FurniturePlacementController : MonoBehaviour
 {
-    [Header("Player")] 
-    [SerializeField] private PlayerInteraction playerInteraction;
+    [Header("Player")] [SerializeField] private PlayerInteraction playerInteraction;
     [SerializeField] private InteractionUI interactionUI;
 
-    [Header("Store")] 
-    [SerializeField] private StoreLayoutModeController layoutMode;
+    [Header("Store")] [SerializeField] private StoreLayoutModeController layoutMode;
     [SerializeField] private StoreBuildArea buildArea;
 
-    [Header("Visuals")] 
-    [SerializeField] private FurniturePlacementVisualizer placementVisualizer;
+    [Header("Visuals")] [SerializeField] private FurniturePlacementVisualizer placementVisualizer;
 
-    [Header("Placement")] 
-    [Min(1f)] [SerializeField] private float selectionRayDistance = 35f;
+    [Header("Placement")] [Min(1f)] [SerializeField]
+    private float selectionRayDistance = 35f;
+
     [Min(1f)] [SerializeField] private float previewRayDistance = 30f;
     [Min(0f)] [SerializeField] private float bodyContactTolerance = 0.01f;
 
-    [Header("Grid Snap")] 
-    [SerializeField] private bool gridSnapEnabled = true;
-    [Min(0.01f)] [SerializeField] private float gridSize = 0.5f;
+    [Header("Placement Mode")] [FormerlySerializedAs("gridSnapEnabled")] [SerializeField]
+    private bool structuredPlacementByDefault = true;
 
-    [Header("Magnetic Snap")] 
-    [SerializeField] private bool magneticSnapEnabled = true;
+    [Min(0.01f)] [SerializeField] private float gridSize = 0.5f;
+    [Min(1f)] [SerializeField] private float freeRotationDegreesPerSecond = 90f;
+
+    [Header("Magnetic Snap")] [SerializeField]
+    private bool magneticSnapEnabled = true;
+
     [Min(0.01f)] [SerializeField] private float socketCaptureDistance = 0.30f;
     [Min(0.01f)] [SerializeField] private float socketReleaseDistance = 0.55f;
     [Range(0f, 45f)] [SerializeField] private float maximumSocketFacingAngle = 15f;
 
-    [Header("Fallback Body Footprint")] 
-    [SerializeField] private Vector3 footprintHalfExtents = new(1.30f, 1.05f, 0.52f);
+    [Header("Fallback Body Footprint")] [SerializeField]
+    private Vector3 footprintHalfExtents = new(1.30f, 1.05f, 0.52f);
+
     [SerializeField] private Vector3 footprintCenter = new(0f, 1.10f, 0f);
 
-    [Header("Fallback Front Access Footprint")] 
-    [SerializeField] private Vector3 accessHalfExtents = new(1.25f, 0.75f, 0.50f);
+    [Header("Fallback Front Access Footprint")] [SerializeField]
+    private Vector3 accessHalfExtents = new(1.25f, 0.75f, 0.50f);
+
     [SerializeField] private Vector3 accessCenter = new(0f, 0.80f, -1.02f);
     [Min(0.01f)] [SerializeField] private float outlineWidth = 0.05f;
 
-    [Header("Preview Colours")] 
-    [SerializeField] private Color validColor = new Color32(111, 207, 151, 255);
+    [Header("Preview Colours")] [SerializeField]
+    private Color validColor = new Color32(111, 207, 151, 255);
+
     [SerializeField] private Color invalidColor = new Color32(196, 107, 107, 255);
 
     private FurnitureIdentity selectedFurniture;
@@ -76,7 +81,23 @@ public class FurniturePlacementController : MonoBehaviour
 
     public bool IsPlacementActive => selectedFurniture != null;
 
-    public bool GridSnapEnabled => gridSnapEnabled;
+    public bool StructuredPlacementByDefault => structuredPlacementByDefault;
+
+    public bool IsStructuredPlacementActive =>
+        IsPlacementModeModifierHeld ? !structuredPlacementByDefault : structuredPlacementByDefault;
+
+    public bool IsFreePlacementActive => !IsStructuredPlacementActive;
+
+/*
+ * Compatibility property.
+ *
+ * Grid participation now follows the complete
+ * Structured/Free placement mode rather than
+ * existing as an independent preference.
+ */
+    public bool GridSnapEnabled => IsStructuredPlacementActive;
+
+    public bool IsPlacementModeTemporarilyInverted => IsPlacementModeModifierHeld;
 
     public float GridSize => Mathf.Max(0.01f, gridSize);
 
@@ -85,10 +106,18 @@ public class FurniturePlacementController : MonoBehaviour
     // Read-only access for Layout Mode presentation.
     public FurnitureIdentity SelectedFurniture => selectedFurniture;
 
-    private float EffectiveSocketReleaseDistance => Mathf.Max(socketCaptureDistance, socketReleaseDistance);
+    private float EffectiveSocketReleaseDistance =>
+        Mathf.Max(
+            socketCaptureDistance,
+            socketReleaseDistance
+        );
 
-    private bool IsMagneticSnapBypassed =>
-        Keyboard.current != null && (Keyboard.current.leftAltKey.isPressed || Keyboard.current.rightAltKey.isPressed);
+    private bool IsPlacementModeModifierHeld =>
+        Keyboard.current != null &&
+        (
+            Keyboard.current.leftCtrlKey.isPressed ||
+            Keyboard.current.rightCtrlKey.isPressed
+        );
 
     public bool TryGetSelectedBodyFootprint(out Vector3 worldCenter,
         out Quaternion rotation,
@@ -141,10 +170,23 @@ public class FurniturePlacementController : MonoBehaviour
             return;
         }
 
-        if (layoutMode != null && layoutMode.IsActive && Time.timeScale > 0f &&
-            Cursor.lockState == CursorLockMode.None && Keyboard.current.gKey.wasPressedThisFrame)
+        if (layoutMode != null &&
+            layoutMode.IsActive &&
+            Time.timeScale > 0f &&
+            Cursor.lockState == CursorLockMode.None &&
+            Keyboard.current.gKey.wasPressedThisFrame &&
+            !IsPlacementModeModifierHeld)
         {
-            gridSnapEnabled = !gridSnapEnabled;
+            structuredPlacementByDefault =
+                !structuredPlacementByDefault;
+
+            /*
+             * Changing the default can immediately move us
+             * from Structured into Free mode.
+             *
+             * Never leave a stale magnetic guide active.
+             */
+            ClearActiveMagneticSnap();
         }
 
         if (selectedFurniture == null)
@@ -178,15 +220,13 @@ public class FurniturePlacementController : MonoBehaviour
             return;
         }
 
-        if (Keyboard.current.rKey.wasPressedThisFrame)
+        if (!IsStructuredPlacementActive &&
+            IsMagneticallySnapped)
         {
-            previewYaw = Mathf.Repeat(previewYaw + 90f, 360f);
+            ClearActiveMagneticSnap();
         }
 
-        if (Keyboard.current.tKey.wasPressedThisFrame)
-        {
-            previewYaw = Mathf.Repeat(previewYaw - 90f, 360f);
-        }
+        HandlePlacementRotation();
 
         bool pointerAvailable = !layoutMode.IsCameraManipulating && !IsPointerOverUI();
 
@@ -202,6 +242,122 @@ public class FurniturePlacementController : MonoBehaviour
             ConfirmPlacement();
         }
     }
+    
+    private void HandlePlacementRotation()
+    {
+        if (Keyboard.current == null ||
+            selectedFurniture == null)
+        {
+            return;
+        }
+
+        if (IsStructuredPlacementActive)
+        {
+            if (Keyboard.current.rKey.wasPressedThisFrame)
+            {
+                previewYaw =
+                    GetNextStructuredYaw(
+                        previewYaw,
+                        1
+                    );
+            }
+
+            if (Keyboard.current.tKey.wasPressedThisFrame)
+            {
+                previewYaw =
+                    GetNextStructuredYaw(
+                        previewYaw,
+                        -1
+                    );
+            }
+
+            return;
+        }
+
+        float rotationInput = 0f;
+
+        if (Keyboard.current.rKey.isPressed)
+        {
+            rotationInput += 1f;
+        }
+
+        if (Keyboard.current.tKey.isPressed)
+        {
+            rotationInput -= 1f;
+        }
+
+        if (Mathf.Approximately(
+                rotationInput,
+                0f))
+        {
+            return;
+        }
+
+        float rotationSpeed =
+            Mathf.Max(
+                1f,
+                freeRotationDegreesPerSecond
+            );
+
+        previewYaw =
+            Mathf.Repeat(
+                previewYaw +
+                rotationInput *
+                rotationSpeed *
+                Time.deltaTime,
+                360f
+            );
+
+        /*
+         * Free placement never participates in
+         * magnetic socket snapping.
+         */
+        ClearActiveMagneticSnap();
+    }
+
+    private static float GetNextStructuredYaw(
+        float currentYaw,
+        int direction)
+    {
+        const float step = 90f;
+        const float tolerance = 0.01f;
+
+        float normalizedYaw =
+            Mathf.Repeat(
+                currentYaw,
+                360f
+            );
+
+        if (direction > 0)
+        {
+            float nextStep =
+                Mathf.Floor(
+                    (normalizedYaw + tolerance) /
+                    step
+                ) + 1f;
+
+            return Mathf.Repeat(
+                nextStep * step,
+                360f
+            );
+        }
+
+        if (direction < 0)
+        {
+            float previousStep =
+                Mathf.Ceil(
+                    (normalizedYaw - tolerance) /
+                    step
+                ) - 1f;
+
+            return Mathf.Repeat(
+                previousStep * step,
+                360f
+            );
+        }
+
+        return normalizedYaw;
+    }
 
     private void LateUpdate()
     {
@@ -215,8 +371,7 @@ public class FurniturePlacementController : MonoBehaviour
         {
             if (!canPlace)
             {
-                interactionUI.ShowPrompt(
-                    "Can't place here — keep furniture and customer access clear.");
+                interactionUI.ShowPrompt("Can't place here — keep furniture and customer access clear.");
 
                 return;
             }
@@ -404,12 +559,20 @@ public class FurniturePlacementController : MonoBehaviour
 
         if (foundFloor)
         {
-            if (gridSnapEnabled)
+            if (IsStructuredPlacementActive)
             {
                 float step = GridSize;
 
-                target = new Vector3(Mathf.Round(surfacePoint.x / step) * step, surfacePoint.y,
-                    Mathf.Round(surfacePoint.z / step) * step);
+                target =
+                    new Vector3(
+                        Mathf.Round(
+                            surfacePoint.x / step
+                        ) * step,
+                        surfacePoint.y,
+                        Mathf.Round(
+                            surfacePoint.z / step
+                        ) * step
+                    );
             }
             else
             {
@@ -452,8 +615,12 @@ public class FurniturePlacementController : MonoBehaviour
 
     private Vector3 ApplyMagneticSocketSnap(Vector3 baseTarget, Quaternion selectedRotation)
     {
-        if (!magneticSnapEnabled || IsMagneticSnapBypassed || selectedFurniture == null ||
-            selectedSnapSockets == null || selectedSnapSockets.Length == 0 || snapSocketCandidates == null)
+        if (!magneticSnapEnabled ||
+            !IsStructuredPlacementActive ||
+            selectedFurniture == null ||
+            selectedSnapSockets == null ||
+            selectedSnapSockets.Length == 0 ||
+            snapSocketCandidates == null)
         {
             ClearActiveMagneticSnap();
             return baseTarget;
