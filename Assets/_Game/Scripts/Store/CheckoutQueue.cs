@@ -55,6 +55,12 @@ public class CheckoutQueue : MonoBehaviour
 
         return customers[0];
     }
+    
+    public void ClearForLoad()
+    {
+        customers.Clear();
+    }
+
 
     private void UpdateCustomerDestinations()
     {

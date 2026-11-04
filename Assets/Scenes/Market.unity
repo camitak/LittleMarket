@@ -12503,6 +12503,7 @@ MonoBehaviour:
   storeGoals: {fileID: 1117834538}
   storeLevelProgression: {fileID: 1117834539}
   customerFlow: {fileID: 1117834531}
+  checkoutRegister: {fileID: 450375792}
   shelfRegistry: {fileID: 1117834529}
   storeFurnitureLayout: {fileID: 1117834544}
   storeExpansionSystem: {fileID: 1117834547}
@@ -12686,8 +12687,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::StoreExpansionSystem
   storeEconomy: {fileID: 1117834528}
-  storeClock: {fileID: 1117834532}
-  customerFlow: {fileID: 1117834531}
   storeLevelProgression: {fileID: 1117834539}
   navMeshSurface: {fileID: 436418470}
   expansionZones:

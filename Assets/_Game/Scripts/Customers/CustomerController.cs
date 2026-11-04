@@ -887,6 +887,43 @@ public class CustomerController : MonoBehaviour
                ==
                CustomerState.WaitingInCheckoutQueue;
     }
+    
+    public void DiscardForLoad()
+    {
+        if (checkoutQueue != null)
+        {
+            CheckoutQueue previousQueue =
+                checkoutQueue;
+
+            checkoutQueue = null;
+
+            previousQueue.LeaveQueue(this);
+        }
+
+        if (customerShoppingBasket != null)
+        {
+            customerShoppingBasket.DiscardBasket();
+        }
+
+        for (int i = 0;
+             i < carriedItems.Count;
+             i++)
+        {
+            PickupItem item =
+                carriedItems[i];
+
+            if (item != null)
+            {
+                Destroy(item.gameObject);
+            }
+        }
+
+        carriedItems.Clear();
+        assignedQueuePoint = null;
+
+        Destroy(gameObject);
+    }
+
 
     public int GetCarriedItemCount()
     {

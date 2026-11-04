@@ -38,6 +38,19 @@ public class CustomerFlow : MonoBehaviour
 
     public int ActiveCustomerCount => activeCustomers.Count;
     public bool IsLayoutSuspended => layoutSuspended;
+    
+    public CustomerController GetActiveCustomer(int index)
+    {
+        RemoveDestroyedCustomers();
+
+        if (index < 0 ||
+            index >= activeCustomers.Count)
+        {
+            return null;
+        }
+
+        return activeCustomers[index];
+    }
 
     private void Start()
     {
@@ -100,6 +113,36 @@ public class CustomerFlow : MonoBehaviour
 
         layoutSuspended = false;
     }
+    
+    public void ClearForLoad()
+    {
+        bool preserveLayoutSuspension =
+            layoutSuspended;
+
+        RemoveDestroyedCustomers();
+
+        foreach (CustomerController customer
+                 in activeCustomers)
+        {
+            if (customer != null)
+            {
+                customer.DiscardForLoad();
+            }
+        }
+
+        activeCustomers.Clear();
+
+        if (checkoutQueue != null)
+        {
+            checkoutQueue.ClearForLoad();
+        }
+
+        layoutSuspended =
+            preserveLayoutSuspension;
+
+        ResetSpawnTimerForNewDay();
+    }
+
 
     public void ResetForNewDay()
     {

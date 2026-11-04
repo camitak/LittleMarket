@@ -144,6 +144,12 @@ public class CheckoutRegister : MonoBehaviour, IInteractable
 
         CompletePayment(customer, itemCount);
     }
+    
+    public void ResetForLoad()
+    {
+        ResetCheckoutSession();
+    }
+
 
     private void BeginNextScan(CustomerController customer)
     {
