@@ -1,18 +1,18 @@
 # Little Market — System Architecture
 
-Current proposed architecture after **Lesson 122 — Context Prompt Readability & UX Baseline**.
+Current proposed architecture after **Lesson 123 — Store Design Mode Mechanics Blueprint**.
 
 ## Verified source of truth
 
-Lesson 122 was designed after inspecting GitHub `main` at:
+Lesson 123 was designed after inspecting GitHub `main` at:
 
-`6c33793873a5cf0e16a288dbbe1c0bca70cfe7ce`
+`e21894f5006d5c6f9d5753e00071b0bbfea20369`
 
 Commit:
 
-`Lesson 121 complete - magnetic furniture socket snapping`
+`Lesson 122 complete - readable contextual prompt card`
 
-Re-verify GitHub `main` before every future lesson.
+No gameplay code was intentionally changed in Lesson 123. This lesson locks the next mechanical direction before implementation.
 
 ## Stack
 
@@ -30,143 +30,255 @@ Re-verify GitHub `main` before every future lesson.
 
 > The building provides space; the player decides how the grocery operates inside that space.
 
-Little Market is a cozy first-person grocery-management game. Placement remains a major design pillar.
+Little Market is a cozy first-person grocery-management game.
+
+The design/build loop is now considered a core reward loop, not a utility feature.
 
 ## Permanent UX/UI rules
 
-### Exact UI setup
-
-Every UI lesson must provide:
-- hierarchy path
+Every UI task must include exact:
+- hierarchy
 - object names
 - anchors
 - pivot
-- anchored position
+- position
 - size/offsets
 - font size
 - alignment
 - Raycast Target
-- component references
-- exact HEX colors
+- references
+- HEX colors
 - RGBA where useful
 - UX rationale
 
-Never require the user to derive or search for a color.
+Research meaningful player-facing UX against current game/UI best practice and relevant games before locking it.
 
-### UX research
+User playtest feedback is evidence.
 
-Before locking meaningful player-facing UX:
-- research current game UX/UI best practices
-- inspect relevant established-game/tool patterns
-- prefer official engine/game/platform/accessibility guidance
-- adapt principles to Little Market instead of copying mechanically
-- treat user playtesting as evidence
+Do not rely on color alone.
 
-### Accessibility/readability
+## Conceptual evolution: Layout Mode -> Store Design Mode
 
-- do not rely on color alone
-- ensure text has stable contrast over changing 3D scenes
-- prefer owned background containers for critical/contextual HUD text when scene contrast is unpredictable
-- keep contextual copy short
-- non-interactive HUD must not capture pointer input
+Existing code names may remain `LayoutMode` temporarily.
 
-## Lesson 122 — InteractionPrompt readability
+Player-facing concept becomes **Store Design Mode**.
 
-### Problem found
+It contains:
 
-Actual pushed `InteractionPrompt` before Lesson 122:
-- direct child of `GameUI`
-- center anchor
-- anchored position `(0,-120)`
-- size `600 x 80`
-- white text `#FFFFFFFF`
-- Font Size `28`
-- no owned background
-- Raycast Target ON
+- Arrange
+- Build Catalog
+- Expansions
+- later decoration/finish tools
 
-This made contextual messages blend into bright shelves, floor, lighting and Layout visuals.
+Do not implement free room/wall drawing. The shell remains provided by the building/expansion system.
 
-### New hierarchy
+## Proposed placement interaction model
 
-`GameUI`
-`└── InteractionPromptCard`
-`    └── InteractionPrompt`
+### Structured placement
 
-### InteractionPromptCard
+- `.5m` grid
+- magnetic socket assistance
+- 90-degree rotation
 
-- direct child of GameUI
-- Anchor Min/Max `(0.5,0)`
-- Pivot `(0.5,0)`
-- Position `(0,50)`
-- Size `900 x 76`
-- Image Type `Sliced`
-- Background `#2C2523F2`
-- RGBA `(44,37,35,242)`
-- Raycast Target OFF
+### Free placement
 
-### InteractionPrompt
+- raw position
+- no magnetic assistance
+- fine/continuous rotation
 
-- stretched inside card
-- 24 px horizontal padding
-- 10 px vertical padding
-- Font Size `28`
-- Center / Middle
-- Word Wrapping ON
-- Text `#FFF9EEFF`
-- RGBA `(255,249,238,255)`
-- Raycast Target OFF
+### Proposed controls for next implementation pass
 
-The opaque RGB pair is approximately 14:1 contrast; the 95% background opacity keeps the card stable across moving game imagery.
+`G`
+- toggles persistent default Structured/Free state
 
-### InteractionUI
+`Ctrl` held
+- temporarily inverts the current default
 
-`InteractionUI` now owns:
-- `promptRoot`
-- `interactionText`
+This adapts the Two Point Museum pattern.
 
-`ShowPrompt()` activates the complete card.
+Current Alt-only magnetic bypass should be retired if Ctrl becomes the unified temporary Free-mode modifier.
 
-`HidePrompt()` hides the complete card.
+### Rotation proposal
 
-The public API remains unchanged, so existing gameplay systems continue using:
-- `ShowPrompt(string)`
-- `HidePrompt()`
+Structured:
+- R/T = +/-90 degrees
 
-### Copy discipline
+Free:
+- holding R/T = continuous rotation
+- initial playtest speed target `90°/sec`
 
-Context prompts should be short and action-oriented.
+## Current placement foundation to preserve
 
-Placement invalid copy becomes:
+- visible `.5m` grid
+- Grid Snap implementation
+- explicit RunEdge magnetic sockets
+- body/access separation
+- validation rules
+- selected body/access visuals
+- existing access visuals
+- fixed clearance visuals
+- readable contextual card
+- NavMesh rebuild-on-exit strategy
 
-`Can't place here — keep furniture and customer access clear.`
+## Build Catalog direction
 
-Other existing examples:
-- `LMB Move Standard Shelf`
-- `LMB Buy & place £40.00`
-- `[E] Pick up`
+Store Design Mode gets direct access to the same FurnitureCatalog/FurnitureShop authority.
 
-Persistent control legends do not belong in this prompt.
+Do not build a second purchase system.
 
-## InteractionPrompt placement policy
+Future player shortcut proposal:
+- `B` opens/closes Build Catalog
 
-The contextual card lives bottom-center rather than near the center.
+Initial category architecture:
+- All
+- Fixtures
+- Storage
+- Refrigeration
+- Checkout
+- Décor
+- Lighting & Signs
 
-Reason:
-- protects the world/editing focal region
-- still close enough to be noticed
-- top-left is Grid status
-- top-right is Money
-- bottom-left may contain Basket information
-- bottom-right contains Layout controls
+FurnitureDefinition should later gain catalog metadata rather than creating a separate DecorationDefinition.
 
-It appears only while context requires it.
+Decorations use the same placement/save pipeline.
 
-## Current Layout Mode controls
+Decoration prefabs can omit navigation blockers and operational access where appropriate.
+
+Purchase:
+- preview first
+- spend money on placement confirmation
+- cancel without cost
+
+Later:
+- Shift repeat placement
+- copy/eyedrop
+- variants/colors
+
+## Store computer role
+
+Store computer remains the diegetic management hub.
+
+Products:
+- stay in the terminal
+
+Furniture:
+- computer becomes alternate entry into Store Design Mode + Build Catalog
+
+Expansion:
+- computer becomes overview/alternate entry into Store Design Mode expansion view
+
+One business system, multiple entry points.
+
+## Existing expansion business authority
+
+StoreExpansionSystem remains authoritative for:
+- cost
+- required level
+- ownership
+- closed/empty purchase rule
+- spend
+- unlock
+- save restoration
+- NavMesh rebuild
+
+StoreExpansionZone remains authoritative for:
+- definition
+- unlocked geometry root
+- locked barrier
+- build zone
+- available/unavailable build space
+
+## Expansion world interaction direction
+
+Locked adjacent expansions become visible in Store Design Mode.
+
+Do not use "lights off" as the only state cue.
+
+Recommended visual language:
+
+Base locked:
+- fill `#625D7040`
+- border `#B9AFCE99`
+
+Available/hover:
+- fill `#6FCF9738`
+- border `#A9E6D5E6`
+
+Condition/level locked:
+- fill `#6B657A33`
+- border `#8A7F96A6`
+
+Text/icon labels must accompany colors.
+
+Hover:
+- highlight zone
+- world label with name + price/requirement
+
+Click:
+- select zone
+- camera frames it
+- side details card opens
+
+Purchase:
+- explicit confirmation
+- preserve closed/empty requirement for now
+
+Unavailable copy:
+`Available when the store is closed and empty.`
+
+Successful reveal:
+- spend
+- barrier opens
+- geometry activates
+- lights/reveal turn on
+- grid expands
+- camera stays framed
+- NavMesh rebuild
+- space immediately becomes buildable
+
+## Camera direction
+
+Normal Store Design:
+- focus useful working region, not entire store
+
+Selecting locked expansion:
+- temporarily expand camera bounds/focus to that outside/adjacent zone
+
+Purchased expansion:
+- becomes normal camera/build region
+
+This is the preferred answer to the earlier future-exterior camera issue.
+
+## Decoration philosophy
+
+Decoration is a central cozy-game pillar.
+
+Future soft Ambience system:
+- local decoration improves guest mood/reputation
+- diminishing returns
+- variety preferred over spam
+- no harsh decoration gating
+- creative expression first
+
+Do not implement Ambience until catalog and placement UX are mature.
+
+## Recommended future selling policy
+
+Furniture/decor:
+- 100% refund
+- functional item may need to be empty/unoccupied
+
+Expansion:
+- permanent, non-refundable
+
+This encourages experimentation while keeping expansion progression meaningful.
+
+## Current Layout/Store Design controls before next implementation
 
 - LMB select/place
-- R/T rotate
-- G Grid Snap
-- Alt bypass Magnetic Snap
+- R/T rotate 90°
+- G Grid Snap toggle
+- Alt magnetic bypass
 - MMB orbit
 - Wheel zoom
 - WASD pan
@@ -174,120 +286,44 @@ It appears only while context requires it.
 - RMB/Esc/Q cancel
 - L exit
 
-## Grid Snap
+These are expected to change in the next control pass.
 
-- enabled by default
-- `.5m`
-- visible grid also `.5m`
+## Current UI colors
 
-Grid ON and OFF remain distinct.
+Grid:
+`#CFF7FA26`
 
-## Magnetic Snap
+Grid status:
+`#CFF7FADC`
 
-Current Lesson-121 architecture remains unchanged.
+Controls panel:
+- background `#FFF9EEDC`
+- text `#594640FF`
 
-- explicit FurnitureSnapSocket
-- RunEdge Left/Right sockets
-- capture `.30`
-- release `.55`
-- facing tolerance `15°`
-- Alt bypass
-- no auto-rotation
-- Grid Snap and Magnetic Snap independent
+Prompt card:
+- background `#2C2523F2`
+- text `#FFF9EEFF`
 
-First scope remains side-to-side furniture runs only.
-
-## Magnetic guide
-
-Valid:
-- `#5FE3F0E6`
-
-Invalid:
-- `#C46B6BE6`
-
-Top-left text also appends `MAGNET`.
+Magnetic guide:
+- valid `#5FE3F0E6`
+- invalid `#C46B6BE6`
 
 ## Placement validation
 
 Unchanged:
 
-1. body inside build area
-2. access inside build area
+1. body inside permitted build area
+2. access inside area
 3. body vs fixed clearance
 4. access vs fixed clearance
 5. body vs other furniture access
 6. body vs physical colliders
 7. access vs physical colliders
 
-Body vs access forbidden.
+Body vs other access forbidden.
 Access vs access allowed.
 
-## Existing UI colors
-
-Layout grid:
-- `#CFF7FA26`
-
-Grid status:
-- `#CFF7FADC`
-
-Layout control panel:
-- background `#FFF9EEDC`
-- text `#594640FF`
-
-Interaction prompt card:
-- background `#2C2523F2`
-- text `#FFF9EEFF`
-
-## Two Point Museum control/feel research direction
-
-The user reports Layout Mode still does not feel smooth enough and suggested Two Point Museum as a reference.
-
-Research found a useful Two Point pattern:
-- Room Item Snap can be the default behavior
-- a temporary modifier switches to free placement
-- the default can be inverted so free placement is primary and the modifier temporarily snaps
-- snapped/free rotation behavior also changes with placement mode
-
-This is relevant to Little Market but is deliberately not folded into Lesson 122.
-
-### Timing decision
-
-The dedicated Layout Controls & Feel pass should happen **next**, before adding more placement feature types.
-
-The core foundations are now stable enough:
-- build areas
-- access rules
-- visible grid
-- Grid Snap
-- free placement
-- magnetic sockets
-- readable HUD
-
-Changing control feel now is safer than building more furniture interactions on top of a control scheme the user already says does not feel smooth enough.
-
-## Lesson 123 planned — Layout Controls & Feel Benchmark
-
-Research and compare:
-- Two Point Museum
-- other strong mouse/keyboard building modes where useful
-
-Evaluate:
-- persistent Grid mode vs hold-to-invert modifier
-- free rotation vs 90° rotation
-- press vs hold rotation
-- mouse-driven rotation possibilities
-- camera pan/orbit/zoom easing
-- selected-object follow
-- whether G remains useful
-- whether Alt remains the best magnet bypass after a unified modifier design
-- discoverability in the control legend
-
-Do not copy another game blindly.
-
-Goal:
-make Little Market feel predictable, fast and comfortable while keeping its first-person-to-layout identity.
-
-## Camera values to preserve until dedicated feel pass
+## Camera tuning to preserve until dedicated implementation
 
 - Overview Pitch 62
 - Overview Yaw 0
@@ -303,29 +339,74 @@ make Little Market feel predictable, fast and comfortable while keeping its firs
 - Pitch .10
 - Scroll Zoom Sensitivity 2
 
-## Navigation/save
+## Implementation roadmap
 
-No Lesson-122 changes.
+### Lesson 124 — Structured vs Free Placement + Rotation Feel
 
-Save:
-- schema 2
-- `little_market_dev_v2_save.json`
+Implement:
+- coherent placement mode state
+- Ctrl temporary inversion
+- Grid/magnet participation by mode
+- 90-degree structured rotation
+- continuous free rotation
+- updated HUD/legend
+- preserve validation
 
-NavMesh rebuild:
-- once on dirty Layout Mode exit
+### Lesson 125 — Layout Camera Feel
 
-## Permanent engineering rules
+Implement:
+- pan acceleration/deceleration
+- orbit smoothing
+- zoom easing
+- working-region focus
+- prepare frame-target API for future expansions
 
-- GitHub main is source of truth
-- inspect current project before every lesson
-- preserve user tuning
-- exact UI details + HEX colors
+### Lesson 126 — In-Mode Build Catalog
+
+Implement:
+- direct Layout Build Catalog
+- categories
+- FurnitureShop reuse
+- computer deep link
+
+### Lesson 127 — Decorations Foundation
+
+Implement:
+- catalog category metadata
+- decoration definitions using FurnitureDefinition
+- non-navigation-blocking decorative prefabs
+- save/placement integration
+
+### Lesson 128 — World-Space Expansion Preview & Purchase
+
+Implement:
+- locked-zone visuals
+- hover/select
+- side card
+- camera frame
+- direct purchase
+- reveal
+
+Then:
+- copy/eyedrop
+- repeat placement
+- selling/refunds
+- variants
+- Ambience
+- advanced fixture/socket semantics
+
+## Permanent engineering principles
+
+- GitHub main first
+- inspect exact current source
+- preserve tuned values unless dedicated pass changes them
+- exact UI instructions and HEX colors
 - current UX research
 - playtest feedback drives iteration
-- readable HUD contrast over variable scenes
-- no color-only essential state
-- non-interactive UI must not intercept input
-- Grid Snap and Magnetic Snap remain distinct
+- design mode is a central gameplay loop
+- one business authority, multiple UI entry points
+- do not copy reference games blindly
+- preserve Little Market's building-shell identity
 - placement/navigation/presentation/persistence remain separate
 - avoid god classes
-- end each lesson with complete architecture and fresh-chat continuation files
+- end each lesson with architecture + continuation docs
