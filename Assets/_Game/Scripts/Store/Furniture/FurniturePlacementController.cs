@@ -216,7 +216,7 @@ public class FurniturePlacementController : MonoBehaviour
             if (!canPlace)
             {
                 interactionUI.ShowPrompt(
-                    "Can't place here — keep furniture bodies and required customer access clear.");
+                    "Can't place here — keep furniture and customer access clear.");
 
                 return;
             }
