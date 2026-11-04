@@ -354,6 +354,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::LayoutCameraController
   layoutCamera: {fileID: 900601420}
+  workingDistance: 9
   overviewPitch: 62
   overviewYaw: 0
   overviewPadding: 1.08
@@ -364,9 +365,12 @@ MonoBehaviour:
   maximumDistance: 32
   panSpeed: 7
   boostMultiplier: 2
+  panSmoothTime: 0.08
   yawSensitivity: 0.12
   pitchSensitivity: 0.1
   scrollZoomSensitivity: 2
+  orbitSmoothTime: 0.06
+  zoomSmoothTime: 0.1
 --- !u!1 &26434372
 GameObject:
   m_ObjectHideFlags: 0

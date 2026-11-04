@@ -1,27 +1,29 @@
 # Little Market — System Architecture
 
-Current architecture after **Lesson 126 — Structured & Free Placement Modes**.
+Current architecture after **Lesson 127 — Smooth Local-Region Store Design Camera**.
 
 ## Verified source of truth
 
-Lesson 126 was designed after verifying GitHub `main` at:
+Lesson 127 was designed after verifying GitHub `main` at:
 
-`03434f5f13b1b78ea088b885a187f6510ee50596`
+`9f5feaf89c095fc4080f841a2a00b8683b1563fd`
 
 Commit:
 
-`Lesson 125 complete - safe end-of-day saves`
+`Lesson 126 complete - structured and free placement modes`
 
-Before every future lesson, re-verify newest `main`.
+Re-verify newest `main` before every future lesson.
 
 ## Permanent lesson-format rule
 
-The user explicitly requested that implementation never be split across chat plus separate code/setup files.
+The full lesson implementation belongs in chat:
+- code
+- explanation
+- Inspector setup
+- UI setup
+- tests
 
-From now on:
-- complete lesson, code, explanation, Inspector/UI setup, and tests stay together in chat
-- only required handoff `.md` files are generated separately
-- no separate code/edit ZIPs unless explicitly requested
+Only the required handoff `.md` files are created separately unless the user explicitly asks for another artifact.
 
 ## Core principles
 
@@ -29,284 +31,230 @@ From now on:
 
 > The clock describes the store's day; it does not grant permission to manage the store.
 
-Store Design Mode is a core cozy-game reward loop.
+Store Design Mode is a central cozy-game loop.
 
-## Lesson 126 player-facing placement model
+## Lesson 127 camera goal
 
-The old independent controls:
-- G = Grid Snap
-- Alt = bypass magnetic snap
-- R/T = fixed 90-degree rotation
+The Store Design camera should feel:
+- smooth but responsive
+- locally focused
+- scalable as the store expands
+- predictable when entering from different areas
+- capable of deliberate target framing later
 
-are replaced by one coherent concept.
+The camera should NOT automatically zoom farther and farther out just because more store floor has been unlocked.
 
-### Structured placement
+## Local working-region entry
 
-Structured mode means:
-- `.5 m` grid position snapping
-- magnetic compatible furniture sockets enabled
-- R/T uses cardinal 90-degree world orientations
+`StoreBuildArea` now exposes:
 
-Best suited to:
-- shelves
-- refrigerated displays
-- storage racks
-- orderly fixture runs
+`TryGetWorkingZoneBounds(Vector3 worldPoint, out Bounds bounds, out StoreAreaType areaType)`
 
-### Free placement
+It considers only currently available build zones.
 
-Free mode means:
-- raw continuous floor position
-- magnetic socket assistance disabled
-- holding R/T rotates continuously
+Selection rules:
+1. if the player is inside an available build zone, that local zone wins
+2. if the player is not inside any zone, use the horizontally nearest available zone
+3. ties are broken by distance to zone center
 
-Initial fine rotation speed:
-- `90 degrees / second`
+This means:
+- entering Store Design Mode from the Sales Floor focuses the local Sales Floor build zone
+- entering from the Backroom focuses the local Backroom build zone
+- entering from a purchased expansion focuses that expansion zone
+- future store growth does not cause normal entry to frame all same-type floor space
 
-Best suited to:
-- future decorations
-- plants
-- signs
-- deliberately angled layouts
-- fine positioning
+Current base zones:
+- Sales Floor: approximately `12 x 10 m`, centered around `(2, 0)` on XZ
+- Backroom: approximately `4 x 10 m`, centered around `(-6, 0)` on XZ
 
-## Controls
+## Working distance
 
-`G`
-- toggles the persistent default between Structured and Free
-- ignored while Ctrl is held, to avoid accidentally changing the default while using a temporary override
+`LayoutCameraController.ActivateForWorkingBounds(...)`:
+- uses the selected local zone center as camera pivot
+- uses fixed `workingDistance`
+- does NOT calculate a full-zone fit
 
-`Left Ctrl` / `Right Ctrl` held
-- temporarily inverts the current default
+Initial value:
+- Working Distance `9`
 
-Examples:
+This is intentionally much closer than the previous full-SalesFloor framing distance.
 
-Default Structured:
-- normal = Structured
-- hold Ctrl = Free
-- release Ctrl = Structured
+Player can:
+- zoom out manually for broader context
+- zoom in for detail
+- pan to adjacent regions
 
-Default Free:
-- normal = Free
-- hold Ctrl = Structured
-- release Ctrl = Free
+## Future target framing API
 
-`Alt` no longer has a placement-mode role.
+`LayoutCameraController` keeps/introduces:
+- `ActivateForBounds(Bounds)` — immediate full fit when activating
+- `FocusWorkingBounds(Bounds)` — smooth focus at working distance
+- `FrameBounds(Bounds)` — smooth focus + fit target bounds
 
-## Rotation behavior
+`FrameBounds()` is intended for future systems such as:
+- selecting a locked expansion
+- jump-to-object
+- catalog placement focus
+- copy/eyedrop focus if ever useful
 
-### Structured
+Normal Store Design entry should use `ActivateForWorkingBounds`, not full fitting.
 
-R/T moves to the next/previous cardinal WORLD orientation.
+## Camera smoothing model
 
-Examples:
-- 0 -> R -> 90
-- 90 -> R -> 180
-- 180 -> T -> 90
+The camera separates:
+- current state
+- target state
 
-Important free-angle bridge:
-- if Free rotation leaves an item at 17 degrees
-- returning to Structured does NOT immediately change 17 degrees
-- first R -> 90
-- first T -> 0
+State:
+- pivot position
+- yaw
+- pitch
+- distance
 
-This preserves player-authored decorative angles while still providing a deliberate way back to structured orientation.
+Input updates target state.
+Current state smoothly approaches the target.
 
-### Free
+This produces polish without inertial overshoot.
 
-Hold:
-- R = positive continuous yaw
-- T = negative continuous yaw
+### Pan
 
-Rotation uses frame-rate independent `Time.deltaTime`.
+WASD moves the target pivot.
 
-## Position behavior
+Current pivot uses `Vector3.SmoothDamp`.
+
+Initial:
+- Pan Speed `7`
+- Boost `2`
+- Pan Smooth Time `.08`
+
+Shift supports left or right Shift.
+
+### Orbit
+
+MMB mouse movement updates target yaw/pitch.
+
+Current yaw/pitch use SmoothDamp / SmoothDampAngle.
+
+Initial:
+- Yaw sensitivity `.12`
+- Pitch sensitivity `.10`
+- Orbit Smooth Time `.06`
+
+No rotational inertia is added; the camera simply catches the input target smoothly.
+
+### Zoom
+
+Wheel changes target distance.
+Current distance smooths toward it.
+
+Initial:
+- Scroll Zoom Sensitivity `2`
+- Zoom Smooth Time `.10`
+
+The user's tuned zoom input scale `2` is preserved.
+
+### Time source
+
+Camera smoothing uses `Time.unscaledDeltaTime`.
+
+The store clock being suspended does not affect camera feel.
+
+## Current LayoutCameraController Inspector values
+
+Camera:
+- Layout Camera = existing child LayoutCamera
+
+Working View:
+- Working Distance `9`
+
+Overview / Target Framing:
+- Overview Pitch `62`
+- Overview Yaw `0`
+- Overview Padding `1.08`
+- Fallback Distance `4`
+
+Orbit Limits:
+- Minimum Pitch `15`
+- Maximum Pitch `88`
+- Minimum Distance `4`
+- Maximum Distance `32`
+
+Movement:
+- Pan Speed `7`
+- Boost Multiplier `2`
+- Pan Smooth Time `.08`
+
+Mouse:
+- Yaw Sensitivity `.12`
+- Pitch Sensitivity `.10`
+- Scroll Zoom Sensitivity `2`
+- Orbit Smooth Time `.06`
+- Zoom Smooth Time `.10`
+
+## Placement behavior
+
+Unchanged from Lesson 126.
 
 Structured:
-- cursor floor position is quantized to `GridSize`
-- current `GridSize = .5 m`
+- `.5m` grid
+- magnetic sockets
+- cardinal rotation
 
 Free:
-- raw floor hit position
+- continuous floor position
+- no magnet
+- continuous R/T rotation
 
-Switching modes can therefore move the preview between raw cursor position and nearest grid position. This is intentional and provides immediate visual feedback about the active assistance mode.
+G:
+- persistent default
 
-## Magnetic behavior
+Ctrl:
+- temporary inverse
 
-Magnetic sockets participate only while Structured mode is active.
-
-Free mode:
-- clears active magnetic snap
-- does not capture or retain sockets
-
-Structured mode:
-- uses existing capture/release/facing logic unchanged
-
-Current values:
-- Magnetic enabled = true
-- capture = `.30`
-- release = `.55`
-- max facing = `15°`
-
-## Compatibility / serialization
-
-The serialized field formerly named:
-
-`gridSnapEnabled`
-
-is migrated with:
-
-`[FormerlySerializedAs("gridSnapEnabled")]`
-
-to:
-
-`structuredPlacementByDefault`
-
-This preserves the current Inspector default (`true`) without manually rebuilding the component.
-
-Placement-mode preference remains runtime/session state and is not added to save schema.
-
-Save schema remains version 2.
+Camera smoothing must not affect placement validation or selected-furniture transforms.
 
 ## Placement validation
 
 Unchanged:
-
 1. body inside permitted build area
 2. access inside permitted build area
-3. body vs explicit clearance
-4. access vs explicit clearance
-5. selected body vs other furniture access
+3. body vs fixed clearance
+4. access vs fixed clearance
+5. body vs other furniture access
 6. body vs blocking colliders
 7. access vs blocking colliders
 
-Body vs other furniture access is forbidden.
-Access vs access is allowed.
-
-## Layout status UI
-
-The existing:
-
-`GridSnapStatusText`
-
-is renamed player-facing to:
-
-`PlacementModeStatusText`
-
-Hierarchy remains under the Layout/Store Design frame.
-
-RectTransform:
-- anchors `(0,1)` to `(0,1)`
-- pivot `(0,1)`
-- anchored position `(28,-28)`
-- size `720 x 28`
-
-TMP:
-- font size `18`
-- left / middle
-- Raycast Target OFF
-- color `#CFF7FADC`
-- RGBA `(207,247,250,220)`
-
-Runtime examples:
-
-`STRUCTURED · GRID 0.50 m`
-
-`STRUCTURED · GRID 0.50 m · MAGNET`
-
-`FREE · PRECISION`
-
-`FREE · PRECISION · CTRL TEMPORARY`
-
-`STRUCTURED · GRID 0.50 m · CTRL TEMPORARY`
-
-Status communicates mode with text, not color alone.
-
-## Controls panel
-
-Panel stays:
-- bottom-right
-- anchor/pivot `(1,0)`
-- anchored position `(-28,28)`
-- `360 x 190`
-- background `#FFF9EEDC`
-- RGBA `(255,249,238,220)`
-- Raycast OFF
-
-ControlsText:
-- full stretch with `16 px` padding
-- font `17`
-- left / top
-- color `#594640FF`
-- RGBA `(89,70,64,255)`
-- Raycast OFF
-
-Text:
-
-STORE DESIGN CONTROLS
-LMB   Select / Place
-R / T   Rotate      G   Placement Mode
-Ctrl   Temporary Opposite Mode
-MMB   Orbit         Wheel   Zoom
-WASD   Pan          Shift   Faster
-RMB / Esc   Cancel  L   Exit
-
-## Current placement Inspector values
-
-Preserve:
-- Selection Ray Distance `35`
-- Preview Ray Distance `30`
-- Body Contact Tolerance `.01`
-- Structured Placement By Default `true`
-- Grid Size `.5`
-- Free Rotation Degrees Per Second `90`
-- Magnetic Snap Enabled `true`
-- Socket Capture Distance `.30`
-- Socket Release Distance `.55`
-- Maximum Socket Facing Angle `15`
-- Outline Width `.01` (scene value; do not reset to source initializer)
-
-## Camera values — scene source of truth
-
-Untouched in Lesson 126:
-- Overview Pitch 62
-- Overview Yaw 0
-- Overview Padding 1.08
-- Fallback Distance 4
-- Min Pitch 15
-- Max Pitch 88
-- Min Distance 4
-- Max Distance 32
-- Pan 7
-- Boost 2
-- Yaw .12
-- Pitch .10
-- Scroll Zoom Sensitivity 2
-
 ## Save / expansion rules
 
-Unchanged from Lessons 124–125.
+Unchanged:
+- time/customer state does not gate saving or expansion purchase
+- live customer inventory is reconciled in save snapshots
+- end-of-day completion is idempotent
+- save schema remains v2
 
-Time/customer state does not gate:
-- layout
-- expansion purchase
-- saving
+## Deliberately not implemented in Lesson 127
 
-End-of-day completion is idempotent via StoreReportHistory day presence.
+- edge scrolling
+- camera following the selected furniture
+- camera bounds/clamping
+- minimap
+- top-down toggle
+- exterior build zones
+- world-space expansion selection
+
+These should only be added if playtesting demonstrates a need.
 
 ## Roadmap
 
-### Lesson 127 — Layout Camera Feel
-Implement:
-- acceleration/deceleration for WASD pan
-- orbit smoothing
-- zoom smoothing
-- useful working-region startup focus
-- preserve Scroll Zoom Sensitivity 2 as user-tuned input scale
-- prepare frame-target API for future expansions
-
 ### Lesson 128 — In-Mode Build Catalog
-Reuse FurnitureCatalog/FurnitureShop.
+Reuse the existing FurnitureCatalog/FurnitureShop authority from Store Design Mode.
+
+Goals:
+- open catalog directly while designing
+- categories
+- preview-first purchasing
+- no duplicate purchase/business logic
+- computer remains alternate entry point
 
 ### Lesson 129 — Decorations Foundation
 
@@ -316,26 +264,26 @@ Then:
 - copy/eyedrop
 - repeat placement
 - selling/refunds
-- variants
+- variants/colors
 - Ambience
-- autosave strategy
-- exact player carry-state persistence
-- advanced fixture/socket semantics
+- autosave
+- exact carry-state persistence
+- advanced fixtures
+- optional camera refinements if playtesting requests them
 
 ## Permanent engineering/UX rules
 
 - GitHub main first
-- inspect exact source and scene
-- preserve scene-authored tuning
-- lesson implementation stays together in chat
+- exact current source and scene
+- preserve tuned Inspector values
+- lesson implementation stays entirely in chat
 - only handoff `.md` files separate
-- exact UI instructions and HEX colors
-- research important player-facing UX
+- research meaningful player-facing UX/mechanics
 - player playtesting drives iteration
 - time is simulation, not permission
-- save/load transitions must be safe/idempotent
+- save/load must be safe/idempotent
 - one business authority
-- no color-only critical state
+- no color-only critical information
 - placement/navigation/presentation/persistence remain separate
 - avoid god classes
-- end lesson with architecture + continuation `.md`
+- end lessons with architecture + continuation `.md`

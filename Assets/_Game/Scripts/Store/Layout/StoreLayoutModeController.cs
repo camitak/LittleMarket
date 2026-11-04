@@ -5,39 +5,67 @@ using UnityEngine.InputSystem;
 [DisallowMultipleComponent]
 public class StoreLayoutModeController : MonoBehaviour
 {
-    [Header("Store")] 
-    [SerializeField] private StoreClock storeClock;
-    [SerializeField] private CustomerFlow customerFlow;
-    [SerializeField] private NavMeshSurface navMeshSurface;
-    [SerializeField] private StoreBuildArea buildArea;
+    [Header("Store")]
+    [SerializeField]
+    private StoreClock storeClock;
 
-    [Header("Player")] 
-    [SerializeField] private PlayerController playerController;
-    [SerializeField] private PlayerInteraction playerInteraction;
-    [SerializeField] private FurniturePlacementController furniturePlacementController;
+    [SerializeField]
+    private CustomerFlow customerFlow;
 
-    [Header("Cameras")] 
-    [SerializeField] private Camera playerCamera;
-    [SerializeField] private LayoutCameraController layoutCameraController;
+    [SerializeField]
+    private NavMeshSurface navMeshSurface;
 
-    [Header("UI")] 
-    [SerializeField] private InteractionUI interactionUI;
-    [SerializeField] private LayoutModeUI layoutModeUI;
+    [SerializeField]
+    private StoreBuildArea buildArea;
+
+    [Header("Player")]
+    [SerializeField]
+    private PlayerController playerController;
+
+    [SerializeField]
+    private PlayerInteraction playerInteraction;
+
+    [SerializeField]
+    private FurniturePlacementController
+        furniturePlacementController;
+
+    [Header("Cameras")]
+    [SerializeField]
+    private Camera playerCamera;
+
+    [SerializeField]
+    private LayoutCameraController
+        layoutCameraController;
+
+    [Header("UI")]
+    [SerializeField]
+    private InteractionUI interactionUI;
+
+    [SerializeField]
+    private LayoutModeUI layoutModeUI;
 
     private bool isActive;
     private bool navigationDirty;
 
-    public bool IsActive => isActive;
+    public bool IsActive =>
+        isActive;
 
-    public bool IsCameraManipulating => isActive && layoutCameraController != null && layoutCameraController.IsOrbiting;
+    public bool IsCameraManipulating =>
+        isActive &&
+        layoutCameraController != null &&
+        layoutCameraController.IsOrbiting;
 
     public Camera PlacementCamera
     {
         get
         {
-            if (isActive && layoutCameraController != null && layoutCameraController.LayoutCamera != null)
+            if (isActive &&
+                layoutCameraController != null &&
+                layoutCameraController.LayoutCamera != null)
             {
-                return layoutCameraController.LayoutCamera;
+                return
+                    layoutCameraController
+                        .LayoutCamera;
             }
 
             return playerCamera;
@@ -46,13 +74,18 @@ public class StoreLayoutModeController : MonoBehaviour
 
     private void Update()
     {
-        if (Keyboard.current == null || !Keyboard.current.lKey.wasPressedThisFrame)
+        if (Keyboard.current == null ||
+            !Keyboard.current
+                .lKey
+                .wasPressedThisFrame)
         {
             return;
         }
 
         if (Time.timeScale <= 0f)
+        {
             return;
+        }
 
         if (isActive)
         {
@@ -60,15 +93,19 @@ public class StoreLayoutModeController : MonoBehaviour
             return;
         }
 
-        if (Cursor.lockState != CursorLockMode.Locked)
+        if (Cursor.lockState !=
+            CursorLockMode.Locked)
         {
             return;
         }
 
-        TryEnterLayoutMode(out _);
+        TryEnterLayoutMode(
+            out _
+        );
     }
 
-    public bool TryEnterLayoutMode(out string reason)
+    public bool TryEnterLayoutMode(
+        out string reason)
     {
         if (isActive)
         {
@@ -78,30 +115,40 @@ public class StoreLayoutModeController : MonoBehaviour
 
         if (!HasValidConfiguration())
         {
-            reason = "Layout Mode is not configured.";
+            reason =
+                "Store Design Mode is not configured.";
 
             return false;
         }
 
-        if (Cursor.lockState != CursorLockMode.Locked || Time.timeScale <= 0f)
+        if (Cursor.lockState !=
+                CursorLockMode.Locked ||
+            Time.timeScale <= 0f)
         {
-            reason = "Close other menus before entering Layout Mode.";
+            reason =
+                "Close other menus before entering Store Design Mode.";
 
             return false;
         }
 
-        if (playerInteraction.HasAnythingHeld)
+        if (playerInteraction
+            .HasAnythingHeld)
         {
-            reason = "Put down what you're carrying before entering Layout Mode.";
+            reason =
+                "Put down what you're carrying before entering Store Design Mode.";
 
-            interactionUI.ShowPrompt(reason);
+            interactionUI.ShowPrompt(
+                reason
+            );
 
             return false;
         }
 
-        if (furniturePlacementController.IsPlacementActive)
+        if (furniturePlacementController
+            .IsPlacementActive)
         {
-            reason = "Finish or cancel the current furniture placement first.";
+            reason =
+                "Finish or cancel the current furniture placement first.";
 
             return false;
         }
@@ -109,42 +156,68 @@ public class StoreLayoutModeController : MonoBehaviour
         isActive = true;
         navigationDirty = false;
 
-        storeClock.SetLayoutSuspended(true);
+        storeClock.SetLayoutSuspended(
+            true
+        );
 
         customerFlow.SuspendForLayout();
 
         playerInteraction.enabled = false;
         playerController.enabled = false;
 
-        playerCamera.gameObject.SetActive(false);
+        playerCamera.gameObject.SetActive(
+            false
+        );
 
-        if (buildArea.TryGetAvailableBounds(StoreAreaType.SalesFloor, out Bounds salesFloorBounds))
+        Vector3 playerPosition =
+            playerController
+                .transform
+                .position;
+
+        if (buildArea.TryGetWorkingZoneBounds(
+                playerPosition,
+                out Bounds workingBounds,
+                out _))
         {
-            layoutCameraController.ActivateForBounds(salesFloorBounds);
+            layoutCameraController
+                .ActivateForWorkingBounds(
+                    workingBounds
+                );
         }
         else
         {
-            layoutCameraController.ActivateFrom(playerController.transform);
+            layoutCameraController
+                .ActivateFrom(
+                    playerController.transform
+                );
         }
 
         playerController.ReleaseCursor();
 
-        layoutModeUI.SetLayoutModeActive(true);
+        layoutModeUI.SetLayoutModeActive(
+            true
+        );
 
         interactionUI.HidePrompt();
 
         reason = "";
+
         return true;
     }
 
     public void ExitLayoutMode()
     {
         if (!isActive)
-            return;
-
-        if (furniturePlacementController != null && furniturePlacementController.IsPlacementActive)
         {
-            furniturePlacementController.CancelActivePlacement();
+            return;
+        }
+
+        if (furniturePlacementController != null &&
+            furniturePlacementController
+                .IsPlacementActive)
+        {
+            furniturePlacementController
+                .CancelActivePlacement();
         }
 
         if (navigationDirty)
@@ -156,13 +229,19 @@ public class StoreLayoutModeController : MonoBehaviour
 
         customerFlow.ResumeFromLayout();
 
-        storeClock.SetLayoutSuspended(false);
+        storeClock.SetLayoutSuspended(
+            false
+        );
 
-        layoutModeUI.SetLayoutModeActive(false);
+        layoutModeUI.SetLayoutModeActive(
+            false
+        );
 
         layoutCameraController.Deactivate();
 
-        playerCamera.gameObject.SetActive(true);
+        playerCamera.gameObject.SetActive(
+            true
+        );
 
         isActive = false;
         navigationDirty = false;
@@ -185,8 +264,17 @@ public class StoreLayoutModeController : MonoBehaviour
 
     private bool HasValidConfiguration()
     {
-        return storeClock != null && customerFlow != null && navMeshSurface != null && buildArea != null &&
-               playerController != null && playerInteraction != null && furniturePlacementController != null &&
-               playerCamera != null && layoutCameraController != null && interactionUI != null && layoutModeUI != null;
+        return
+            storeClock != null &&
+            customerFlow != null &&
+            navMeshSurface != null &&
+            buildArea != null &&
+            playerController != null &&
+            playerInteraction != null &&
+            furniturePlacementController != null &&
+            playerCamera != null &&
+            layoutCameraController != null &&
+            interactionUI != null &&
+            layoutModeUI != null;
     }
 }
