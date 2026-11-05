@@ -1,29 +1,28 @@
 # Little Market — System Architecture
 
-Current architecture after **Lesson 127 — Smooth Local-Region Store Design Camera**.
+Current architecture after **Lesson 128 — In-Mode Build Catalog**.
 
 ## Verified source of truth
 
-Lesson 127 was designed after verifying GitHub `main` at:
+Lesson 128 was designed after verifying GitHub `main` at:
 
-`9f5feaf89c095fc4080f841a2a00b8683b1563fd`
+`395cd6c28058233507180310dcf182b0ed886ea0`
 
 Commit:
 
-`Lesson 126 complete - structured and free placement modes`
+`Lesson 127 complete - smooth local store design camera`
 
 Re-verify newest `main` before every future lesson.
 
 ## Permanent lesson-format rule
 
-The full lesson implementation belongs in chat:
+The full implementation belongs in chat:
 - code
-- explanation
-- Inspector setup
-- UI setup
+- explanations
+- Inspector/UI setup
 - tests
 
-Only the required handoff `.md` files are created separately unless the user explicitly asks for another artifact.
+Only the required handoff `.md` files are created separately unless explicitly requested.
 
 ## Core principles
 
@@ -31,259 +30,299 @@ Only the required handoff `.md` files are created separately unless the user exp
 
 > The clock describes the store's day; it does not grant permission to manage the store.
 
-Store Design Mode is a central cozy-game loop.
+Store Design Mode is core cozy gameplay.
 
-## Lesson 127 camera goal
+## Lesson 128 Build Catalog architecture
 
-The Store Design camera should feel:
-- smooth but responsive
-- locally focused
-- scalable as the store expands
-- predictable when entering from different areas
-- capable of deliberate target framing later
+The Build Catalog is a NEW UI doorway over the EXISTING furniture business pipeline.
 
-The camera should NOT automatically zoom farther and farther out just because more store floor has been unlocked.
+It does NOT duplicate:
+- FurnitureCatalog
+- FurnitureShop
+- StoreEconomy spending
+- StoreFurnitureLayout preview creation
+- FurniturePlacementController confirmation/cancel
+- save persistence
 
-## Local working-region entry
+Authoritative purchase flow remains:
 
-`StoreBuildArea` now exposes:
+FurnitureDefinition
+-> FurnitureCatalog
+-> FurnitureShop.TryBeginPurchase
+-> StoreFurnitureLayout.TryCreatePreviewFurniture
+-> FurniturePlacementController.BeginPurchasedFurniturePreview
+-> FurnitureShop.TryCompletePurchase on confirmed placement
 
-`TryGetWorkingZoneBounds(Vector3 worldPoint, out Bounds bounds, out StoreAreaType areaType)`
+Money is still spent only when placement is confirmed.
+Cancel still costs nothing.
 
-It considers only currently available build zones.
+## Player flow
 
-Selection rules:
-1. if the player is inside an available build zone, that local zone wins
-2. if the player is not inside any zone, use the horizontally nearest available zone
-3. ties are broken by distance to zone center
+Inside Store Design Mode:
 
-This means:
-- entering Store Design Mode from the Sales Floor focuses the local Sales Floor build zone
-- entering from the Backroom focuses the local Backroom build zone
-- entering from a purchased expansion focuses that expansion zone
-- future store growth does not cause normal entry to frame all same-type floor space
+`B`
+-> toggle Build Catalog
 
-Current base zones:
-- Sales Floor: approximately `12 x 10 m`, centered around `(2, 0)` on XZ
-- Backroom: approximately `4 x 10 m`, centered around `(-6, 0)` on XZ
+Choose item:
+-> panel hides
+-> existing furniture preview begins
+-> player positions/rotates item
+-> confirm or cancel
+-> Build Catalog automatically reopens
 
-## Working distance
+The previously selected catalog category is preserved.
 
-`LayoutCameraController.ActivateForWorkingBounds(...)`:
-- uses the selected local zone center as camera pivot
-- uses fixed `workingDistance`
-- does NOT calculate a full-zone fit
+If the player selects/moves an existing piece of furniture while the catalog is open:
+-> catalog hides while placement is active
+-> catalog reopens after placement/cancel
 
-Initial value:
-- Working Distance `9`
+This keeps the floor visible while manipulating objects.
 
-This is intentionally much closer than the previous full-SalesFloor framing distance.
+## Catalog categories
 
-Player can:
-- zoom out manually for broader context
-- zoom in for detail
-- pan to adjacent regions
+New enum:
 
-## Future target framing API
+`FurnitureCatalogCategory`
 
-`LayoutCameraController` keeps/introduces:
-- `ActivateForBounds(Bounds)` — immediate full fit when activating
-- `FocusWorkingBounds(Bounds)` — smooth focus at working distance
-- `FrameBounds(Bounds)` — smooth focus + fit target bounds
+Current values:
+- Fixtures
+- Storage
+- Refrigeration
+- Checkout
+- Decor
+- LightingAndSigns
 
-`FrameBounds()` is intended for future systems such as:
-- selecting a locked expansion
-- jump-to-object
-- catalog placement focus
-- copy/eyedrop focus if ever useful
+Current UI exposes only categories that have actual content:
+- All
+- Fixtures
+- Storage
+- Refrigeration
 
-Normal Store Design entry should use `ActivateForWorkingBounds`, not full fitting.
+Do not show empty Checkout/Decor/Lighting tabs yet.
 
-## Camera smoothing model
+Current definitions:
+- Standard Shelf -> Fixtures
+- Refrigerated Display -> Refrigeration
+- Ambient Storage Rack -> Storage
+- Chilled Storage Rack -> Storage
 
-The camera separates:
-- current state
-- target state
+Future Lesson 129 will activate Decor/Lighting categories when content exists.
 
-State:
-- pivot position
-- yaw
-- pitch
-- distance
+## BuildCatalogUI
 
-Input updates target state.
-Current state smoothly approaches the target.
+New component on `GameUI`.
 
-This produces polish without inertial overshoot.
+Responsibilities:
+- listens for B only while Store Design Mode is active
+- opens/closes `BuildCatalogPanel`
+- filters existing FurnitureShop catalog
+- spawns existing `PF_FurnitureCatalogRow`
+- preserves active filter
+- asks FurnitureShop whether purchase may begin
+- starts FurnitureShop purchase
+- hides during active furniture placement
+- reopens after placement/cancel
+- never owns purchase/economy logic
 
-### Pan
+References:
+- BuildCatalogPanel
+- BuildCatalogStatusText
+- BuildCatalogCloseButton
+- four current category buttons
+- BuildCatalogScrollView
+- BuildCatalogListContent
+- PF_FurnitureCatalogRow
+- StoreLayoutModeController
+- FurnitureShop
+- FurniturePlacementController
 
-WASD moves the target pivot.
+## Build Catalog UI
 
-Current pivot uses `Vector3.SmoothDamp`.
+Hierarchy:
 
-Initial:
-- Pan Speed `7`
-- Boost `2`
-- Pan Smooth Time `.08`
+GameUI
+└── LayoutModeFrame
+├── PlacementModeStatusText
+├── ...
+├── LayoutControlsPanel
+└── BuildCatalogPanel
+├── BuildCatalogTitleText
+├── BuildCatalogCloseButton
+├── BuildCatalogCategoryBar
+│   ├── AllCategoryButton
+│   ├── FixturesCategoryButton
+│   ├── StorageCategoryButton
+│   └── RefrigerationCategoryButton
+├── BuildCatalogScrollView
+│   └── Viewport
+│       └── BuildCatalogListContent
+└── BuildCatalogStatusText
 
-Shift supports left or right Shift.
+Panel:
+- anchor `(0, .5)`
+- pivot `(0, .5)`
+- position `(28, 0)`
+- size `700 x 800`
+- background `#FFF4DEEB`
+- Raycast Target ON
 
-### Orbit
+This occupies the left side while keeping most of the store visible.
 
-MMB mouse movement updates target yaw/pitch.
+Title:
+- position `(24,-20)`
+- `420 x 40`
+- font 30
+- left/middle
+- `#594640FF`
+- Raycast OFF
 
-Current yaw/pitch use SmoothDamp / SmoothDampAngle.
+Close:
+- top-right
+- position `(-20,-18)`
+- `44 x 44`
 
-Initial:
-- Yaw sensitivity `.12`
-- Pitch sensitivity `.10`
-- Orbit Smooth Time `.06`
+Category bar:
+- left/right 24
+- top 74
+- height 42
+- HorizontalLayoutGroup
+- spacing 8
+- equal-width category buttons
 
-No rotational inertia is added; the camera simply catches the input target smoothly.
+Category selected state:
+- active button disabled
+- disabled/selected color `#BFE3CFFF`
+- label gains `✓`
+- selection is not communicated by color alone
 
-### Zoom
+Scroll:
+- left/right 24
+- top 130
+- height 550
+- duplicate existing FurnitureScrollView structure
+- content uses existing VerticalLayoutGroup / ContentSizeFitter
+- row prefab stays `PF_FurnitureCatalogRow`
 
-Wheel changes target distance.
-Current distance smooths toward it.
+Status:
+- bottom
+- left/right 24
+- bottom 20
+- height 46
+- font 16
+- left/middle
+- `#7A6860FF`
+- Raycast OFF
 
-Initial:
-- Scroll Zoom Sensitivity `2`
-- Zoom Smooth Time `.10`
+Default status:
+`Choose an item to place. Payment happens only when placement is confirmed.`
 
-The user's tuned zoom input scale `2` is preserved.
+## Row prefab cleanup
 
-### Time source
+`PF_FurnitureCatalogRow` remains shared between:
+- store computer furniture tab
+- Store Design Build Catalog
 
-Camera smoothing uses `Time.unscaledDeltaTime`.
+Do not fork it.
 
-The store clock being suspended does not affect camera feel.
+Text Raycast Target should be OFF for:
+- FurnitureNameText
+- DescriptionText
+- PriceText
+- BuyButtonText
 
-## Current LayoutCameraController Inspector values
+Root row Image remains Raycast ON so world selection does not leak through the catalog.
 
-Camera:
-- Layout Camera = existing child LayoutCamera
+## Controls
 
-Working View:
-- Working Distance `9`
+Layout controls panel grows from `360 x 190` to `360 x 214`.
 
-Overview / Target Framing:
-- Overview Pitch `62`
-- Overview Yaw `0`
-- Overview Padding `1.08`
-- Fallback Distance `4`
+Text:
 
-Orbit Limits:
-- Minimum Pitch `15`
-- Maximum Pitch `88`
-- Minimum Distance `4`
-- Maximum Distance `32`
+STORE DESIGN CONTROLS
+B   Build Catalog
+LMB   Select / Place
+R / T   Rotate      G   Placement Mode
+Ctrl   Temporary Opposite Mode
+MMB   Orbit         Wheel   Zoom
+WASD   Pan          Shift   Faster
+RMB / Esc   Cancel  L   Exit
 
-Movement:
-- Pan Speed `7`
-- Boost Multiplier `2`
-- Pan Smooth Time `.08`
+## Camera
 
-Mouse:
-- Yaw Sensitivity `.12`
-- Pitch Sensitivity `.10`
-- Scroll Zoom Sensitivity `2`
-- Orbit Smooth Time `.06`
-- Zoom Smooth Time `.10`
+Unchanged from Lesson 127:
+- Working Distance 9
+- Overview Pitch 62
+- Overview Yaw 0
+- Padding 1.08
+- Fallback 4
+- Min/Max pitch 15/88
+- Min/Max distance 4/32
+- Pan 7
+- Boost 2
+- Pan Smooth .08
+- Yaw .12
+- Pitch .10
+- Scroll 2
+- Orbit Smooth .06
+- Zoom Smooth .10
 
-## Placement behavior
+## Placement
 
 Unchanged from Lesson 126.
 
 Structured:
-- `.5m` grid
+- .5m grid
 - magnetic sockets
 - cardinal rotation
 
 Free:
-- continuous floor position
+- raw position
 - no magnet
 - continuous R/T rotation
 
-G:
-- persistent default
+G default; Ctrl temporary inverse.
 
-Ctrl:
-- temporary inverse
-
-Camera smoothing must not affect placement validation or selected-furniture transforms.
-
-## Placement validation
+## Save / management
 
 Unchanged:
-1. body inside permitted build area
-2. access inside permitted build area
-3. body vs fixed clearance
-4. access vs fixed clearance
-5. body vs other furniture access
-6. body vs blocking colliders
-7. access vs blocking colliders
-
-## Save / expansion rules
-
-Unchanged:
-- time/customer state does not gate saving or expansion purchase
-- live customer inventory is reconciled in save snapshots
-- end-of-day completion is idempotent
+- time/customer state never gates design, expansions, saving
 - save schema remains v2
-
-## Deliberately not implemented in Lesson 127
-
-- edge scrolling
-- camera following the selected furniture
-- camera bounds/clamping
-- minimap
-- top-down toggle
-- exterior build zones
-- world-space expansion selection
-
-These should only be added if playtesting demonstrates a need.
+- end-of-day processing idempotent
 
 ## Roadmap
 
-### Lesson 128 — In-Mode Build Catalog
-Reuse the existing FurnitureCatalog/FurnitureShop authority from Store Design Mode.
+### Lesson 129 — Decorations Foundation
 
 Goals:
-- open catalog directly while designing
-- categories
-- preview-first purchasing
-- no duplicate purchase/business logic
-- computer remains alternate entry point
-
-### Lesson 129 — Decorations Foundation
+- extend same FurnitureDefinition / FurnitureCatalog pipeline
+- add decorative placeables without inventing a parallel DecorationDefinition
+- decor may have no access footprint and/or no nav blocker when appropriate
+- activate Decor and Lighting & Signs catalog categories as content appears
+- establish soft Ambience direction without hard decoration chores
 
 ### Lesson 130 — World-Space Expansion Preview & Purchase
 
 Then:
-- copy/eyedrop
+- copy / eyedrop
 - repeat placement
 - selling/refunds
 - variants/colors
 - Ambience
 - autosave
-- exact carry-state persistence
-- advanced fixtures
-- optional camera refinements if playtesting requests them
+- exact carry persistence
+- advanced fixture/socket semantics
 
 ## Permanent engineering/UX rules
 
 - GitHub main first
-- exact current source and scene
+- exact current source/scene
 - preserve tuned Inspector values
-- lesson implementation stays entirely in chat
+- one business authority, multiple UI entry points
+- lesson implementation stays in chat
 - only handoff `.md` files separate
-- research meaningful player-facing UX/mechanics
+- research meaningful UX decisions
 - player playtesting drives iteration
 - time is simulation, not permission
-- save/load must be safe/idempotent
-- one business authority
-- no color-only critical information
-- placement/navigation/presentation/persistence remain separate
+- save/load idempotent
+- no color-only critical state
 - avoid god classes
-- end lessons with architecture + continuation `.md`

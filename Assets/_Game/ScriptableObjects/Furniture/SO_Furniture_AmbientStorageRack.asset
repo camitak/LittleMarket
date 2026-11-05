@@ -15,6 +15,7 @@ MonoBehaviour:
   furnitureID: storage_rack_ambient
   displayName: Ambient Storage Rack
   description: "Backroom rack \u2022 8 ambient storage bays."
+  catalogCategory: 1
   purchasePrice: 60
   prefab: {fileID: 3259921114249044854, guid: 95bfb5590d5914a419c06f3d376bd716, type: 3}
   placementArea: 1

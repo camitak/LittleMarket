@@ -15,6 +15,7 @@ MonoBehaviour:
   furnitureID: storage_rack_chilled
   displayName: Chilled Storage Rack
   description: "Backroom rack \u2022 8 chilled storage bays."
+  catalogCategory: 1
   purchasePrice: 100
   prefab: {fileID: 3259921114249044854, guid: 79a7874d515a3854e8d9a337de87d144, type: 3}
   placementArea: 1
