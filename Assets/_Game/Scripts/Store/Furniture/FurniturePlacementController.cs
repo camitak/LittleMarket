@@ -211,8 +211,9 @@ public class FurniturePlacementController : MonoBehaviour
             return;
         }
 
-        bool cancelPressed = Keyboard.current.escapeKey.wasPressedThisFrame ||
-                             Keyboard.current.qKey.wasPressedThisFrame || Mouse.current.rightButton.wasPressedThisFrame;
+        bool cancelPressed =
+            Keyboard.current.qKey.wasPressedThisFrame ||
+            Mouse.current.rightButton.wasPressedThisFrame;
 
         if (cancelPressed)
         {

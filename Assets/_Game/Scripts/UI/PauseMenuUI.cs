@@ -50,7 +50,7 @@ public class PauseMenuUI : MonoBehaviour
 
         if (!Keyboard.current.escapeKey.wasPressedThisFrame) return;
 
-        if (layoutMode != null && layoutMode.IsActive)
+        if (layoutMode != null && (layoutMode.IsActive || layoutMode.ConsumedEscapeThisFrame))
         {
             return;
         }
@@ -88,7 +88,11 @@ public class PauseMenuUI : MonoBehaviour
             return;
         }
 
-        if (layoutMode != null && layoutMode.IsActive)
+        if (layoutMode != null &&
+            (
+                layoutMode.IsActive ||
+                layoutMode.ConsumedEscapeThisFrame
+            ))
         {
             return;
         }

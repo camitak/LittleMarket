@@ -3406,7 +3406,7 @@ MonoBehaviour:
 
     WASD   Pan          Shift   Faster
 
-    RMB / Esc   Cancel  L   Exit'
+    RMB   Cancel        Esc   Back      L   Exit'
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
   m_sharedMaterial: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
@@ -14125,6 +14125,7 @@ MonoBehaviour:
   layoutCameraController: {fileID: 25438933}
   interactionUI: {fileID: 766562198}
   layoutModeUI: {fileID: 766562213}
+  buildCatalogUI: {fileID: 766562214}
 --- !u!114 &1117834549
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -17682,11 +17683,11 @@ MonoBehaviour:
   m_Content: {fileID: 1738110531}
   m_Horizontal: 0
   m_Vertical: 1
-  m_MovementType: 1
+  m_MovementType: 2
   m_Elasticity: 0.1
-  m_Inertia: 1
+  m_Inertia: 0
   m_DecelerationRate: 0.135
-  m_ScrollSensitivity: 30
+  m_ScrollSensitivity: 12
   m_Viewport: {fileID: 695475494}
   m_HorizontalScrollbar: {fileID: 0}
   m_VerticalScrollbar: {fileID: 0}
