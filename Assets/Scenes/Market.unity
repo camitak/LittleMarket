@@ -8885,6 +8885,7 @@ MonoBehaviour:
   loadGameButton: {fileID: 1201759786}
   saveStatusText: {fileID: 1437222153}
   saveManager: {fileID: 1117834536}
+  layoutMode: {fileID: 1117834548}
   orderingUI: {fileID: 766562199}
   endOfDayUI: {fileID: 766562201}
   managerBookUI: {fileID: 766562210}
@@ -9045,6 +9046,7 @@ MonoBehaviour:
   pauseMenuUI: {fileID: 766562202}
   endOfDayUI: {fileID: 766562201}
   interactionUI: {fileID: 766562198}
+  layoutMode: {fileID: 1117834548}
   playerController: {fileID: 1349577614}
   playerInteraction: {fileID: 1349577615}
 --- !u!114 &766562211

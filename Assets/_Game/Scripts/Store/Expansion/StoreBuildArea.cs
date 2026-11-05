@@ -122,8 +122,48 @@ public class StoreBuildArea : MonoBehaviour
         out Bounds bounds,
         out StoreAreaType areaType)
     {
+        return TryGetWorkingZoneBoundsInternal(
+            worldPoint,
+            null,
+            out bounds,
+            out areaType
+        );
+    }
+
+    public bool TryGetWorkingZoneBounds(
+        Vector3 worldPoint,
+        StoreAreaType requiredArea,
+        out Bounds bounds)
+    {
+        return TryGetWorkingZoneBoundsInternal(
+            worldPoint,
+            requiredArea,
+            out bounds,
+            out _
+        );
+    }
+
+    public bool IsPointInsideAvailableArea(
+        Vector3 worldPoint,
+        StoreAreaType requiredArea)
+    {
+        return ContainsHorizontalPoint(
+            worldPoint,
+            requiredArea
+        );
+    }
+
+    private bool TryGetWorkingZoneBoundsInternal(
+        Vector3 worldPoint,
+        StoreAreaType? requiredArea,
+        out Bounds bounds,
+        out StoreAreaType areaType)
+    {
         bounds = default;
-        areaType = StoreAreaType.SalesFloor;
+
+        areaType =
+            requiredArea ??
+            StoreAreaType.SalesFloor;
 
         if (buildZones == null)
         {
@@ -144,6 +184,13 @@ public class StoreBuildArea : MonoBehaviour
         {
             if (zone == null ||
                 !zone.IsAvailable)
+            {
+                continue;
+            }
+
+            if (requiredArea.HasValue &&
+                zone.AreaType !=
+                requiredArea.Value)
             {
                 continue;
             }

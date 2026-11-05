@@ -1,12 +1,10 @@
-
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.UI;
 
 public class ManagerBookUI : MonoBehaviour
 {
-    [Header("UI")]
-    [SerializeField] private GameObject managerBookOverlay;
+    [Header("UI")] [SerializeField] private GameObject managerBookOverlay;
     [SerializeField] private GameObject todayPage;
     [SerializeField] private GameObject stockPage;
     [SerializeField] private GameObject cataloguePage;
@@ -18,16 +16,15 @@ public class ManagerBookUI : MonoBehaviour
     [SerializeField] private Button reportsButton;
     [SerializeField] private Button closeButton;
 
-    [Header("Other UI")]
-    [SerializeField] private OrderingUI orderingUI;
+    [Header("Other UI")] [SerializeField] private OrderingUI orderingUI;
     [SerializeField] private ProductCatalogueUI productCatalogueUI;
     [SerializeField] private ReportsUI reportsUI;
     [SerializeField] private PauseMenuUI pauseMenuUI;
     [SerializeField] private EndOfDayUI endOfDayUI;
     [SerializeField] private InteractionUI interactionUI;
+    [SerializeField] private StoreLayoutModeController layoutMode;
 
-    [Header("Player")]
-    [SerializeField] private PlayerController playerController;
+    [Header("Player")] [SerializeField] private PlayerController playerController;
     [SerializeField] private PlayerInteraction playerInteraction;
 
     private bool isOpen;
@@ -77,10 +74,19 @@ public class ManagerBookUI : MonoBehaviour
     public void Open()
     {
         if (isOpen || managerBookOverlay == null)
+        {
             return;
+        }
+
+        if (layoutMode != null && layoutMode.IsActive)
+        {
+            return;
+        }
 
         if (orderingUI != null && orderingUI.IsOpen)
+        {
             return;
+        }
 
         if (pauseMenuUI != null && pauseMenuUI.IsOpen)
             return;

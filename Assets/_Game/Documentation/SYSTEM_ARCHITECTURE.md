@@ -1,258 +1,54 @@
 # Little Market — System Architecture
 
-Current architecture after **Lesson 128 — In-Mode Build Catalog**.
+Current architecture after **Lesson 129 — Store Design Input Ownership & Placement-Area Focus**.
 
 ## Verified source of truth
 
-Lesson 128 was designed after verifying GitHub `main` at:
+Lesson 129 was designed after verifying GitHub `main` at:
 
-`395cd6c28058233507180310dcf182b0ed886ea0`
+`4c764027aa5a5f60f2efed59095d12597e0adf49`
 
 Commit:
 
-`Lesson 127 complete - smooth local store design camera`
+`Lesson 128 complete - in-mode build catalog`
 
 Re-verify newest `main` before every future lesson.
 
-## Permanent lesson-format rule
+## Why Lesson 129 became a correction/polish pass
 
-The full implementation belongs in chat:
-- code
-- explanations
-- Inspector/UI setup
-- tests
+Player testing of Lesson 128 found:
+- scrolling the Build Catalog also zoomed the Store Design camera
+- buying Backroom furniture while viewing Sales Floor created the preview in the correct area but left the camera elsewhere, making the purchase look broken
+- LiberationSans SDF does not contain U+2713 CHECK MARK, producing a TMP fallback warning
+- audit found Pause Menu and Manager Book could still open while Store Design Mode owned player/cursor/time state, creating conflicting mode ownership
 
-Only the required handoff `.md` files are created separately unless explicitly requested.
+These issues are corrected before proceeding to decorations.
 
-## Core principles
+## Input ownership principle
 
-> The building provides space; the player decides how the grocery operates inside that space.
+When the pointer is over interactive UI:
+- UI owns mouse wheel
+- UI owns MMB
+- world selection/placement already yields to UI
 
-> The clock describes the store's day; it does not grant permission to manage the store.
+Keyboard camera pan remains available while Build Catalog is open because it does not conflict with ScrollRect and is useful while browsing.
 
-Store Design Mode is core cozy gameplay.
+## Camera/UI arbitration
 
-## Lesson 128 Build Catalog architecture
+`LayoutCameraController` now uses EventSystem pointer-over-UI detection.
 
-The Build Catalog is a NEW UI doorway over the EXISTING furniture business pipeline.
+When pointer is over UI:
+- wheel does NOT change camera target distance
+- MMB does NOT orbit
 
-It does NOT duplicate:
-- FurnitureCatalog
-- FurnitureShop
-- StoreEconomy spending
-- StoreFurnitureLayout preview creation
-- FurniturePlacementController confirmation/cancel
-- save persistence
+When pointer is outside UI:
+- wheel zoom remains unchanged
+- MMB orbit remains unchanged
 
-Authoritative purchase flow remains:
-
-FurnitureDefinition
--> FurnitureCatalog
--> FurnitureShop.TryBeginPurchase
--> StoreFurnitureLayout.TryCreatePreviewFurniture
--> FurniturePlacementController.BeginPurchasedFurniturePreview
--> FurnitureShop.TryCompletePurchase on confirmed placement
-
-Money is still spent only when placement is confirmed.
-Cancel still costs nothing.
-
-## Player flow
-
-Inside Store Design Mode:
-
-`B`
--> toggle Build Catalog
-
-Choose item:
--> panel hides
--> existing furniture preview begins
--> player positions/rotates item
--> confirm or cancel
--> Build Catalog automatically reopens
-
-The previously selected catalog category is preserved.
-
-If the player selects/moves an existing piece of furniture while the catalog is open:
--> catalog hides while placement is active
--> catalog reopens after placement/cancel
-
-This keeps the floor visible while manipulating objects.
-
-## Catalog categories
-
-New enum:
-
-`FurnitureCatalogCategory`
-
-Current values:
-- Fixtures
-- Storage
-- Refrigeration
-- Checkout
-- Decor
-- LightingAndSigns
-
-Current UI exposes only categories that have actual content:
-- All
-- Fixtures
-- Storage
-- Refrigeration
-
-Do not show empty Checkout/Decor/Lighting tabs yet.
-
-Current definitions:
-- Standard Shelf -> Fixtures
-- Refrigerated Display -> Refrigeration
-- Ambient Storage Rack -> Storage
-- Chilled Storage Rack -> Storage
-
-Future Lesson 129 will activate Decor/Lighting categories when content exists.
-
-## BuildCatalogUI
-
-New component on `GameUI`.
-
-Responsibilities:
-- listens for B only while Store Design Mode is active
-- opens/closes `BuildCatalogPanel`
-- filters existing FurnitureShop catalog
-- spawns existing `PF_FurnitureCatalogRow`
-- preserves active filter
-- asks FurnitureShop whether purchase may begin
-- starts FurnitureShop purchase
-- hides during active furniture placement
-- reopens after placement/cancel
-- never owns purchase/economy logic
-
-References:
-- BuildCatalogPanel
-- BuildCatalogStatusText
-- BuildCatalogCloseButton
-- four current category buttons
-- BuildCatalogScrollView
-- BuildCatalogListContent
-- PF_FurnitureCatalogRow
-- StoreLayoutModeController
-- FurnitureShop
-- FurniturePlacementController
-
-## Build Catalog UI
-
-Hierarchy:
-
-GameUI
-└── LayoutModeFrame
-├── PlacementModeStatusText
-├── ...
-├── LayoutControlsPanel
-└── BuildCatalogPanel
-├── BuildCatalogTitleText
-├── BuildCatalogCloseButton
-├── BuildCatalogCategoryBar
-│   ├── AllCategoryButton
-│   ├── FixturesCategoryButton
-│   ├── StorageCategoryButton
-│   └── RefrigerationCategoryButton
-├── BuildCatalogScrollView
-│   └── Viewport
-│       └── BuildCatalogListContent
-└── BuildCatalogStatusText
-
-Panel:
-- anchor `(0, .5)`
-- pivot `(0, .5)`
-- position `(28, 0)`
-- size `700 x 800`
-- background `#FFF4DEEB`
-- Raycast Target ON
-
-This occupies the left side while keeping most of the store visible.
-
-Title:
-- position `(24,-20)`
-- `420 x 40`
-- font 30
-- left/middle
-- `#594640FF`
-- Raycast OFF
-
-Close:
-- top-right
-- position `(-20,-18)`
-- `44 x 44`
-
-Category bar:
-- left/right 24
-- top 74
-- height 42
-- HorizontalLayoutGroup
-- spacing 8
-- equal-width category buttons
-
-Category selected state:
-- active button disabled
-- disabled/selected color `#BFE3CFFF`
-- label gains `✓`
-- selection is not communicated by color alone
-
-Scroll:
-- left/right 24
-- top 130
-- height 550
-- duplicate existing FurnitureScrollView structure
-- content uses existing VerticalLayoutGroup / ContentSizeFitter
-- row prefab stays `PF_FurnitureCatalogRow`
-
-Status:
-- bottom
-- left/right 24
-- bottom 20
-- height 46
-- font 16
-- left/middle
-- `#7A6860FF`
-- Raycast OFF
-
-Default status:
-`Choose an item to place. Payment happens only when placement is confirmed.`
-
-## Row prefab cleanup
-
-`PF_FurnitureCatalogRow` remains shared between:
-- store computer furniture tab
-- Store Design Build Catalog
-
-Do not fork it.
-
-Text Raycast Target should be OFF for:
-- FurnitureNameText
-- DescriptionText
-- PriceText
-- BuyButtonText
-
-Root row Image remains Raycast ON so world selection does not leak through the catalog.
-
-## Controls
-
-Layout controls panel grows from `360 x 190` to `360 x 214`.
-
-Text:
-
-STORE DESIGN CONTROLS
-B   Build Catalog
-LMB   Select / Place
-R / T   Rotate      G   Placement Mode
-Ctrl   Temporary Opposite Mode
-MMB   Orbit         Wheel   Zoom
-WASD   Pan          Shift   Faster
-RMB / Esc   Cancel  L   Exit
-
-## Camera
-
-Unchanged from Lesson 127:
+All camera tuning values remain:
 - Working Distance 9
-- Overview Pitch 62
-- Overview Yaw 0
+- Pitch 62
+- Yaw 0
 - Padding 1.08
 - Fallback 4
 - Min/Max pitch 15/88
@@ -266,44 +62,162 @@ Unchanged from Lesson 127:
 - Orbit Smooth .06
 - Zoom Smooth .10
 
+## Placement-area camera routing
+
+FurnitureDefinition.PlacementArea remains authoritative.
+
+Before FurnitureShop creates a purchased preview:
+1. ensure Store Design Mode is active
+2. ask StoreLayoutModeController to focus the furniture's PlacementArea
+3. if current camera pivot is already inside an available zone of that area, do not recenter
+4. otherwise find the nearest available zone of the required area relative to current camera pivot
+5. immediately focus that zone at working distance
+6. create/start preview
+
+This means:
+- buying Storage furniture from Sales Floor jumps to Backroom before preview starts
+- buying SalesFloor furniture while viewing Backroom jumps to Sales Floor
+- repeated purchases in the same area do not keep re-centering the camera
+- computer furniture purchases use the exact same routing because the behavior lives in FurnitureShop / StoreLayoutModeController, not BuildCatalogUI
+
+## StoreBuildArea additions
+
+New overload:
+
+`TryGetWorkingZoneBounds(Vector3 worldPoint, StoreAreaType requiredArea, out Bounds bounds)`
+
+It selects the nearest available local zone matching the requested area.
+
+New query:
+
+`IsPointInsideAvailableArea(Vector3 worldPoint, StoreAreaType requiredArea)`
+
+Used to avoid unnecessary camera re-centering when already working in the correct area.
+
+## Layout camera API
+
+New:
+- `PivotPosition`
+- `FocusWorkingBoundsImmediate(Bounds)`
+
+Immediate focus preserves current yaw/pitch and resets distance to Working Distance.
+
+This is used for area transitions before starting a purchase preview so the furniture appears in the visible workspace immediately.
+
+Existing future APIs remain:
+- FocusWorkingBounds
+- FrameBounds
+
+## Build Catalog active marker
+
+The unsupported:
+`✓ ALL`
+
+is replaced with ASCII-only:
+`> ALL`
+
+Same for other active categories.
+
+Active category remains communicated by:
+- text prefix `>`
+- selected/disabled button state/color
+
+No font fallback warning and no color-only critical state.
+
+## Build Catalog Escape behavior
+
+When catalog is open and no placement is active:
+- Escape closes catalog
+
+During furniture placement:
+- Escape remains owned by FurniturePlacementController and cancels placement
+- catalog then reopens as before
+
+## Cross-mode ownership
+
+Store Design Mode owns:
+- player enabled/disabled state
+- cursor state
+- customer suspension
+- store-clock suspension
+- layout camera
+
+Therefore generic full-screen modal systems must not independently open while Store Design is active.
+
+### PauseMenuUI
+Now references StoreLayoutModeController.
+
+While Store Design is active:
+- Escape does not open Pause Menu
+- PauseMenuUI.Open() refuses to open
+
+### ManagerBookUI
+Now references StoreLayoutModeController.
+
+While Store Design is active:
+- M does not open Manager Book
+- ManagerBookUI.Open() refuses to open
+
+Ordering terminal cannot normally open because PlayerInteraction is disabled in Store Design.
+EndOfDay cannot naturally appear while StoreClock is suspended.
+
+## Store Design Escape hierarchy
+
+When Build Catalog is open:
+- Escape closes catalog
+
+When placement is active:
+- Escape cancels placement
+
+When neither is active:
+- Escape does not open Pause while Store Design is active
+
+Exit Store Design:
+- L
+
+This avoids one key performing incompatible actions across stacked states.
+
 ## Placement
 
-Unchanged from Lesson 126.
-
+Unchanged:
 Structured:
 - .5m grid
 - magnetic sockets
-- cardinal rotation
+- cardinal R/T
 
 Free:
 - raw position
 - no magnet
-- continuous R/T rotation
+- continuous R/T
 
-G default; Ctrl temporary inverse.
+G toggles default.
+Ctrl temporarily inverts.
 
-## Save / management
+## Catalog / purchase business rules
 
 Unchanged:
-- time/customer state never gates design, expansions, saving
-- save schema remains v2
-- end-of-day processing idempotent
+- one FurnitureShop authority
+- preview first
+- no spend until confirmation
+- cancel costs nothing
+- Build Catalog and Store Computer are two UI entry points into the same authority
 
-## Roadmap
+## Save
 
-### Lesson 129 — Decorations Foundation
+Unchanged:
+- schema v2
+- time/customer state does not gate save
+- end-of-day completion idempotent
 
-Goals:
-- extend same FurnitureDefinition / FurnitureCatalog pipeline
-- add decorative placeables without inventing a parallel DecorationDefinition
-- decor may have no access footprint and/or no nav blocker when appropriate
-- activate Decor and Lighting & Signs catalog categories as content appears
-- establish soft Ambience direction without hard decoration chores
+## Roadmap revision
 
-### Lesson 130 — World-Space Expansion Preview & Purchase
+### Lesson 130 — Decorations Foundation
+Lesson 129 was used for necessary Store Design polish before adding more content.
+
+### Lesson 131 — World-Space Expansion Preview & Purchase
 
 Then:
-- copy / eyedrop
+- copy/eyedrop
 - repeat placement
 - selling/refunds
 - variants/colors
@@ -315,14 +229,15 @@ Then:
 ## Permanent engineering/UX rules
 
 - GitHub main first
-- exact current source/scene
-- preserve tuned Inspector values
+- inspect exact current source and scene
+- preserve user-tuned values
+- player testing can reorder roadmap
 - one business authority, multiple UI entry points
+- modal/input ownership must be explicit
+- mouse input over UI must not leak into world/camera controls
 - lesson implementation stays in chat
 - only handoff `.md` files separate
-- research meaningful UX decisions
-- player playtesting drives iteration
 - time is simulation, not permission
 - save/load idempotent
-- no color-only critical state
+- no color-only critical states
 - avoid god classes

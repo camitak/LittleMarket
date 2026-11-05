@@ -6,54 +6,28 @@ using UnityEngine.UI;
 public class PauseMenuUI : MonoBehaviour
 {
     [Header("UI")] [SerializeField] private GameObject pauseOverlay;
-
     [SerializeField] private Button resumeButton;
-
     [SerializeField] private Button saveGameButton;
-
     [SerializeField] private Button loadGameButton;
-
     [SerializeField] private TMP_Text saveStatusText;
 
     [Header("Systems")] [SerializeField] private SaveManager saveManager;
-
+    [SerializeField] private StoreLayoutModeController layoutMode;
     [SerializeField] private OrderingUI orderingUI;
-
     [SerializeField] private EndOfDayUI endOfDayUI;
-    
     [SerializeField] private ManagerBookUI managerBookUI;
-
     [SerializeField] private InteractionUI interactionUI;
 
     [Header("Player")] [SerializeField] private PlayerController playerController;
-
     [SerializeField] private PlayerInteraction playerInteraction;
 
     private bool isOpen;
 
-    private static readonly Color32 SuccessColor =
-        new(
-            111,
-            207,
-            151,
-            255
-        );
+    private static readonly Color32 SuccessColor = new(111, 207, 151, 255);
 
-    private static readonly Color32 FailureColor =
-        new(
-            196,
-            107,
-            107,
-            255
-        );
+    private static readonly Color32 FailureColor = new(196, 107, 107, 255);
 
-    private static readonly Color32 NeutralColor =
-        new(
-            122,
-            104,
-            96,
-            255
-        );
+    private static readonly Color32 NeutralColor = new(122, 104, 96, 255);
 
     public bool IsOpen => isOpen;
 
@@ -76,9 +50,14 @@ public class PauseMenuUI : MonoBehaviour
 
         if (!Keyboard.current.escapeKey.wasPressedThisFrame) return;
 
+        if (layoutMode != null && layoutMode.IsActive)
+        {
+            return;
+        }
+
         if (endOfDayUI != null && endOfDayUI.IsOpen)
             return;
-        
+
         if (managerBookUI != null && managerBookUI.IsOpen)
         {
             managerBookUI.Close();
@@ -104,14 +83,22 @@ public class PauseMenuUI : MonoBehaviour
 
     public void Open()
     {
-        if (isOpen) return;
+        if (isOpen)
+        {
+            return;
+        }
+
+        if (layoutMode != null && layoutMode.IsActive)
+        {
+            return;
+        }
 
         if (endOfDayUI != null && endOfDayUI.IsOpen)
             return;
-        
+
         if (managerBookUI != null && managerBookUI.IsOpen)
             return;
-        
+
         isOpen = true;
 
         saveStatusText.text = "";
@@ -160,20 +147,14 @@ public class PauseMenuUI : MonoBehaviour
     {
         if (saveManager == null)
         {
-            ShowStatus(
-                "Save system is not configured.",
-                false
-            );
+            ShowStatus("Save system is not configured.", false);
 
             return;
         }
 
         var succeeded = saveManager.SaveGame();
 
-        ShowStatus(
-            saveManager.LastOperationMessage,
-            succeeded
-        );
+        ShowStatus(saveManager.LastOperationMessage, succeeded);
 
         RefreshLoadButton();
     }
@@ -182,35 +163,23 @@ public class PauseMenuUI : MonoBehaviour
     {
         if (saveManager == null)
         {
-            ShowStatus(
-                "Save system is not configured.",
-                false
-            );
+            ShowStatus("Save system is not configured.", false);
 
             return;
         }
 
         var succeeded = saveManager.LoadGame();
 
-        ShowStatus(
-            saveManager.LastOperationMessage,
-            succeeded
-        );
+        ShowStatus(saveManager.LastOperationMessage, succeeded);
 
         RefreshLoadButton();
     }
 
-    private void ShowStatus(
-        string message,
-        bool success
-    )
+    private void ShowStatus(string message, bool success)
     {
         saveStatusText.text = message;
 
-        saveStatusText.color =
-            success
-                ? SuccessColor
-                : FailureColor;
+        saveStatusText.color = success ? SuccessColor : FailureColor;
     }
 
     private void RefreshLoadButton()
@@ -221,6 +190,7 @@ public class PauseMenuUI : MonoBehaviour
 
             return;
         }
+
         loadGameButton.interactable = saveManager.HasSaveFile;
     }
 

@@ -261,6 +261,54 @@ public class StoreLayoutModeController : MonoBehaviour
             navigationDirty = true;
         }
     }
+    
+    public bool FocusPlacementArea(
+        StoreAreaType requiredArea)
+    {
+        if (!isActive ||
+            buildArea == null ||
+            layoutCameraController == null)
+        {
+            return false;
+        }
+
+        Vector3 cameraPivot =
+            layoutCameraController
+                .PivotPosition;
+
+        /*
+         * Already working in a valid zone for this
+         * furniture type.
+         *
+         * Do not annoy the player by recentering the
+         * camera every time they buy another item.
+         */
+        if (buildArea.IsPointInsideAvailableArea(
+                cameraPivot,
+                requiredArea))
+        {
+            return true;
+        }
+
+        /*
+         * Find the nearest currently available zone
+         * of the furniture's required area type.
+         */
+        if (!buildArea.TryGetWorkingZoneBounds(
+                cameraPivot,
+                requiredArea,
+                out Bounds targetBounds))
+        {
+            return false;
+        }
+
+        layoutCameraController
+            .FocusWorkingBoundsImmediate(
+                targetBounds
+            );
+
+        return true;
+    }
 
     private bool HasValidConfiguration()
     {

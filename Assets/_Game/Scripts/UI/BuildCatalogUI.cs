@@ -8,32 +8,26 @@ using UnityEngine.UI;
 public class BuildCatalogUI : MonoBehaviour
 {
     [Header("Panel")] [SerializeField] private GameObject catalogPanel;
-
     [SerializeField] private TMP_Text statusText;
-
     [SerializeField] private Button closeButton;
 
     [Header("Categories")] [SerializeField]
     private Button allCategoryButton;
 
     [SerializeField] private Button fixturesCategoryButton;
-
     [SerializeField] private Button storageCategoryButton;
-
     [SerializeField] private Button refrigerationCategoryButton;
 
     [Header("Catalog List")] [SerializeField]
     private ScrollRect catalogScrollRect;
 
     [SerializeField] private Transform furnitureListContent;
-
     [SerializeField] private FurnitureCatalogRow furnitureRowPrefab;
 
     [Header("Store Design")] [SerializeField]
     private StoreLayoutModeController layoutMode;
 
     [SerializeField] private FurnitureShop furnitureShop;
-
     [SerializeField] private FurniturePlacementController placementController;
 
     private readonly List<FurnitureCatalogRow> spawnedRows = new();
@@ -128,7 +122,23 @@ public class BuildCatalogUI : MonoBehaviour
             return;
         }
 
-        if (Keyboard.current == null || !Keyboard.current.bKey.wasPressedThisFrame)
+        if (Keyboard.current == null)
+        {
+            return;
+        }
+
+        if (isOpen &&
+            Keyboard.current
+                .escapeKey
+                .wasPressedThisFrame)
+        {
+            Close();
+            return;
+        }
+
+        if (!Keyboard.current
+                .bKey
+                .wasPressedThisFrame)
         {
             return;
         }
@@ -343,7 +353,7 @@ public class BuildCatalogUI : MonoBehaviour
 
         if (buttonText != null)
         {
-            buttonText.text = active ? $"✓ {label}" : label;
+            buttonText.text = active ? $"> {label}" : label;
         }
     }
 
