@@ -88,6 +88,27 @@ public class FurnitureIdentity : MonoBehaviour
         reason = "";
         return true;
     }
+    
+    public bool CanSellFurniture(out string reason)
+    {
+        MonoBehaviour[] behaviours = GetComponentsInChildren<MonoBehaviour>(true);
+
+        foreach (MonoBehaviour behaviour in behaviours)
+        {
+            if (behaviour is not IFurnitureSellConstraint constraint)
+            {
+                continue;
+            }
+
+            if (!constraint.CanSellFurniture(out reason))
+            {
+                return false;
+            }
+        }
+
+        reason = "";
+        return true;
+    }
 
     private void RegisterRuntimeParticipants()
     {

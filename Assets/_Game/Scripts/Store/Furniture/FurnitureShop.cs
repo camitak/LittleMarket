@@ -15,6 +15,10 @@ public class FurnitureShop : MonoBehaviour
     [SerializeField] private PlayerInteraction playerInteraction;
     [SerializeField] private FurniturePlacementController placementController;
 
+    [Header("Selling")]
+    [Range(0f, 1f)]
+    [SerializeField] private float sellRefundFraction = 0.5f;
+
     public int CatalogCount => furnitureCatalog != null ? furnitureCatalog.Count : 0;
 
     public FurnitureDefinition GetCatalogItem(int index)
@@ -30,13 +34,77 @@ public class FurnitureShop : MonoBehaviour
                definition.IsConfigured;
     }
 
+    public bool IsPlayerPurchasedFurniture(FurnitureIdentity furniture)
+    {
+        return storeFurnitureLayout != null &&
+               storeFurnitureLayout.IsPlayerPurchasedFurniture(furniture);
+    }
+
+    public float GetSellRefund(FurnitureDefinition definition)
+    {
+        if (definition == null)
+        {
+            return 0f;
+        }
+
+        float refund = definition.PurchasePrice * Mathf.Clamp01(sellRefundFraction);
+
+        return Mathf.Round(refund * 100f) / 100f;
+    }
+
+    public bool CanSellFurniture(FurnitureIdentity furniture, out float refund, out string reason)
+    {
+        refund = 0f;
+
+        if (storeEconomy == null || storeFurnitureLayout == null)
+        {
+            reason = "Furniture selling is not configured.";
+            return false;
+        }
+
+        if (!storeFurnitureLayout.CanSellFurniture(furniture, out reason))
+        {
+            return false;
+        }
+
+        FurnitureDefinition definition = furniture.FurnitureDefinition;
+
+        if (definition == null)
+        {
+            reason = "This furniture has no valid definition.";
+            return false;
+        }
+
+        refund = GetSellRefund(definition);
+        reason = "";
+        return true;
+    }
+
+    public bool TrySellFurniture(FurnitureIdentity furniture, out float refund, out string reason)
+    {
+        if (!CanSellFurniture(furniture, out refund, out reason))
+        {
+            return false;
+        }
+
+        if (!storeFurnitureLayout.TryRemovePurchasedFurniture(furniture, out reason))
+        {
+            refund = 0f;
+            return false;
+        }
+
+        storeEconomy.AddMoney(refund);
+
+        return true;
+    }
+
     public bool CanBeginPurchase(FurnitureDefinition definition, out string reason)
     {
-        if (furnitureCatalog == null || 
-            storeEconomy == null || 
-            storeFurnitureLayout == null || 
+        if (furnitureCatalog == null ||
+            storeEconomy == null ||
+            storeFurnitureLayout == null ||
             layoutMode == null ||
-            playerInteraction == null || 
+            playerInteraction == null ||
             placementController == null)
         {
             reason = "Furniture purchasing is not configured.";
@@ -126,7 +194,9 @@ public class FurnitureShop : MonoBehaviour
 
     public bool TryCompletePurchase(FurnitureDefinition definition)
     {
-        if (definition == null || furnitureCatalog == null || !furnitureCatalog.Contains(definition) ||
+        if (definition == null ||
+            furnitureCatalog == null ||
+            !furnitureCatalog.Contains(definition) ||
             storeEconomy == null)
         {
             return false;

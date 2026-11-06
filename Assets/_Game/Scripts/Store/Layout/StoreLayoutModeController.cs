@@ -174,6 +174,11 @@ public class StoreLayoutModeController : MonoBehaviour
             return;
         }
         
+        if (furniturePlacementController != null)
+        {
+            furniturePlacementController.CancelPendingSaleConfirmation();
+        }
+        
         if (expansionLayoutController != null)
         {
             expansionLayoutController
@@ -294,6 +299,13 @@ public class StoreLayoutModeController : MonoBehaviour
             expansionLayoutController
                 .ClearSelection();
 
+            return;
+        }
+        
+        if (furniturePlacementController != null &&
+            furniturePlacementController.HasPendingSaleConfirmation)
+        {
+            furniturePlacementController.CancelPendingSaleConfirmation();
             return;
         }
 

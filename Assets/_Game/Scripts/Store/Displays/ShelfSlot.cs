@@ -7,7 +7,8 @@ public class ShelfSlot :
     ISecondaryInteractable,
     IManagementInteractable,
     IRepeatableInteractable,
-    IFurnitureRuntimeParticipant
+    IFurnitureRuntimeParticipant,
+    IFurnitureSellConstraint
 {
     [Header("Identity")]
     [SerializeField] private string localSlotKey = "";
@@ -472,6 +473,20 @@ public class ShelfSlot :
         RemoveNullEntries();
 
         return IsAssigned && StoredItemCount == 0;
+    }
+    
+    public bool CanSellFurniture(out string reason)
+    {
+        RemoveNullEntries();
+
+        if (StoredItemCount > 0)
+        {
+            reason = "Remove all products from this shelf before selling it.";
+            return false;
+        }
+
+        reason = "";
+        return true;
     }
 
     public void ManagementInteract(PlayerInteraction player)

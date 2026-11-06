@@ -1,16 +1,16 @@
 # Little Market — System Architecture
 
-Current architecture after **Lesson 136 — Repeat Purchase Placement**.
+Current architecture after **Lesson 137 — Safe Furniture Selling & Refunds**.
 
 ## Verified source of truth
 
-Lesson 136 was designed after verifying GitHub `main` at:
+Lesson 137 was designed after verifying GitHub `main` at:
 
-`4b582d4b06d72da110dfdb8447bc739f3ec6bc7d`
+`477355bf9928c31a66dd7a555afefe1e455284df`
 
 Commit:
 
-`Lesson 135 complete - furniture copy eyedropper`
+`Lesson 136 complete - repeat furniture placement`
 
 Re-verify newest `main` before every future lesson.
 
@@ -25,136 +25,167 @@ Re-verify newest `main` before every future lesson.
 - Top-anchored downward movement normally uses negative Y; bottom-anchored upward movement normally uses positive Y.
 - Preserve all user-tuned scene values.
 - Write conventional compact C#.
-- Keep the whole lesson implementation in chat. Only this architecture file and the fresh-chat continuation file are normally separate.
+- Keep the complete lesson implementation in chat. Only architecture and fresh-chat continuation `.md` files are normally separate.
 - Player playtesting may reorder the roadmap.
 
-## Lesson 136 — Repeat purchase placement
+## Lesson 137 — Furniture selling
 
-Furniture purchases now behave as a placement session.
+Store Design supports safe sale of player-purchased furniture with:
 
-Starting a purchase from either:
-- `B` Build Catalog
-- `C` Copy / Eyedropper
+`X`
 
-creates a normal purchase preview.
+Selling uses a two-press confirmation:
+1. point at player-purchased furniture
+2. press X to arm
+3. press X again while still pointing at the same object to confirm
+4. RMB, Esc, pointer movement, camera manipulation, or another world action cancels the armed sale
 
-Each valid LMB confirmation:
-1. charges exactly one item through `FurnitureShop.TryCompletePurchase`
-2. activates that placed furniture
-3. completes its preview
-4. marks navigation dirty
-5. immediately asks `FurnitureShop.TryBeginPurchase` for another fresh preview of the same `FurnitureDefinition`
-6. carries forward the last preview yaw
+## Refund rule
 
-The next preview remains unconfirmed and costs nothing until the next valid placement.
+`StoreSystems -> FurnitureShop` owns:
 
-## Stopping repeat placement
+`Sell Refund Fraction = 0.5`
 
-RMB, Q, Esc, or leaving Store Design cancels only the current unconfirmed preview.
+Refund = 50% of current FurnitureDefinition purchase price, rounded to cents.
 
-Already confirmed items remain purchased and placed.
+Current examples:
+- Standard Shelf £40 -> £20 refund
+- Refrigerated Display £80 -> £40 refund
+- Ambient Storage Rack £60 -> £30 refund
+- Chilled Storage Rack £100 -> £50 refund
+- Potted Plant £25 -> £12.50 refund
 
-No refund is involved because no money was spent on the discarded preview.
+This is tunable economy balance, not hard-coded into FurnitureDefinition.
 
-## Purchase authority
+## Sale authority
 
-Repeat placement does not:
-- clone the just-placed runtime object
-- directly instantiate permanent furniture
-- spend money outside FurnitureShop
-- manually generate IDs
-- bypass StoreFurnitureLayout
-- bypass normal placement validation
+Business flow:
 
-Each repeated item is a fresh prefab instance created through:
+`Player -> FurniturePlacementController`
+-> `StoreSystems -> FurnitureShop`
+-> `StoreSystems -> StoreFurnitureLayout`
+-> `StoreSystems -> StoreEconomy`
 
-`FurnitureShop -> StoreFurnitureLayout -> FurniturePlacementController`
+FurniturePlacementController owns pointing/confirmation UX.
+FurnitureShop owns refund calculation and economy.
+StoreFurnitureLayout owns authored-vs-purchased protection and retirement.
+FurnitureIdentity and child sell constraints protect runtime contents.
 
-and receives its own persistent ID.
+No object is directly destroyed from FurniturePlacementController.
 
-## Rotation continuity
+## Authored starter furniture
 
-Before completing each purchase, `FurniturePlacementController` captures the current `previewYaw`.
+The current save contract requires all authored furniture IDs to remain present.
 
-The next fresh preview starts with that yaw.
+Therefore these authored scene-root objects are protected from sale:
+- `Shelf_Cereal`
+- `Shelf_Bakery`
+- `Shelf_Dairy`
+- `StorageRack_Starter`
 
-This preserves:
-- Structured cardinal rotation
-- arbitrary Free-mode rotation
-- rotation changes made during the repeat sequence
+They remain movable/copyable according to existing rules, but cannot be sold in Lesson 137.
 
-## Money behavior
+Allowing starter furniture sale later requires a deliberate persistence-contract redesign rather than bypassing `StoreFurnitureLayout.CanRestoreSaveData()`.
 
-After one item is paid for, repeat continuation calls normal `FurnitureShop.TryBeginPurchase`.
+## Stock protection
 
-If the player can no longer afford another:
-- the confirmed item remains
-- no extra preview is created
-- no extra money is spent
-- the repeat sequence ends
-- the normal reason is shown transiently in world interaction when appropriate
+New interface:
 
-## Build Catalog coordination
+`IFurnitureSellConstraint`
 
-No new BuildCatalogUI code is required.
+`ShelfSlot` implements it:
+- any physical shelf stock blocks sale
+- an empty assigned facing does not block sale
 
-For catalog-origin purchases, its existing `reopenAfterPlacement` flag remains true while the catalog is hidden.
+`StorageBay` implements it:
+- any quantity greater than zero blocks sale
+- an assigned bay with quantity zero does not block sale
 
-Because the next purchase preview is created synchronously after each confirmation, `Player -> FurniturePlacementController.IsPlacementActive` remains true between repeated items, so the catalog does not flash open.
+This means physical products are never silently deleted by selling furniture.
 
-When repetition actually stops or cannot continue, placement becomes inactive and the existing BuildCatalogUI behavior reopens the catalog.
+## StoreFurnitureLayout
 
-Copy-origin repetition does not set `reopenAfterPlacement`, so stopping a copy sequence returns to normal Store Design world interaction.
+New responsibilities:
+- `IsPlayerPurchasedFurniture(FurnitureIdentity furniture)`
+- `CanSellFurniture(FurnitureIdentity furniture, out string reason)`
+- `TryRemovePurchasedFurniture(FurnitureIdentity furniture, out string reason)`
 
-## Existing furniture movement
+Sale retirement reuses the existing `RetireFurniture` path:
+- runtime participants unregister
+- shelf/storage registries remove their slots
+- object deactivates
+- object is destroyed
+- future save no longer includes the purchased furniture or its slots
 
-Moving an already-owned furniture instance with LMB remains one-shot.
+## FurnitureIdentity
 
-Repeat placement applies only when `isNewFurniturePurchase` is true.
+Adds:
 
-## Dynamic prompt
+`CanSellFurniture(out string reason)`
 
-While a valid purchase preview is active:
+It gathers child `IFurnitureSellConstraint` implementations, analogous to existing move constraints.
 
-`LMB Buy & place £X.XX  •  RMB Stop`
+## Store Design presentation
 
-Invalid placement still shows the existing placement-invalid explanation.
+Idle purchased-furniture prompt includes resale information when sellable.
+
+Example:
+
+`LMB Move Standard Shelf  •  C Copy £40.00`
+`X Sell +£20.00`
+
+If stocked, the second line explains that stock must be removed.
+
+After first X:
+
+`Sell Standard Shelf for £20.00?`
+`X Confirm  •  RMB / Esc Cancel`
 
 No new UI GameObject or component is created.
 
-## Scene / Inspector
+## Controls UI
 
-No new serialized field and no new scene wiring.
+Existing:
+`GameUI / LayoutModeFrame / LayoutControlsPanel / ControlsText`
 
-Preserve current `Player -> FurniturePlacementController` values, including:
-- Furniture Shop -> `StoreSystems -> FurnitureShop`
-- Selection Ray Distance 35
-- Preview Ray Distance 30
-- Body Contact Tolerance 0.01
-- Structured Placement By Default ON
-- Grid Size 0.5
-- Free Rotation Degrees Per Second 90
-- Magnetic Snap Enabled ON
-- Socket Capture Distance 0.30
-- Socket Release Distance 0.55
-- Maximum Socket Facing Angle 15
-- Outline Width 0.01
+remains:
+- panel Anchor Min/Max `(1,0)`
+- panel Pivot `(1,0)`
+- panel Anchored Position `(-28,28)`
+- panel Size Delta `(360,214)`
+- ControlsText Anchor Min `(0,0)` / Max `(1,1)`
+- ControlsText Pivot `(0.5,0.5)`
+- ControlsText Anchored Position `(0,0)`
+- ControlsText Size Delta `(-32,-32)`
+- TMP font size 17
+- left/top alignment
+- Raycast Target OFF
+
+Control summary line becomes:
+
+`B   Catalog    C   Copy    X   Sell`
 
 No RectTransform changes.
+
+## Navigation
+
+Successful sale calls:
+`StoreSystems -> StoreLayoutModeController.MarkNavigationDirty()`
+
+Customers remain suspended during Store Design.
+NavMesh rebuild remains deferred until Store Design exit.
 
 ## Persistence
 
 No save schema change.
 
-Confirmed repeated furniture already uses normal generic furniture placement persistence.
-
-An active unconfirmed repeat preview remains a transient placement and must be cancelled/stopped before a save that requires no active placement.
+Sold player-purchased furniture disappears from normal furniture placement save data because it is retired/unregistered before saving.
+Refund money is already part of existing `StoreEconomy` persistence.
 
 ## Roadmap
 
 Next likely:
-- selling / refunds
-- variants / colors
+- furniture variants / colors
 - more decor / surface placement
 - Ambience
 - autosave

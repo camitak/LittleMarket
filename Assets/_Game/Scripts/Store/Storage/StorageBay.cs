@@ -9,7 +9,8 @@ public class StorageBay :
     ICarryInteractable,
     IManagementInteractable,
     IRepeatableInteractable,
-    IFurnitureRuntimeParticipant
+    IFurnitureRuntimeParticipant,
+    IFurnitureSellConstraint
 {
     [Header("Identity")]
     [SerializeField] private string localBayKey = "";
@@ -150,6 +151,18 @@ public class StorageBay :
             return 0;
 
         return quantity;
+    }
+    
+    public bool CanSellFurniture(out string reason)
+    {
+        if (quantity > 0)
+        {
+            reason = "Empty this storage rack before selling it.";
+            return false;
+        }
+
+        reason = "";
+        return true;
     }
 
     public string GetInteractionPrompt(PlayerInteraction player)

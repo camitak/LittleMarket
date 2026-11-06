@@ -3396,7 +3396,7 @@ MonoBehaviour:
 
     
 
-    B   Build Catalog      C   Copy Item
+    B   Catalog    C   Copy    X   Sell
 
     LMB   Select / Place
 
@@ -14581,6 +14581,7 @@ MonoBehaviour:
   layoutMode: {fileID: 1117834548}
   playerInteraction: {fileID: 1349577615}
   placementController: {fileID: 1349577616}
+  sellRefundFraction: 0.5
 --- !u!114 &1117834546
 MonoBehaviour:
   m_ObjectHideFlags: 0

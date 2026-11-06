@@ -70,7 +70,11 @@ public class FurniturePlacementController : MonoBehaviour
     private string transientStatusMessage = "";
     private float transientStatusUntil;
 
+    private FurnitureIdentity pendingSaleFurniture;
+    private float pendingSaleUntil;
+
     private const float TransientStatusDuration = 1.75f;
+    private const float SaleConfirmationDuration = 3f;
 
     private Collider[] selectedColliders;
     private bool[] originallyEnabled;
@@ -91,6 +95,10 @@ public class FurniturePlacementController : MonoBehaviour
         IsPlacementModeModifierHeld ? !structuredPlacementByDefault : structuredPlacementByDefault;
 
     public bool IsFreePlacementActive => !IsStructuredPlacementActive;
+    
+    public bool HasPendingSaleConfirmation =>
+        pendingSaleFurniture != null &&
+        Time.unscaledTime < pendingSaleUntil;
 
 /*
  * Compatibility property.
@@ -201,17 +209,32 @@ public class FurniturePlacementController : MonoBehaviour
         {
             if (!CanStartPlacement() || layoutMode.IsCameraManipulating || IsPointerOverUI())
             {
+                ClearPendingSale();
+                return;
+            }
+
+            if (pendingSaleFurniture != null && Mouse.current.rightButton.wasPressedThisFrame)
+            {
+                ClearPendingSale();
+                return;
+            }
+
+            if (Keyboard.current.xKey.wasPressedThisFrame)
+            {
+                TrySellPointedFurniture();
                 return;
             }
 
             if (Keyboard.current.cKey.wasPressedThisFrame)
             {
+                ClearPendingSale();
                 TryCopyPointedFurniture();
                 return;
             }
 
             if (Mouse.current.leftButton.wasPressedThisFrame)
             {
+                ClearPendingSale();
                 TryStartPlacement();
             }
 
@@ -416,7 +439,9 @@ public class FurniturePlacementController : MonoBehaviour
                 return;
             }
 
+            ClearPendingSale();
             interactionUI.HidePrompt();
+            
             return;
         }
 
@@ -500,17 +525,94 @@ public class FurniturePlacementController : MonoBehaviour
             ShowTransientStatus(reason);
         }
     }
+    
+    private void TrySellPointedFurniture()
+    {
+        if (furnitureShop == null ||
+            !TryFindPointedAtFurniture(out FurnitureIdentity furniture))
+        {
+            ClearPendingSale();
+            return;
+        }
+
+        if (!furnitureShop.CanSellFurniture(furniture, out float refund, out string reason))
+        {
+            ClearPendingSale();
+            ShowTransientStatus(reason);
+            return;
+        }
+
+        if (!IsSaleConfirmationActiveFor(furniture))
+        {
+            pendingSaleFurniture = furniture;
+            pendingSaleUntil = Time.unscaledTime + SaleConfirmationDuration;
+            return;
+        }
+
+        FurnitureDefinition definition = furniture.FurnitureDefinition;
+        string furnitureName = definition != null ? definition.DisplayName : "Furniture";
+
+        ClearPendingSale();
+
+        if (!furnitureShop.TrySellFurniture(furniture, out refund, out reason))
+        {
+            ShowTransientStatus(reason);
+            return;
+        }
+
+        if (layoutMode != null)
+        {
+            layoutMode.MarkNavigationDirty();
+        }
+
+        ShowTransientStatus($"{furnitureName} sold for £{refund:0.00}.");
+    }
+
+    private bool IsSaleConfirmationActiveFor(FurnitureIdentity furniture)
+    {
+        return furniture != null &&
+               pendingSaleFurniture == furniture &&
+               Time.unscaledTime < pendingSaleUntil;
+    }
+
+    private void ClearPendingSale()
+    {
+        pendingSaleFurniture = null;
+        pendingSaleUntil = 0f;
+    }
+
+    public void CancelPendingSaleConfirmation()
+    {
+        ClearPendingSale();
+    }
 
     private void ShowFurnitureIdlePrompt(FurnitureIdentity furniture)
     {
         if (furniture == null)
         {
+            ClearPendingSale();
             interactionUI.HidePrompt();
             return;
         }
 
+        if (pendingSaleFurniture != null && !IsSaleConfirmationActiveFor(furniture))
+        {
+            ClearPendingSale();
+        }
+
         FurnitureDefinition definition = furniture.FurnitureDefinition;
         string furnitureName = definition != null ? definition.DisplayName : "furniture";
+
+        if (IsSaleConfirmationActiveFor(furniture))
+        {
+            float refund = furnitureShop != null ? furnitureShop.GetSellRefund(definition) : 0f;
+
+            interactionUI.ShowPrompt(
+                $"Sell {furnitureName} for £{refund:0.00}?\nX Confirm  •  RMB / Esc Cancel"
+            );
+
+            return;
+        }
 
         bool canMove = furniture.CanMoveFurniture(out _);
 
@@ -518,31 +620,56 @@ public class FurniturePlacementController : MonoBehaviour
             furnitureShop != null &&
             furnitureShop.IsPurchasableCatalogItem(definition);
 
+        string prompt = "";
+
         if (canMove && canCopy)
         {
-            interactionUI.ShowPrompt(
-                $"LMB Move {furnitureName}  •  C Copy £{definition.PurchasePrice:0.00}"
-            );
-
-            return;
+            prompt = $"LMB Move {furnitureName}  •  C Copy £{definition.PurchasePrice:0.00}";
         }
-
-        if (canMove)
+        else if (canMove)
         {
-            interactionUI.ShowPrompt($"LMB Move {furnitureName}");
-            return;
+            prompt = $"LMB Move {furnitureName}";
         }
-
-        if (canCopy)
+        else if (canCopy)
         {
-            interactionUI.ShowPrompt(
-                $"C Copy {furnitureName}  •  £{definition.PurchasePrice:0.00}"
-            );
+            prompt = $"C Copy {furnitureName}  •  £{definition.PurchasePrice:0.00}";
+        }
 
+        bool playerPurchased =
+            furnitureShop != null &&
+            furnitureShop.IsPlayerPurchasedFurniture(furniture);
+
+        if (playerPurchased)
+        {
+            if (furnitureShop.CanSellFurniture(furniture, out float refund, out string sellReason))
+            {
+                prompt = AddPromptLine(prompt, $"X Sell +£{refund:0.00}");
+            }
+            else if (!string.IsNullOrWhiteSpace(sellReason))
+            {
+                prompt = AddPromptLine(prompt, sellReason);
+            }
+        }
+
+        if (string.IsNullOrWhiteSpace(prompt))
+        {
+            interactionUI.HidePrompt();
             return;
         }
 
-        interactionUI.HidePrompt();
+        interactionUI.ShowPrompt(prompt);
+    }
+
+    private static string AddPromptLine(string current, string line)
+    {
+        if (string.IsNullOrWhiteSpace(line))
+        {
+            return current;
+        }
+
+        return string.IsNullOrWhiteSpace(current)
+            ? line
+            : $"{current}\n{line}";
     }
 
     private void ShowTransientStatus(string message)
@@ -617,6 +744,7 @@ public class FurniturePlacementController : MonoBehaviour
 
         transientStatusMessage = "";
         transientStatusUntil = 0f;
+        ClearPendingSale();
 
         originalPosition = furniture.transform.position;
         originalRotation = furniture.transform.rotation;
@@ -1459,6 +1587,7 @@ public class FurniturePlacementController : MonoBehaviour
 
     private void OnDisable()
     {
+        ClearPendingSale();
         CancelPlacement();
 
         if (placementVisualizer != null)

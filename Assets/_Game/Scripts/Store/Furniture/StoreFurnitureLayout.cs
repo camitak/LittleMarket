@@ -37,6 +37,69 @@ public class StoreFurnitureLayout : MonoBehaviour
 
         capturedAuthoredLayout = true;
     }
+    
+    public bool IsPlayerPurchasedFurniture(FurnitureIdentity furniture)
+    {
+        if (!capturedAuthoredLayout ||
+            furniture == null ||
+            pendingRemoval.Contains(furniture) ||
+            string.IsNullOrWhiteSpace(furniture.PersistentID))
+        {
+            return false;
+        }
+
+        return !authoredPositions.ContainsKey(furniture.PersistentID);
+    }
+
+    public bool CanSellFurniture(FurnitureIdentity furniture, out string reason)
+    {
+        if (!capturedAuthoredLayout || navMeshSurface == null || furnitureCatalog == null)
+        {
+            reason = "Furniture selling is not configured.";
+            return false;
+        }
+
+        if (furniture == null ||
+            pendingRemoval.Contains(furniture) ||
+            furniture.gameObject.scene != gameObject.scene)
+        {
+            reason = "This furniture is not available to sell.";
+            return false;
+        }
+
+        if (authoredPositions.ContainsKey(furniture.PersistentID))
+        {
+            reason = "Starter furniture is protected and cannot be sold yet.";
+            return false;
+        }
+
+        if (!IsCatalogDefinitionUsable(furniture.FurnitureDefinition))
+        {
+            reason = "This furniture is not part of the current furniture catalog.";
+            return false;
+        }
+
+        if (!furniture.CanSellFurniture(out reason))
+        {
+            return false;
+        }
+
+        reason = "";
+        return true;
+    }
+
+    public bool TryRemovePurchasedFurniture(FurnitureIdentity furniture, out string reason)
+    {
+        if (!CanSellFurniture(furniture, out reason))
+        {
+            return false;
+        }
+
+        RetireFurniture(furniture);
+
+        reason = "";
+        return true;
+    }
 
     public bool TryCreatePreviewFurniture(
         FurnitureDefinition definition,
