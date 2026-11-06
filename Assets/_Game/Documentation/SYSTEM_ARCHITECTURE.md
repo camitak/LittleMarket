@@ -1,198 +1,141 @@
 # Little Market — System Architecture
 
-Current architecture after **Lesson 131 — Decorations Foundation**.
+Current architecture after **Lesson 132 — Protected Doorway Clearances**.
 
-## Verified source of truth
+Verified source of truth:
+`3ee596415a57489d10670480ee6f700c23a1ed56`
+`Lesson 131 complete - decorations foundation and potted plant`
 
-Lesson 131 was designed after verifying GitHub `main` at:
+## Permanent circulation rule
+Permanent circulation infrastructure is protected from player placement.
 
-`e471f74834eae57f03c7e37539bf8f8596f5cfe6`
+Doorways use the existing `LayoutClearanceZone` system rather than customer-AI special cases.
 
-Commit:
+## Reused architecture
+No new scripts are required.
 
-`Lesson 130 complete - catalog scroll and store design back navigation`
+Existing:
+- `LayoutClearanceZone`
+- `FurniturePlacementController.OverlapsProtectedClearance`
+- `LayoutWorldVisualizer`
 
-Re-verify newest `main` before every future lesson.
+already provide:
+- furniture-body blocking
+- operational-access blocking
+- StoreAreaType filtering
+- Store Design purple clearance visualization
 
-## Core placeable architecture
+## Scene hierarchy
+Under `StoreBuilding/Base` create identity root:
 
-Decorations use the SAME architecture as functional furniture:
+`LayoutClearanceZones`
 
-FurnitureDefinition
--> FurnitureCatalog
--> FurnitureShop
--> StoreFurnitureLayout
--> FurniturePlacementController
--> save/load
+Children:
+- `Clearance_CustomerEntrance`
+- `Clearance_CustomerExit`
+- `Clearance_StaffDoor_Sales`
+- `Clearance_StaffDoor_Backroom`
 
-There is no parallel DecorationDefinition or decoration save system.
+All clearance objects have:
+- identity rotation/scale
+- Transform + LayoutClearanceZone only
+- no collider
+- no renderer
+- no NavMesh component
 
-## Operational access semantics
+## Customer entrance
+Door center X `5.8`, front wall near Z `-5.1`, door width `2.0m`.
 
-New enum:
+Clearance transform:
+`(5.8, 0, -3.9)`
 
-`FurnitureAccessRequirement`
+Zone:
+- Area Type `SalesFloor`
+- Center `(0,0.75,0)`
+- Half Extents `(1.10,0.75,1.10)`
+- Block Furniture Body ON
+- Block Furniture Access ON
 
-Values:
-- `FrontOperational = 0`
-- `None = 1`
+Horizontal protected area:
+X `4.7..6.9`
+Z `-5.0..-2.8`
 
-The legacy/default value is deliberately `0 = FrontOperational`, so existing furniture assets preserve their access behavior even before they serialize the new field.
+## Customer exit
+Clearance transform:
+`(-1.8, 0, -3.9)`
 
-FurnitureDefinition now exposes:
-- `AccessRequirement`
-- `RequiresOperationalAccess`
+Same zone values as entrance.
 
-Functional furniture keeps FrontOperational:
-- Standard Shelf
-- Refrigerated Display
-- Ambient Storage Rack
-- Chilled Storage Rack
+Protected area:
+X `-2.9..-0.7`
+Z `-5.0..-2.8`
 
-The first decoration, Potted Plant, uses None.
+## Staff doorway
+Partition at X `-4`, opening centered Z `2.5`, width about `1.4m`.
 
-## Placement rules
+Because placement area is explicit, protect both sides.
 
-All placeables still require a BODY footprint.
+Sales:
+- transform `(-3.25,0,2.5)`
+- Area `SalesFloor`
+- Center `(0,0.75,0)`
+- Half Extents `(0.75,0.75,0.80)`
+- both blockers ON
 
-Body validation always:
-- stays inside required StoreAreaType
-- respects fixed LayoutClearanceZone body restrictions
-- cannot overlap physical colliders
-- cannot occupy another functional furniture item's operational access footprint
+Backroom:
+- transform `(-4.75,0,2.5)`
+- Area `Backroom`
+- same center/half extents
+- both blockers ON
 
-Operational-access validation is conditional.
+## Visual semantics
+Existing purple clearance visual remains:
+`#977EFF42`
 
-When RequiresOperationalAccess is true:
-- access footprint must stay inside area
-- access footprint respects protected clearances
-- access footprint cannot overlap blocking colliders
-- access preview/outline is visible
+Meaning:
+permanent operational/circulation space — do not build here.
 
-When false:
-- no access-in-area test
-- no access-clearance test
-- no access-collider test
-- no access preview/outline
+Checkout and doorway clearances intentionally share the same visual language.
 
-This means decor loses only its own service/access requirement, not protections around real store operations.
+## Placement behavior
+All placeables respect doorway clearances:
+- shelves
+- refrigerators
+- storage racks
+- potted plants
+- future decor
 
-## Visualizers
+Decor with `AccessRequirement.None` still cannot place its BODY in a doorway clearance.
 
-FurniturePlacementVisualizer gains a `showAccess` argument.
-- body footprint always shown
-- access footprint enabled only for definitions requiring operational access
+Functional furniture access footprints cannot extend into doorway clearance either.
 
-LayoutFurnitureAccessVisualizer skips existing furniture whose definition does not require operational access.
+## Customer AI
+No AI changes.
 
-Functional access zones therefore remain visible; decor does not create meaningless yellow footprints.
-
-## Navigation
-
-Navigation remains component-driven.
-
-Lesson 131 Potted Plant is floor-standing and physically occupies customer space, so its prefab contains:
-- BoxCollider
-- NavMeshModifierVolume
-- FurnitureNavigationBlocker
-
-No new navigation system is introduced.
-
-Future surface/tabletop decor may omit FurnitureNavigationBlocker when appropriate, but that requires a later surface-placement lesson.
-
-## First decoration
-
-New catalog item:
-
-Potted Plant
-- Furniture ID: `decor_potted_plant`
-- Category: Decor
-- Price: £25
-- Placement Area: SalesFloor
-- Access Requirement: None
-- Body Center: `(0, 0.68, 0)`
-- Body Half Extents: `(0.40, 0.68, 0.40)`
-
-Prefab:
-`PF_Decor_PottedPlant`
-
-It is built from simple primitive meshes in a warm cozy low-poly style.
-Root stays at floor pivot, position zero, rotation zero, scale one.
-
-No FurnitureSnapSocket is added.
-
-## Build Catalog
-
-Decor category is now exposed because actual Decor content exists.
-
-Current categories:
-- All
-- Fixtures
-- Storage
-- Refrigeration
-- Decor
-
-New `DecorCategoryButton` is wired to BuildCatalogUI.
-
-The category bar keeps the existing HorizontalLayoutGroup. Category TMP labels use font size 14 to comfortably fit five equal-width buttons.
-
-Build Catalog scroll rules from Lesson 130 remain:
-- Clamped
-- no inertia
-- sensitivity 12
-- vertical enabled only when content overflows
-
-## Ambience
-
-No Ambience score/stat is implemented yet.
-
-Direction remains:
-- creativity first
-- soft benefits later
-- diminishing returns
-- variety over spam
-- no hard “place N decorations” chores
-
-Lesson 131 proves the placeable semantics before adding scoring.
+Current NavMesh/customer route system remains unchanged. The layout system prevents the obstruction that caused customers to route through the exit.
 
 ## Preserved systems
-
 Unchanged:
-- Structured/Free placement
-- 0.5m structured grid
-- magnetic snap architecture
-- camera input isolation
-- cross-area purchase camera routing
-- Store Design Esc hierarchy
-- purchase preview-first / spend-on-confirm
-- schema v2 saves
-- EOD idempotency
-- time does not gate management
+- decoration architecture
+- FurnitureAccessRequirement
+- structured/free placement
+- Build Catalog
+- camera/input behavior
+- Esc hierarchy
+- preview-first/spend-on-confirm purchase
+- save/load
+- navigation rebuild
 
 ## Roadmap
-
-### Lesson 132 — World-Space Expansion Preview & Purchase
+Lesson 133 — World-Space Expansion Preview & Purchase.
 
 Then:
 - copy/eyedrop
 - repeat placement
 - selling/refunds
 - variants/colors
-- more decor types / surface placement
+- more decor/surface placement
 - Ambience
 - autosave
 - exact carry persistence
 - advanced fixture/socket semantics
-
-## Permanent rules
-
-- GitHub main first
-- inspect exact current source/scene/assets
-- preserve tuned values
-- one placeable/purchase/save authority
-- only add special semantics where the object actually needs them
-- body footprint remains authoritative for physical occupancy
-- operational access remains explicit, not inferred from catalog category
-- player testing may reorder roadmap
-- implementation stays in chat
-- only handoff `.md` files separate
