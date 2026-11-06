@@ -37,6 +37,7 @@ public class FurniturePlacementVisualizer : MonoBehaviour
     private void Awake()
     {
         CreateRuntimeObjects();
+
         Hide();
     }
 
@@ -45,6 +46,7 @@ public class FurniturePlacementVisualizer : MonoBehaviour
         Vector3 bodyHalfExtents,
         Vector3 accessCenter,
         Vector3 accessHalfExtents,
+        bool showAccess,
         bool canPlace)
     {
         if (furniture == null)
@@ -60,9 +62,21 @@ public class FurniturePlacementVisualizer : MonoBehaviour
 
         ApplyFootprint(bodyVisual, furniture, bodyCenter, bodyHalfExtents, surfaceOffset);
 
-        ApplyFootprint(accessVisual, furniture, accessCenter, accessHalfExtents, surfaceOffset + 0.005f);
-
         LayoutVisualUtility.SetMaterialColor(bodyMaterial, canPlace ? validBodyColor : invalidBodyColor);
+
+        if (accessVisual == null)
+        {
+            return;
+        }
+
+        accessVisual.SetActive(showAccess);
+
+        if (!showAccess)
+        {
+            return;
+        }
+
+        ApplyFootprint(accessVisual, furniture, accessCenter, accessHalfExtents, surfaceOffset + 0.005f);
 
         LayoutVisualUtility.SetMaterialColor(accessMaterial, canPlace ? validAccessColor : invalidAccessColor);
     }
@@ -77,6 +91,7 @@ public class FurniturePlacementVisualizer : MonoBehaviour
         if (!active)
         {
             snapGuideObject.SetActive(false);
+
             return;
         }
 
@@ -88,19 +103,25 @@ public class FurniturePlacementVisualizer : MonoBehaviour
         snapGuideObject.SetActive(true);
 
         Vector3 center = worldPosition;
+
         center.y += snapGuideSurfaceOffset;
 
         float size = Mathf.Max(0.05f, snapGuideSize);
 
         snapGuide.SetPosition(0, center + new Vector3(0f, 0f, -size));
+
         snapGuide.SetPosition(1, center + new Vector3(size, 0f, 0f));
+
         snapGuide.SetPosition(2, center + new Vector3(0f, 0f, size));
+
         snapGuide.SetPosition(3, center + new Vector3(-size, 0f, 0f));
+
         snapGuide.SetPosition(4, center + new Vector3(0f, 0f, -size));
 
         Color color = canPlace ? snapGuideColor : invalidSnapGuideColor;
 
         snapGuide.startColor = color;
+
         snapGuide.endColor = color;
 
         LayoutVisualUtility.SetMaterialColor(snapGuideMaterial, color);
@@ -122,8 +143,8 @@ public class FurniturePlacementVisualizer : MonoBehaviour
 
         bodyMaterial = LayoutVisualUtility.CreateTransparentMaterial("FurnitureBodyFootprint_Runtime", validBodyColor);
 
-        accessMaterial = LayoutVisualUtility.CreateTransparentMaterial(
-            "FurnitureAccessFootprint_Runtime", validAccessColor);
+        accessMaterial =
+            LayoutVisualUtility.CreateTransparentMaterial("FurnitureAccessFootprint_Runtime", validAccessColor);
 
         snapGuideMaterial = LayoutVisualUtility.CreateTransparentMaterial("FurnitureSnapGuide_Runtime", snapGuideColor);
 
@@ -141,12 +162,17 @@ public class FurniturePlacementVisualizer : MonoBehaviour
         visual.transform.SetParent(visualRoot.transform, true);
 
         MeshFilter filter = visual.AddComponent<MeshFilter>();
+
         filter.sharedMesh = unitQuad;
 
         MeshRenderer renderer = visual.AddComponent<MeshRenderer>();
+
         renderer.sharedMaterial = material;
+
         renderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+
         renderer.receiveShadows = false;
+
         renderer.sortingOrder = sortingOrder;
 
         return visual;
@@ -155,19 +181,29 @@ public class FurniturePlacementVisualizer : MonoBehaviour
     private void CreateSnapGuide()
     {
         snapGuideObject = new GameObject("MagneticSnapGuide");
+
         snapGuideObject.transform.SetParent(visualRoot.transform, true);
 
         snapGuide = snapGuideObject.AddComponent<LineRenderer>();
 
         snapGuide.useWorldSpace = true;
+
         snapGuide.positionCount = 5;
+
         snapGuide.loop = false;
+
         snapGuide.widthMultiplier = snapGuideWidth;
+
         snapGuide.numCornerVertices = 2;
+
         snapGuide.numCapVertices = 2;
+
         snapGuide.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+
         snapGuide.receiveShadows = false;
+
         snapGuide.sortingOrder = 20;
+
         snapGuide.sharedMaterial = snapGuideMaterial;
 
         snapGuideObject.SetActive(false);

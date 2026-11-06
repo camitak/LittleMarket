@@ -7,47 +7,45 @@ using UnityEngine.Serialization;
 [DisallowMultipleComponent]
 public class FurniturePlacementController : MonoBehaviour
 {
-    [Header("Player")] [SerializeField] private PlayerInteraction playerInteraction;
+    [Header("Player")] 
+    [SerializeField] private PlayerInteraction playerInteraction;
     [SerializeField] private InteractionUI interactionUI;
 
-    [Header("Store")] [SerializeField] private StoreLayoutModeController layoutMode;
+    [Header("Store")] 
+    [SerializeField] private StoreLayoutModeController layoutMode;
     [SerializeField] private StoreBuildArea buildArea;
 
-    [Header("Visuals")] [SerializeField] private FurniturePlacementVisualizer placementVisualizer;
+    [Header("Visuals")] 
+    [SerializeField] private FurniturePlacementVisualizer placementVisualizer;
 
-    [Header("Placement")] [Min(1f)] [SerializeField]
-    private float selectionRayDistance = 35f;
-
+    [Header("Placement")] 
+    [Min(1f)] [SerializeField] private float selectionRayDistance = 35f;
     [Min(1f)] [SerializeField] private float previewRayDistance = 30f;
     [Min(0f)] [SerializeField] private float bodyContactTolerance = 0.01f;
 
-    [Header("Placement Mode")] [FormerlySerializedAs("gridSnapEnabled")] [SerializeField]
-    private bool structuredPlacementByDefault = true;
-
+    [Header("Placement Mode")] 
+    [FormerlySerializedAs("gridSnapEnabled")] 
+    [SerializeField] private bool structuredPlacementByDefault = true;
     [Min(0.01f)] [SerializeField] private float gridSize = 0.5f;
     [Min(1f)] [SerializeField] private float freeRotationDegreesPerSecond = 90f;
 
-    [Header("Magnetic Snap")] [SerializeField]
-    private bool magneticSnapEnabled = true;
-
+    [Header("Magnetic Snap")] 
+    [SerializeField] private bool magneticSnapEnabled = true;
     [Min(0.01f)] [SerializeField] private float socketCaptureDistance = 0.30f;
     [Min(0.01f)] [SerializeField] private float socketReleaseDistance = 0.55f;
     [Range(0f, 45f)] [SerializeField] private float maximumSocketFacingAngle = 15f;
 
-    [Header("Fallback Body Footprint")] [SerializeField]
-    private Vector3 footprintHalfExtents = new(1.30f, 1.05f, 0.52f);
-
+    [Header("Fallback Body Footprint")] 
+    [SerializeField] private Vector3 footprintHalfExtents = new(1.30f, 1.05f, 0.52f);
     [SerializeField] private Vector3 footprintCenter = new(0f, 1.10f, 0f);
 
-    [Header("Fallback Front Access Footprint")] [SerializeField]
-    private Vector3 accessHalfExtents = new(1.25f, 0.75f, 0.50f);
-
+    [Header("Fallback Front Access Footprint")] 
+    [SerializeField] private Vector3 accessHalfExtents = new(1.25f, 0.75f, 0.50f);
     [SerializeField] private Vector3 accessCenter = new(0f, 0.80f, -1.02f);
     [Min(0.01f)] [SerializeField] private float outlineWidth = 0.05f;
 
-    [Header("Preview Colours")] [SerializeField]
-    private Color validColor = new Color32(111, 207, 151, 255);
-
+    [Header("Preview Colours")] 
+    [SerializeField] private Color validColor = new Color32(111, 207, 151, 255);
     [SerializeField] private Color invalidColor = new Color32(196, 107, 107, 255);
 
     private FurnitureIdentity selectedFurniture;
@@ -162,6 +160,10 @@ public class FurniturePlacementController : MonoBehaviour
         CurrentDefinition != null ? CurrentDefinition.AccessHalfExtents : accessHalfExtents;
 
     private Vector3 CurrentAccessCenter => CurrentDefinition != null ? CurrentDefinition.AccessCenter : accessCenter;
+   
+    private bool CurrentRequiresOperationalAccess =>
+        CurrentDefinition == null ||
+        CurrentDefinition.RequiresOperationalAccess;
 
     private void Update()
     {
@@ -593,9 +595,16 @@ public class FurniturePlacementController : MonoBehaviour
 
         if (placementVisualizer != null)
         {
-            placementVisualizer.UpdateFootprints(selectedFurniture.transform, CurrentBodyCenter, CurrentBodyHalfExtents,
-                CurrentAccessCenter, CurrentAccessHalfExtents, canPlace);
-
+            placementVisualizer.UpdateFootprints(
+                selectedFurniture.transform,
+                CurrentBodyCenter,
+                CurrentBodyHalfExtents,
+                CurrentAccessCenter,
+                CurrentAccessHalfExtents,
+                CurrentRequiresOperationalAccess,
+                canPlace
+            );
+            
             Vector3 snapPosition = IsMagneticallySnapped ? activeTargetSnapSocket.transform.position : Vector3.zero;
 
             placementVisualizer.UpdateSnapGuide(snapPosition, IsMagneticallySnapped, canPlace);
@@ -830,41 +839,91 @@ public class FurniturePlacementController : MonoBehaviour
         }
     }
 
-    private bool ValidatePlacement(Vector3 position, Quaternion rotation)
+    private bool ValidatePlacement(
+        Vector3 position,
+        Quaternion rotation)
     {
-        if (!buildArea.IsFootprintInside(position, rotation, CurrentBodyCenter, CurrentBodyHalfExtents,
+        /*
+         * Every placeable has a physical body.
+         */
+        if (!buildArea.IsFootprintInside(
+                position,
+                rotation,
+                CurrentBodyCenter,
+                CurrentBodyHalfExtents,
                 CurrentPlacementArea))
         {
             return false;
         }
 
-        if (!buildArea.IsFootprintInside(position, rotation, CurrentAccessCenter, CurrentAccessHalfExtents,
+        if (OverlapsProtectedClearance(
+                position,
+                rotation,
+                CurrentBodyCenter,
+                CurrentBodyHalfExtents,
+                false))
+        {
+            return false;
+        }
+
+        /*
+         * A decoration may not have its own service
+         * area, but its BODY still cannot occupy the
+         * access area of functional furniture.
+         */
+        if (OverlapsOtherFurnitureAccess(
+                position,
+                rotation))
+        {
+            return false;
+        }
+
+        if (HasBlockingCollider(
+                position,
+                rotation,
+                CurrentBodyCenter,
+                CurrentBodyHalfExtents,
+                false))
+        {
+            return false;
+        }
+
+        /*
+         * Front-access validation applies only to
+         * placeables whose definition actually needs
+         * operational access.
+         */
+        if (!CurrentRequiresOperationalAccess)
+        {
+            return true;
+        }
+
+        if (!buildArea.IsFootprintInside(
+                position,
+                rotation,
+                CurrentAccessCenter,
+                CurrentAccessHalfExtents,
                 CurrentPlacementArea))
         {
             return false;
         }
 
-        if (OverlapsProtectedClearance(position, rotation, CurrentBodyCenter, CurrentBodyHalfExtents, false))
+        if (OverlapsProtectedClearance(
+                position,
+                rotation,
+                CurrentAccessCenter,
+                CurrentAccessHalfExtents,
+                true))
         {
             return false;
         }
 
-        if (OverlapsProtectedClearance(position, rotation, CurrentAccessCenter, CurrentAccessHalfExtents, true))
-        {
-            return false;
-        }
-
-        if (OverlapsOtherFurnitureAccess(position, rotation))
-        {
-            return false;
-        }
-
-        if (HasBlockingCollider(position, rotation, CurrentBodyCenter, CurrentBodyHalfExtents, false))
-        {
-            return false;
-        }
-
-        if (HasBlockingCollider(position, rotation, CurrentAccessCenter, CurrentAccessHalfExtents, true))
+        if (HasBlockingCollider(
+                position,
+                rotation,
+                CurrentAccessCenter,
+                CurrentAccessHalfExtents,
+                true))
         {
             return false;
         }
@@ -892,7 +951,9 @@ public class FurniturePlacementController : MonoBehaviour
 
             FurnitureDefinition definition = candidate.FurnitureDefinition;
 
-            if (definition == null || definition.PlacementArea != CurrentPlacementArea)
+            if (definition == null ||
+                !definition.RequiresOperationalAccess ||
+                definition.PlacementArea != CurrentPlacementArea)
             {
                 continue;
             }
@@ -997,7 +1058,8 @@ public class FurniturePlacementController : MonoBehaviour
 
     private void CreateAccessOutline()
     {
-        if (accessOutline != null)
+        if (!CurrentRequiresOperationalAccess ||
+            accessOutline != null)
         {
             return;
         }
@@ -1032,9 +1094,17 @@ public class FurniturePlacementController : MonoBehaviour
         accessOutline.sharedMaterial = outlineMaterial;
     }
 
-    private void UpdateAccessOutline(Color color)
+    private void UpdateAccessOutline(
+        Color color)
     {
-        if (accessOutline == null || selectedFurniture == null)
+        if (!CurrentRequiresOperationalAccess)
+        {
+            DestroyAccessOutline();
+            return;
+        }
+
+        if (accessOutline == null ||
+            selectedFurniture == null)
         {
             return;
         }

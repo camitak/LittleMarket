@@ -97,8 +97,11 @@ public sealed class LayoutFurnitureAccessVisualizer : MonoBehaviour
 
         foreach (FurnitureIdentity candidate in furniture)
         {
-            if (candidate == null || candidate == selected || !candidate.gameObject.activeInHierarchy ||
-                candidate.FurnitureDefinition == null)
+            if (candidate == null ||
+                candidate == selected ||
+                !candidate.gameObject.activeInHierarchy ||
+                candidate.FurnitureDefinition == null ||
+                !candidate.FurnitureDefinition.RequiresOperationalAccess)
             {
                 continue;
             }
@@ -144,6 +147,19 @@ public sealed class LayoutFurnitureAccessVisualizer : MonoBehaviour
             }
 
             FurnitureDefinition definition = entry.Furniture.FurnitureDefinition;
+            
+            if (!definition.RequiresOperationalAccess)
+            {
+                if (entry.VisualObject != null)
+                {
+                    entry.VisualObject.SetActive(
+                        false
+                    );
+                }
+
+                continue;
+            }
+            
             Transform furniture = entry.Furniture.transform;
 
             Vector3 worldAccessCenter = furniture.TransformPoint(definition.AccessCenter);

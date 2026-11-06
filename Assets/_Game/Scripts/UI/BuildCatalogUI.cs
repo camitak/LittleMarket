@@ -30,6 +30,9 @@ public class BuildCatalogUI : MonoBehaviour
     [SerializeField]
     private Button refrigerationCategoryButton;
 
+    [SerializeField]
+    private Button decorCategoryButton;
+    
     [Header("Catalog List")]
     [SerializeField]
     private ScrollRect catalogScrollRect;
@@ -108,6 +111,15 @@ public class BuildCatalogUI : MonoBehaviour
                 .onClick
                 .AddListener(
                     ShowRefrigeration
+                );
+        }
+        
+        if (decorCategoryButton != null)
+        {
+            decorCategoryButton
+                .onClick
+                .AddListener(
+                    ShowDecor
                 );
         }
 
@@ -261,6 +273,13 @@ public class BuildCatalogUI : MonoBehaviour
     {
         SetCategory(
             FurnitureCatalogCategory.Refrigeration
+        );
+    }
+    
+    private void ShowDecor()
+    {
+        SetCategory(
+            FurnitureCatalogCategory.Decor
         );
     }
 
@@ -523,6 +542,13 @@ public class BuildCatalogUI : MonoBehaviour
             FurnitureCatalogCategory.Refrigeration,
             "REFRIGERATION"
         );
+        
+        SetCategoryButtonState(
+            decorCategoryButton,
+            activeCategory ==
+            FurnitureCatalogCategory.Decor,
+            "DECOR"
+        );
     }
 
     private static void SetCategoryButtonState(
@@ -642,6 +668,15 @@ public class BuildCatalogUI : MonoBehaviour
                 .onClick
                 .RemoveListener(
                     ShowRefrigeration
+                );
+        }
+        
+        if (decorCategoryButton != null)
+        {
+            decorCategoryButton
+                .onClick
+                .RemoveListener(
+                    ShowDecor
                 );
         }
     }

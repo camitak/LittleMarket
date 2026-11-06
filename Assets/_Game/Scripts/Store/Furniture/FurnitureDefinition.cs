@@ -10,11 +10,14 @@ public class FurnitureDefinition : ScriptableObject
 
     [Header("Catalog")] 
     [SerializeField] private FurnitureCatalogCategory catalogCategory = FurnitureCatalogCategory.Fixtures;
-    [Header("Purchase")] [Min(0f)] [SerializeField] private float purchasePrice = 40f;
+
+    [Header("Purchase")] 
+    [Min(0f)] [SerializeField] private float purchasePrice = 40f;
     [SerializeField] private FurnitureIdentity prefab;
 
     [Header("Placement")] 
     [SerializeField] private StoreAreaType placementArea = StoreAreaType.SalesFloor;
+    [SerializeField] private FurnitureAccessRequirement accessRequirement = FurnitureAccessRequirement.FrontOperational;
 
     [Header("Placement - Body")] 
     [SerializeField] private Vector3 bodyHalfExtents = new(1.30f, 1.05f, 0.52f);
@@ -37,6 +40,10 @@ public class FurnitureDefinition : ScriptableObject
     public FurnitureIdentity Prefab => prefab;
 
     public StoreAreaType PlacementArea => placementArea;
+
+    public FurnitureAccessRequirement AccessRequirement => accessRequirement;
+
+    public bool RequiresOperationalAccess => accessRequirement == FurnitureAccessRequirement.FrontOperational;
 
     public Vector3 BodyHalfExtents => bodyHalfExtents;
 

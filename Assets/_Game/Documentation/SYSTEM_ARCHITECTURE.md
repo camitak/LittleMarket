@@ -1,70 +1,198 @@
 # Little Market — System Architecture
 
-Current architecture after **Lesson 130 — Store Design Back Navigation & Catalog Scroll Polish**.
+Current architecture after **Lesson 131 — Decorations Foundation**.
 
-Verified source: GitHub main `52399f509f3b2033accac2364e91fac4c7c266a5` (`Lesson 129 complete - store design input ownership and area focus`).
+## Verified source of truth
 
-## Lesson 130
+Lesson 131 was designed after verifying GitHub `main` at:
 
-Player testing found:
-- Build Catalog scrolling felt too fast and elastic/bouncy.
-- Short categories could still scroll even when their content fit.
-- Escape felt dead while Store Design was idle.
+`e471f74834eae57f03c7e37539bf8f8596f5cfe6`
 
-### Build Catalog scrolling
-ScrollRect:
-- Movement Type: Clamped
-- Inertia: OFF
-- Scroll Sensitivity: 12
-- Horizontal: OFF
+Commit:
 
-`BuildCatalogUI.RefreshScrollLayout()` dynamically enables vertical scrolling only when content height exceeds viewport height. When content fits, scrolling is disabled, movement stops, and content resets to top.
+`Lesson 130 complete - catalog scroll and store design back navigation`
 
-With the current catalog:
-- ALL scrolls
-- FIXTURES does not
-- STORAGE does not
-- REFRIGERATION does not
+Re-verify newest `main` before every future lesson.
 
-### Escape ownership
-`StoreLayoutModeController` is now the sole Store Design Escape owner:
-1. placement active -> cancel placement
-2. Build Catalog open -> close catalog
-3. otherwise -> exit Store Design
+## Core placeable architecture
 
-`L` still directly exits Store Design.
+Decorations use the SAME architecture as functional furniture:
 
-Outside Store Design, Esc continues to open Pause normally.
+FurnitureDefinition
+-> FurnitureCatalog
+-> FurnitureShop
+-> StoreFurnitureLayout
+-> FurniturePlacementController
+-> save/load
 
-### Same-frame Pause protection
-`StoreLayoutModeController` exposes `ConsumedEscapeThisFrame`.
-`PauseMenuUI` refuses to open if Store Design is active or Store Design consumed Escape during the current frame. This prevents one Esc press from both exiting Store Design and opening Pause, regardless of component Update order.
+There is no parallel DecorationDefinition or decoration save system.
 
-`BuildCatalogUI` no longer handles Escape itself.
-`FurniturePlacementController` no longer handles Escape locally; RMB/Q still cancel placement.
+## Operational access semantics
 
-### UI wiring
-`StoreLayoutModeController` gains a Build Catalog UI reference pointing to `GameUI / BuildCatalogUI`.
+New enum:
 
-### Controls
-STORE DESIGN CONTROLS
-B   Build Catalog
-LMB   Select / Place
-R / T   Rotate      G   Placement Mode
-Ctrl   Temporary Opposite Mode
-MMB   Orbit         Wheel   Zoom
-WASD   Pan          Shift   Faster
-RMB   Cancel        Esc   Back      L   Exit
+`FurnitureAccessRequirement`
 
-LayoutControlsPanel remains 360 x 214.
+Values:
+- `FrontOperational = 0`
+- `None = 1`
+
+The legacy/default value is deliberately `0 = FrontOperational`, so existing furniture assets preserve their access behavior even before they serialize the new field.
+
+FurnitureDefinition now exposes:
+- `AccessRequirement`
+- `RequiresOperationalAccess`
+
+Functional furniture keeps FrontOperational:
+- Standard Shelf
+- Refrigerated Display
+- Ambient Storage Rack
+- Chilled Storage Rack
+
+The first decoration, Potted Plant, uses None.
+
+## Placement rules
+
+All placeables still require a BODY footprint.
+
+Body validation always:
+- stays inside required StoreAreaType
+- respects fixed LayoutClearanceZone body restrictions
+- cannot overlap physical colliders
+- cannot occupy another functional furniture item's operational access footprint
+
+Operational-access validation is conditional.
+
+When RequiresOperationalAccess is true:
+- access footprint must stay inside area
+- access footprint respects protected clearances
+- access footprint cannot overlap blocking colliders
+- access preview/outline is visible
+
+When false:
+- no access-in-area test
+- no access-clearance test
+- no access-collider test
+- no access preview/outline
+
+This means decor loses only its own service/access requirement, not protections around real store operations.
+
+## Visualizers
+
+FurniturePlacementVisualizer gains a `showAccess` argument.
+- body footprint always shown
+- access footprint enabled only for definitions requiring operational access
+
+LayoutFurnitureAccessVisualizer skips existing furniture whose definition does not require operational access.
+
+Functional access zones therefore remain visible; decor does not create meaningless yellow footprints.
+
+## Navigation
+
+Navigation remains component-driven.
+
+Lesson 131 Potted Plant is floor-standing and physically occupies customer space, so its prefab contains:
+- BoxCollider
+- NavMeshModifierVolume
+- FurnitureNavigationBlocker
+
+No new navigation system is introduced.
+
+Future surface/tabletop decor may omit FurnitureNavigationBlocker when appropriate, but that requires a later surface-placement lesson.
+
+## First decoration
+
+New catalog item:
+
+Potted Plant
+- Furniture ID: `decor_potted_plant`
+- Category: Decor
+- Price: £25
+- Placement Area: SalesFloor
+- Access Requirement: None
+- Body Center: `(0, 0.68, 0)`
+- Body Half Extents: `(0.40, 0.68, 0.40)`
+
+Prefab:
+`PF_Decor_PottedPlant`
+
+It is built from simple primitive meshes in a warm cozy low-poly style.
+Root stays at floor pivot, position zero, rotation zero, scale one.
+
+No FurnitureSnapSocket is added.
+
+## Build Catalog
+
+Decor category is now exposed because actual Decor content exists.
+
+Current categories:
+- All
+- Fixtures
+- Storage
+- Refrigeration
+- Decor
+
+New `DecorCategoryButton` is wired to BuildCatalogUI.
+
+The category bar keeps the existing HorizontalLayoutGroup. Category TMP labels use font size 14 to comfortably fit five equal-width buttons.
+
+Build Catalog scroll rules from Lesson 130 remain:
+- Clamped
+- no inertia
+- sensitivity 12
+- vertical enabled only when content overflows
+
+## Ambience
+
+No Ambience score/stat is implemented yet.
+
+Direction remains:
+- creativity first
+- soft benefits later
+- diminishing returns
+- variety over spam
+- no hard “place N decorations” chores
+
+Lesson 131 proves the placeable semantics before adding scoring.
 
 ## Preserved systems
-Camera values, Structured/Free placement, placement-area camera routing, purchase authority, save schema v2, EOD idempotency, and management-time principles remain unchanged.
 
-## Next roadmap
-Lesson 131 — Decorations Foundation.
-Lesson 132 — World-Space Expansion Preview & Purchase.
-Then copy/eyedrop, repeat placement, selling/refunds, variants/colors, Ambience, autosave, exact carry persistence, advanced fixture/socket semantics.
+Unchanged:
+- Structured/Free placement
+- 0.5m structured grid
+- magnetic snap architecture
+- camera input isolation
+- cross-area purchase camera routing
+- Store Design Esc hierarchy
+- purchase preview-first / spend-on-confirm
+- schema v2 saves
+- EOD idempotency
+- time does not gate management
+
+## Roadmap
+
+### Lesson 132 — World-Space Expansion Preview & Purchase
+
+Then:
+- copy/eyedrop
+- repeat placement
+- selling/refunds
+- variants/colors
+- more decor types / surface placement
+- Ambience
+- autosave
+- exact carry persistence
+- advanced fixture/socket semantics
 
 ## Permanent rules
-GitHub main first. Inspect exact source/scene. Preserve tuned values. Player testing may reorder roadmap. One owner per input/state transition. UI input must not leak into world. ScrollRect should not scroll if content fits. Entire lesson implementation stays in chat; only handoff `.md` files are separate.
+
+- GitHub main first
+- inspect exact current source/scene/assets
+- preserve tuned values
+- one placeable/purchase/save authority
+- only add special semantics where the object actually needs them
+- body footprint remains authoritative for physical occupancy
+- operational access remains explicit, not inferred from catalog category
+- player testing may reorder roadmap
+- implementation stays in chat
+- only handoff `.md` files separate
