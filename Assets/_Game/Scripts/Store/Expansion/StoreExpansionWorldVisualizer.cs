@@ -7,7 +7,8 @@ public class StoreExpansionWorldVisualizer : MonoBehaviour
     private enum ExpansionVisualStyle
     {
         Neutral,
-        Available,
+        AvailableFocus,
+        UnavailableFocus,
         LevelLocked
     }
 
@@ -19,24 +20,28 @@ public class StoreExpansionWorldVisualizer : MonoBehaviour
         public LineRenderer Border;
     }
 
-    [Header("References")] 
+    [Header("References")]
     [SerializeField] private StoreLayoutModeController layoutMode;
     [SerializeField] private StoreExpansionSystem expansionSystem;
 
-    [Header("Position")] 
+    [Header("Position")]
     [Min(0f)] [SerializeField] private float surfaceOffset = 0.03f;
     [Min(0f)] [SerializeField] private float borderSurfaceOffset = 0.045f;
     [Min(0.005f)] [SerializeField] private float borderWidth = 0.035f;
 
-    [Header("Locked")] 
+    [Header("Locked")]
     [SerializeField] private Color lockedFillColor = new Color32(98, 93, 112, 64);
     [SerializeField] private Color lockedBorderColor = new Color32(185, 175, 206, 153);
 
-    [Header("Purchasable / Focus")] 
+    [Header("Purchasable Focus")]
     [SerializeField] private Color availableFillColor = new Color32(111, 207, 151, 56);
     [SerializeField] private Color availableBorderColor = new Color32(169, 230, 213, 230);
 
-    [Header("Store Level Locked")] 
+    [Header("Unavailable Focus")]
+    [SerializeField] private Color unavailableFocusFillColor = new Color32(217, 165, 122, 56);
+    [SerializeField] private Color unavailableFocusBorderColor = new Color32(230, 185, 143, 230);
+
+    [Header("Store Level Locked")]
     [SerializeField] private Color levelLockedFillColor = new Color32(107, 101, 122, 51);
     [SerializeField] private Color levelLockedBorderColor = new Color32(138, 127, 150, 166);
 
@@ -47,10 +52,10 @@ public class StoreExpansionWorldVisualizer : MonoBehaviour
 
     private Material lockedFillMaterial;
     private Material lockedBorderMaterial;
-
     private Material availableFillMaterial;
     private Material availableBorderMaterial;
-
+    private Material unavailableFocusFillMaterial;
+    private Material unavailableFocusBorderMaterial;
     private Material levelLockedFillMaterial;
     private Material levelLockedBorderMaterial;
 
@@ -60,9 +65,7 @@ public class StoreExpansionWorldVisualizer : MonoBehaviour
     private void Awake()
     {
         CreateRuntimeResources();
-
         RebuildVisuals();
-
         SetVisualsActive(false);
     }
 
@@ -83,7 +86,6 @@ public class StoreExpansionWorldVisualizer : MonoBehaviour
     public void SetInteractionState(StoreExpansionZone selected, StoreExpansionZone hovered)
     {
         selectedZone = selected;
-
         hoveredZone = hovered;
 
         if (layoutMode != null && layoutMode.IsActive)
@@ -99,7 +101,6 @@ public class StoreExpansionWorldVisualizer : MonoBehaviour
         if (layoutMode != null && layoutMode.IsActive)
         {
             SetVisualsActive(true);
-
             UpdateVisuals();
         }
     }
@@ -119,13 +120,14 @@ public class StoreExpansionWorldVisualizer : MonoBehaviour
         {
             StoreExpansionZone candidate = expansionSystem.GetExpansion(i);
 
-            if (candidate == null || candidate.IsUnlocked || !candidate.TryGetPreviewBounds(out Bounds bounds))
+            if (candidate == null ||
+                candidate.IsUnlocked ||
+                !candidate.TryGetPreviewBounds(out Bounds bounds))
             {
                 continue;
             }
 
             float planeY = bounds.max.y + surfaceOffset;
-
             Plane plane = new(Vector3.up, new Vector3(0f, planeY, 0f));
 
             if (!plane.Raycast(ray, out float distance))
@@ -140,13 +142,15 @@ public class StoreExpansionWorldVisualizer : MonoBehaviour
 
             Vector3 point = ray.GetPoint(distance);
 
-            if (point.x < bounds.min.x || point.x > bounds.max.x || point.z < bounds.min.z || point.z > bounds.max.z)
+            if (point.x < bounds.min.x ||
+                point.x > bounds.max.x ||
+                point.z < bounds.min.z ||
+                point.z > bounds.max.z)
             {
                 continue;
             }
 
             bestDistance = distance;
-
             zone = candidate;
         }
 
@@ -156,7 +160,6 @@ public class StoreExpansionWorldVisualizer : MonoBehaviour
     private void CreateRuntimeResources()
     {
         visualRoot = new GameObject("ExpansionVisuals_Runtime");
-
         unitQuad = LayoutVisualUtility.CreateUnitQuad();
 
         lockedFillMaterial =
@@ -171,11 +174,26 @@ public class StoreExpansionWorldVisualizer : MonoBehaviour
         availableBorderMaterial =
             LayoutVisualUtility.CreateTransparentMaterial("ExpansionAvailableBorder_Runtime", availableBorderColor);
 
+        unavailableFocusFillMaterial =
+            LayoutVisualUtility.CreateTransparentMaterial(
+                "ExpansionUnavailableFocusFill_Runtime",
+                unavailableFocusFillColor
+            );
+
+        unavailableFocusBorderMaterial =
+            LayoutVisualUtility.CreateTransparentMaterial(
+                "ExpansionUnavailableFocusBorder_Runtime",
+                unavailableFocusBorderColor
+            );
+
         levelLockedFillMaterial =
             LayoutVisualUtility.CreateTransparentMaterial("ExpansionLevelLockedFill_Runtime", levelLockedFillColor);
 
         levelLockedBorderMaterial =
-            LayoutVisualUtility.CreateTransparentMaterial("ExpansionLevelLockedBorder_Runtime", levelLockedBorderColor);
+            LayoutVisualUtility.CreateTransparentMaterial(
+                "ExpansionLevelLockedBorder_Runtime",
+                levelLockedBorderColor
+            );
     }
 
     private void RebuildVisuals()
@@ -203,55 +221,36 @@ public class StoreExpansionWorldVisualizer : MonoBehaviour
     private ExpansionVisual CreateVisual(StoreExpansionZone zone)
     {
         ExpansionVisual entry = new();
-
         entry.Zone = zone;
 
         entry.Root = new GameObject($"Expansion_{zone.name}");
-
         entry.Root.transform.SetParent(visualRoot.transform, true);
 
         GameObject fill = new("Fill");
-
         fill.transform.SetParent(entry.Root.transform, true);
 
         MeshFilter filter = fill.AddComponent<MeshFilter>();
-
         filter.sharedMesh = unitQuad;
 
         entry.FillRenderer = fill.AddComponent<MeshRenderer>();
-
         entry.FillRenderer.sharedMaterial = lockedFillMaterial;
-
         entry.FillRenderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
-
         entry.FillRenderer.receiveShadows = false;
-
         entry.FillRenderer.sortingOrder = -4;
 
         GameObject borderObject = new("Border");
-
         borderObject.transform.SetParent(entry.Root.transform, true);
 
         entry.Border = borderObject.AddComponent<LineRenderer>();
-
         entry.Border.useWorldSpace = true;
-
         entry.Border.positionCount = 5;
-
         entry.Border.loop = false;
-
         entry.Border.widthMultiplier = borderWidth;
-
         entry.Border.numCornerVertices = 2;
-
         entry.Border.numCapVertices = 2;
-
         entry.Border.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
-
         entry.Border.receiveShadows = false;
-
         entry.Border.sortingOrder = 4;
-
         entry.Border.sharedMaterial = lockedBorderMaterial;
 
         return entry;
@@ -266,10 +265,10 @@ public class StoreExpansionWorldVisualizer : MonoBehaviour
                 continue;
             }
 
-            if (entry.Zone.IsUnlocked || !entry.Zone.TryGetPreviewBounds(out Bounds bounds))
+            if (entry.Zone.IsUnlocked ||
+                !entry.Zone.TryGetPreviewBounds(out Bounds bounds))
             {
                 entry.Root.SetActive(false);
-
                 continue;
             }
 
@@ -279,7 +278,6 @@ public class StoreExpansionWorldVisualizer : MonoBehaviour
             }
 
             UpdateGeometry(entry, bounds);
-
             ApplyStyle(entry, GetStyle(entry.Zone));
         }
     }
@@ -289,20 +287,18 @@ public class StoreExpansionWorldVisualizer : MonoBehaviour
         Transform fillTransform = entry.FillRenderer.transform;
 
         fillTransform.SetPositionAndRotation(
-            new Vector3(bounds.center.x, bounds.max.y + surfaceOffset, bounds.center.z), Quaternion.identity);
+            new Vector3(bounds.center.x, bounds.max.y + surfaceOffset, bounds.center.z),
+            Quaternion.identity
+        );
 
         fillTransform.localScale = new Vector3(bounds.size.x, 1f, bounds.size.z);
 
         float y = bounds.max.y + borderSurfaceOffset;
 
         entry.Border.SetPosition(0, new Vector3(bounds.min.x, y, bounds.min.z));
-
         entry.Border.SetPosition(1, new Vector3(bounds.max.x, y, bounds.min.z));
-
         entry.Border.SetPosition(2, new Vector3(bounds.max.x, y, bounds.max.z));
-
         entry.Border.SetPosition(3, new Vector3(bounds.min.x, y, bounds.max.z));
-
         entry.Border.SetPosition(4, new Vector3(bounds.min.x, y, bounds.min.z));
     }
 
@@ -313,16 +309,18 @@ public class StoreExpansionWorldVisualizer : MonoBehaviour
             return ExpansionVisualStyle.Neutral;
         }
 
+        bool focused = zone == selectedZone || zone == hoveredZone;
+
+        if (focused)
+        {
+            return expansionSystem.CanPurchase(zone, out _)
+                ? ExpansionVisualStyle.AvailableFocus
+                : ExpansionVisualStyle.UnavailableFocus;
+        }
+
         if (!expansionSystem.MeetsLevelRequirement(zone))
         {
             return ExpansionVisualStyle.LevelLocked;
-        }
-
-        bool emphasized = zone == selectedZone || zone == hoveredZone;
-
-        if (emphasized && expansionSystem.CanPurchase(zone, out _))
-        {
-            return ExpansionVisualStyle.Available;
         }
 
         return ExpansionVisualStyle.Neutral;
@@ -332,25 +330,24 @@ public class StoreExpansionWorldVisualizer : MonoBehaviour
     {
         switch (style)
         {
-            case ExpansionVisualStyle.Available:
+            case ExpansionVisualStyle.AvailableFocus:
                 entry.FillRenderer.sharedMaterial = availableFillMaterial;
-
                 entry.Border.sharedMaterial = availableBorderMaterial;
+                break;
 
+            case ExpansionVisualStyle.UnavailableFocus:
+                entry.FillRenderer.sharedMaterial = unavailableFocusFillMaterial;
+                entry.Border.sharedMaterial = unavailableFocusBorderMaterial;
                 break;
 
             case ExpansionVisualStyle.LevelLocked:
                 entry.FillRenderer.sharedMaterial = levelLockedFillMaterial;
-
                 entry.Border.sharedMaterial = levelLockedBorderMaterial;
-
                 break;
 
             default:
                 entry.FillRenderer.sharedMaterial = lockedFillMaterial;
-
                 entry.Border.sharedMaterial = lockedBorderMaterial;
-
                 break;
         }
     }
@@ -373,7 +370,6 @@ public class StoreExpansionWorldVisualizer : MonoBehaviour
             }
 
             entry.Root.SetActive(false);
-
             Destroy(entry.Root);
         }
 
@@ -395,15 +391,12 @@ public class StoreExpansionWorldVisualizer : MonoBehaviour
         }
 
         DestroyMaterial(lockedFillMaterial);
-
         DestroyMaterial(lockedBorderMaterial);
-
         DestroyMaterial(availableFillMaterial);
-
         DestroyMaterial(availableBorderMaterial);
-
+        DestroyMaterial(unavailableFocusFillMaterial);
+        DestroyMaterial(unavailableFocusBorderMaterial);
         DestroyMaterial(levelLockedFillMaterial);
-
         DestroyMaterial(levelLockedBorderMaterial);
     }
 
