@@ -406,11 +406,11 @@ public class FurniturePlacementController : MonoBehaviour
 
                 if (definition != null)
                 {
-                    interactionUI.ShowPrompt($"LMB Buy & place £{definition.PurchasePrice:0.00}");
+                    interactionUI.ShowPrompt($"LMB Buy & place £{definition.PurchasePrice:0.00}  •  RMB Stop");
                 }
                 else
                 {
-                    interactionUI.ShowPrompt("LMB Buy & place");
+                    interactionUI.ShowPrompt("LMB Buy & place  •  RMB Stop");
                 }
 
                 return;
@@ -1312,16 +1312,18 @@ public class FurniturePlacementController : MonoBehaviour
 
     private void ConfirmPlacement()
     {
-        string furnitureName = CurrentDefinition != null ? CurrentDefinition.DisplayName : "Furniture";
+        FurnitureDefinition definition = CurrentDefinition;
+        string furnitureName = definition != null ? definition.DisplayName : "Furniture";
 
-        if (isNewFurniturePurchase)
+        bool wasNewFurniturePurchase = isNewFurniturePurchase;
+        FurnitureShop purchaseShop = pendingPurchase;
+        float repeatYaw = previewYaw;
+
+        if (wasNewFurniturePurchase)
         {
-            FurnitureDefinition definition = CurrentDefinition;
-
-            if (definition == null || pendingPurchase == null || !pendingPurchase.TryCompletePurchase(definition))
+            if (definition == null || purchaseShop == null || !purchaseShop.TryCompletePurchase(definition))
             {
                 Debug.LogWarning("Not enough money or invalid furniture purchase configuration.", this);
-
                 return;
             }
 
@@ -1335,9 +1337,25 @@ public class FurniturePlacementController : MonoBehaviour
             layoutMode.MarkNavigationDirty();
         }
 
+        if (wasNewFurniturePurchase && definition != null && purchaseShop != null)
+        {
+            string repeatReason;
+
+            if (purchaseShop.TryBeginPurchase(definition, out repeatReason, repeatYaw))
+            {
+                Debug.Log($"{furnitureName} placed. Repeat placement ready.", this);
+                return;
+            }
+
+            if (!string.IsNullOrWhiteSpace(repeatReason))
+            {
+                ShowTransientStatus($"{furnitureName} placed. {repeatReason}");
+            }
+        }
+
         Debug.Log($"{furnitureName} placed. Save your game to keep the new layout.", this);
     }
-
+    
     public void CancelActivePlacement()
     {
         CancelPlacement();

@@ -1,16 +1,16 @@
 # Little Market — System Architecture
 
-Current architecture after **Lesson 135 — Copy / Eyedropper Furniture Purchase**.
+Current architecture after **Lesson 136 — Repeat Purchase Placement**.
 
 ## Verified source of truth
 
-Lesson 135 was designed after verifying GitHub `main` at:
+Lesson 136 was designed after verifying GitHub `main` at:
 
-`e0f042d7cb1b2b1816a0924ee5460cffdb5176ef`
+`4b582d4b06d72da110dfdb8447bc739f3ec6bc7d`
 
 Commit:
 
-`Lesson 134 complete - expansion hover preview and discoverability`
+`Lesson 135 complete - furniture copy eyedropper`
 
 Re-verify newest `main` before every future lesson.
 
@@ -20,163 +20,139 @@ Re-verify newest `main` before every future lesson.
 - Read this architecture file before proposing implementation.
 - Inspect complete relevant scripts, prefabs, ScriptableObjects, and `Market.unity`.
 - Never guess scene references.
-- Use exact GameObject/component paths when verified, for example:
-  - `LayoutCameraRig -> LayoutCameraController`
-  - `Player -> FurniturePlacementController`
-  - `StoreSystems -> FurnitureShop`
-  - `GameUI -> BuildCatalogUI`
-  - `StoreSystems -> StoreLayoutModeController`
+- Use exact GameObject/component paths when verified.
 - Every UI instruction must name the Unity object/component type, exact hierarchy, anchors, pivot, signed Anchored Position/offsets, size, font/alignment, Raycast Target, colors, and references where relevant.
 - Top-anchored downward movement normally uses negative Y; bottom-anchored upward movement normally uses positive Y.
-- Preserve user-tuned scene values.
-- Write conventional compact C#. Do not wrap simple declarations, signatures, conditions, or calls into many short lines merely for line wrapping.
-- Keep implementation, explanation, setup, tests, and suggested commit together in chat.
-- Only architecture and fresh-chat continuation `.md` files are normally separate.
-- Player playtesting may reorder roadmap.
+- Preserve all user-tuned scene values.
+- Write conventional compact C#.
+- Keep the whole lesson implementation in chat. Only this architecture file and the fresh-chat continuation file are normally separate.
+- Player playtesting may reorder the roadmap.
 
-## Lesson 135 — Copy / Eyedropper
+## Lesson 136 — Repeat purchase placement
 
-Store Design now supports copying a pointed furniture type with:
+Furniture purchases now behave as a placement session.
 
-`C`
+Starting a purchase from either:
+- `B` Build Catalog
+- `C` Copy / Eyedropper
 
-This is an eyedropper-style purchase, not a runtime object clone.
+creates a normal purchase preview.
 
-Flow:
+Each valid LMB confirmation:
+1. charges exactly one item through `FurnitureShop.TryCompletePurchase`
+2. activates that placed furniture
+3. completes its preview
+4. marks navigation dirty
+5. immediately asks `FurnitureShop.TryBeginPurchase` for another fresh preview of the same `FurnitureDefinition`
+6. carries forward the last preview yaw
 
-1. point at an existing managed furniture item
-2. press `C`
-3. read its `FurnitureDefinition`
-4. delegate to `FurnitureShop.TryBeginPurchase`
-5. create a fresh preview through `StoreFurnitureLayout`
-6. preserve the source furniture yaw
-7. place using all existing Structured/Free, grid, magnet, body, access, clearance and area rules
-8. charge only on confirmed placement
-9. cancel spends nothing
+The next preview remains unconfirmed and costs nothing until the next valid placement.
 
-## Copy semantics
+## Stopping repeat placement
 
-Copy transfers:
-- FurnitureDefinition/type
-- source world yaw as the initial preview yaw
+RMB, Q, Esc, or leaving Store Design cancels only the current unconfirmed preview.
 
-Copy does NOT transfer:
-- PersistentID
-- shelf product assignment
-- shelf stock
-- storage bay assignment
-- storage quantity
-- runtime registration/state
-- future per-instance operational state
+Already confirmed items remain purchased and placed.
 
-The new instance is created from the definition prefab and receives a fresh runtime persistent ID.
+No refund is involved because no money was spent on the discarded preview.
 
-This is intentionally “buy another one like this”, not “clone this live object”.
+## Purchase authority
 
-## FurnitureShop changes
-
-`FurnitureShop` adds:
-
-`IsPurchasableCatalogItem(FurnitureDefinition definition)`
-
-This allows Store Design presentation to know whether `C Copy` is meaningful without duplicating catalog membership/configuration rules.
-
-`TryBeginPurchase` becomes:
-
-`TryBeginPurchase(FurnitureDefinition definition, out string reason, float? initialYaw = null)`
-
-Existing callers remain valid.
-
-Catalog purchases use the default prefab yaw.
-Copy passes the source furniture yaw.
-
-## FurniturePlacementController changes
-
-`Player -> FurniturePlacementController` receives a new serialized reference:
-
-`Furniture Shop -> StoreSystems -> FurnitureShop`
-
-When idle in Store Design:
-- LMB still moves pointed furniture when movable
-- C starts a fresh purchase of the pointed furniture definition when it is a valid catalog item
-
-The pointed-item prompt can show both actions:
-
-`LMB Move Standard Shelf  •  C Copy £40.00`
-
-Copy remains available independently of source moveability. A source could later be temporarily non-movable because of runtime state while still being valid as an eyedropper source.
-
-If a copy purchase fails, `InteractionUI` shows the business-rule reason briefly, such as insufficient money.
-
-## Initial rotation
-
-`FurniturePlacementController.BeginPurchasedFurniturePreview` accepts optional `initialYaw`.
-
-`StartPreview` uses:
-- source yaw for copy
-- prefab/current yaw for ordinary catalog purchase
-
-This preserves arbitrary Free-mode angles and Structured-mode cardinal orientations without adding a separate rotation system.
-
-## Existing purchase authority
-
-Copy must never:
-- instantiate its own permanent object
-- spend money directly
-- bypass FurnitureShop
+Repeat placement does not:
+- clone the just-placed runtime object
+- directly instantiate permanent furniture
+- spend money outside FurnitureShop
+- manually generate IDs
 - bypass StoreFurnitureLayout
-- manually generate/save IDs
+- bypass normal placement validation
 
-All purchase authority remains:
+Each repeated item is a fresh prefab instance created through:
 
 `FurnitureShop -> StoreFurnitureLayout -> FurniturePlacementController`
 
-Payment still happens only in confirmed placement.
+and receives its own persistent ID.
 
-## UI / controls
+## Rotation continuity
 
-No new UI GameObject is created.
+Before completing each purchase, `FurniturePlacementController` captures the current `previewYaw`.
 
-Existing:
-`GameUI / LayoutModeFrame / LayoutControlsPanel / ControlsText`
+The next fresh preview starts with that yaw.
 
-remains:
-- panel Anchor Min/Max `(1,0)`
-- panel Pivot `(1,0)`
-- panel Anchored Position `(-28,28)`
-- panel Size Delta `(360,214)`
-- ControlsText stretch
-- ControlsText Size Delta `(-32,-32)`
-- TMP font size 17
-- left/top alignment
-- Raycast Target OFF
+This preserves:
+- Structured cardinal rotation
+- arbitrary Free-mode rotation
+- rotation changes made during the repeat sequence
 
-Controls text first line becomes:
+## Money behavior
 
-`B   Build Catalog      C   Copy Item`
+After one item is paid for, repeat continuation calls normal `FurnitureShop.TryBeginPurchase`.
 
-All RectTransform values remain unchanged.
+If the player can no longer afford another:
+- the confirmed item remains
+- no extra preview is created
+- no extra money is spent
+- the repeat sequence ends
+- the normal reason is shown transiently in world interaction when appropriate
 
-## Current copyable catalog definitions
+## Build Catalog coordination
 
-- Standard Shelf — £40 — SalesFloor
-- Refrigerated Display — £80 — SalesFloor
-- Ambient Storage Rack — £60 — Backroom
-- Chilled Storage Rack — £100 — Backroom
-- Potted Plant — £25 — SalesFloor
+No new BuildCatalogUI code is required.
 
-Only definitions in the current FurnitureCatalog are offered by the copy interaction.
+For catalog-origin purchases, its existing `reopenAfterPlacement` flag remains true while the catalog is hidden.
+
+Because the next purchase preview is created synchronously after each confirmation, `Player -> FurniturePlacementController.IsPlacementActive` remains true between repeated items, so the catalog does not flash open.
+
+When repetition actually stops or cannot continue, placement becomes inactive and the existing BuildCatalogUI behavior reopens the catalog.
+
+Copy-origin repetition does not set `reopenAfterPlacement`, so stopping a copy sequence returns to normal Store Design world interaction.
+
+## Existing furniture movement
+
+Moving an already-owned furniture instance with LMB remains one-shot.
+
+Repeat placement applies only when `isNewFurniturePurchase` is true.
+
+## Dynamic prompt
+
+While a valid purchase preview is active:
+
+`LMB Buy & place £X.XX  •  RMB Stop`
+
+Invalid placement still shows the existing placement-invalid explanation.
+
+No new UI GameObject or component is created.
+
+## Scene / Inspector
+
+No new serialized field and no new scene wiring.
+
+Preserve current `Player -> FurniturePlacementController` values, including:
+- Furniture Shop -> `StoreSystems -> FurnitureShop`
+- Selection Ray Distance 35
+- Preview Ray Distance 30
+- Body Contact Tolerance 0.01
+- Structured Placement By Default ON
+- Grid Size 0.5
+- Free Rotation Degrees Per Second 90
+- Magnetic Snap Enabled ON
+- Socket Capture Distance 0.30
+- Socket Release Distance 0.55
+- Maximum Socket Facing Angle 15
+- Outline Width 0.01
+
+No RectTransform changes.
 
 ## Persistence
 
 No save schema change.
 
-Copied furniture is already covered by generic furniture placement save data because it receives a new persistent ID and normal FurnitureDefinition ID.
+Confirmed repeated furniture already uses normal generic furniture placement persistence.
+
+An active unconfirmed repeat preview remains a transient placement and must be cancelled/stopped before a save that requires no active placement.
 
 ## Roadmap
 
 Next likely:
-- repeat placement
 - selling / refunds
 - variants / colors
 - more decor / surface placement
