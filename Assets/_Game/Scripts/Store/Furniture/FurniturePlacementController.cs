@@ -11,9 +11,10 @@ public class FurniturePlacementController : MonoBehaviour
     [SerializeField] private PlayerInteraction playerInteraction;
     [SerializeField] private InteractionUI interactionUI;
 
-    [Header("Store")] 
+    [Header("Store")]
     [SerializeField] private StoreLayoutModeController layoutMode;
     [SerializeField] private StoreBuildArea buildArea;
+    [SerializeField] private FurnitureShop furnitureShop;
 
     [Header("Visuals")] 
     [SerializeField] private FurniturePlacementVisualizer placementVisualizer;
@@ -65,6 +66,11 @@ public class FurniturePlacementController : MonoBehaviour
     private bool isNewFurniturePurchase;
 
     private FurnitureShop pendingPurchase;
+    
+    private string transientStatusMessage = "";
+    private float transientStatusUntil;
+
+    private const float TransientStatusDuration = 1.75f;
 
     private Collider[] selectedColliders;
     private bool[] originallyEnabled;
@@ -198,6 +204,12 @@ public class FurniturePlacementController : MonoBehaviour
                 return;
             }
 
+            if (Keyboard.current.cKey.wasPressedThisFrame)
+            {
+                TryCopyPointedFurniture();
+                return;
+            }
+
             if (Mouse.current.leftButton.wasPressedThisFrame)
             {
                 TryStartPlacement();
@@ -206,7 +218,9 @@ public class FurniturePlacementController : MonoBehaviour
             return;
         }
 
-        if (Time.timeScale <= 0f || layoutMode == null || !layoutMode.IsActive ||
+        if (Time.timeScale <= 0f || 
+            layoutMode == null || 
+            !layoutMode.IsActive ||
             Cursor.lockState != CursorLockMode.None)
         {
             CancelPlacement();
@@ -364,8 +378,15 @@ public class FurniturePlacementController : MonoBehaviour
 
     private void LateUpdate()
     {
-        if (interactionUI == null || layoutMode == null || !layoutMode.IsActive ||
+        if (interactionUI == null || 
+            layoutMode == null || 
+            !layoutMode.IsActive ||
             Cursor.lockState != CursorLockMode.None)
+        {
+            return;
+        }
+        
+        if (TryShowTransientStatus())
         {
             return;
         }
@@ -399,19 +420,17 @@ public class FurniturePlacementController : MonoBehaviour
             return;
         }
 
-        if (!layoutMode.IsCameraManipulating && CanStartPlacement() && !IsPointerOverUI() &&
-            TryFindPointedAtFurniture(out FurnitureIdentity furniture) && furniture.CanMoveFurniture(out _))
+        if (!layoutMode.IsCameraManipulating &&
+            CanStartPlacement() &&
+            !IsPointerOverUI() &&
+            TryFindPointedAtFurniture(out FurnitureIdentity furniture))
         {
-            FurnitureDefinition definition = furniture.FurnitureDefinition;
-
-            string furnitureName = definition != null ? definition.DisplayName : "furniture";
-
-            interactionUI.ShowPrompt($"LMB Move {furnitureName}");
-
+            ShowFurnitureIdlePrompt(furniture);
             return;
         }
 
         interactionUI.HidePrompt();
+
     }
 
     private bool CanStartPlacement()
@@ -458,8 +477,107 @@ public class FurniturePlacementController : MonoBehaviour
 
         return false;
     }
+    
+    private void TryCopyPointedFurniture()
+    {
+        if (furnitureShop == null ||
+            !TryFindPointedAtFurniture(out FurnitureIdentity sourceFurniture))
+        {
+            return;
+        }
 
-    public bool BeginPurchasedFurniturePreview(FurnitureIdentity furniture, FurnitureShop shop)
+        FurnitureDefinition definition = sourceFurniture.FurnitureDefinition;
+
+        if (!furnitureShop.IsPurchasableCatalogItem(definition))
+        {
+            return;
+        }
+
+        float sourceYaw = sourceFurniture.transform.eulerAngles.y;
+
+        if (!furnitureShop.TryBeginPurchase(definition, out string reason, sourceYaw))
+        {
+            ShowTransientStatus(reason);
+        }
+    }
+
+    private void ShowFurnitureIdlePrompt(FurnitureIdentity furniture)
+    {
+        if (furniture == null)
+        {
+            interactionUI.HidePrompt();
+            return;
+        }
+
+        FurnitureDefinition definition = furniture.FurnitureDefinition;
+        string furnitureName = definition != null ? definition.DisplayName : "furniture";
+
+        bool canMove = furniture.CanMoveFurniture(out _);
+
+        bool canCopy =
+            furnitureShop != null &&
+            furnitureShop.IsPurchasableCatalogItem(definition);
+
+        if (canMove && canCopy)
+        {
+            interactionUI.ShowPrompt(
+                $"LMB Move {furnitureName}  •  C Copy £{definition.PurchasePrice:0.00}"
+            );
+
+            return;
+        }
+
+        if (canMove)
+        {
+            interactionUI.ShowPrompt($"LMB Move {furnitureName}");
+            return;
+        }
+
+        if (canCopy)
+        {
+            interactionUI.ShowPrompt(
+                $"C Copy {furnitureName}  •  £{definition.PurchasePrice:0.00}"
+            );
+
+            return;
+        }
+
+        interactionUI.HidePrompt();
+    }
+
+    private void ShowTransientStatus(string message)
+    {
+        if (string.IsNullOrWhiteSpace(message))
+        {
+            return;
+        }
+
+        transientStatusMessage = message;
+        transientStatusUntil = Time.unscaledTime + TransientStatusDuration;
+    }
+
+    private bool TryShowTransientStatus()
+    {
+        if (string.IsNullOrWhiteSpace(transientStatusMessage))
+        {
+            return false;
+        }
+
+        if (Time.unscaledTime >= transientStatusUntil)
+        {
+            transientStatusMessage = "";
+            transientStatusUntil = 0f;
+            return false;
+        }
+
+        interactionUI.ShowPrompt(transientStatusMessage);
+        return true;
+    }
+
+    public bool BeginPurchasedFurniturePreview(
+        FurnitureIdentity furniture,
+        FurnitureShop shop,
+        float? initialYaw = null)
     {
         if (furniture == null || furniture.FurnitureDefinition == null || shop == null || selectedFurniture != null ||
             !CanStartPlacement())
@@ -467,7 +585,7 @@ public class FurniturePlacementController : MonoBehaviour
             return false;
         }
 
-        StartPreview(furniture, true, shop);
+        StartPreview(furniture, true, shop, initialYaw);
 
         return true;
     }
@@ -484,20 +602,26 @@ public class FurniturePlacementController : MonoBehaviour
             return;
         }
 
-        StartPreview(furniture, false, null);
+        StartPreview(furniture, false, null, null);
     }
 
-    private void StartPreview(FurnitureIdentity furniture, bool purchased, FurnitureShop shop)
+    private void StartPreview(
+        FurnitureIdentity furniture,
+        bool purchased,
+        FurnitureShop shop,
+        float? initialYaw)
     {
         selectedFurniture = furniture;
         isNewFurniturePurchase = purchased;
         pendingPurchase = shop;
 
-        originalPosition = furniture.transform.position;
+        transientStatusMessage = "";
+        transientStatusUntil = 0f;
 
+        originalPosition = furniture.transform.position;
         originalRotation = furniture.transform.rotation;
 
-        previewYaw = furniture.transform.eulerAngles.y;
+        previewYaw = initialYaw ?? furniture.transform.eulerAngles.y;
 
         canPlace = false;
 

@@ -3,15 +3,15 @@ using UnityEngine;
 [DisallowMultipleComponent]
 public class FurnitureShop : MonoBehaviour
 {
-    [Header("Catalog")] 
+    [Header("Catalog")]
     [SerializeField] private FurnitureCatalog furnitureCatalog;
 
-    [Header("Store")] 
+    [Header("Store")]
     [SerializeField] private StoreEconomy storeEconomy;
     [SerializeField] private StoreFurnitureLayout storeFurnitureLayout;
     [SerializeField] private StoreLayoutModeController layoutMode;
 
-    [Header("Player")] 
+    [Header("Player")]
     [SerializeField] private PlayerInteraction playerInteraction;
     [SerializeField] private FurniturePlacementController placementController;
 
@@ -22,41 +22,48 @@ public class FurnitureShop : MonoBehaviour
         return furnitureCatalog != null ? furnitureCatalog.GetAt(index) : null;
     }
 
+    public bool IsPurchasableCatalogItem(FurnitureDefinition definition)
+    {
+        return furnitureCatalog != null &&
+               definition != null &&
+               furnitureCatalog.Contains(definition) &&
+               definition.IsConfigured;
+    }
+
     public bool CanBeginPurchase(FurnitureDefinition definition, out string reason)
     {
-        if (furnitureCatalog == null || storeEconomy == null || storeFurnitureLayout == null || layoutMode == null ||
-            playerInteraction == null || placementController == null)
+        if (furnitureCatalog == null || 
+            storeEconomy == null || 
+            storeFurnitureLayout == null || 
+            layoutMode == null ||
+            playerInteraction == null || 
+            placementController == null)
         {
             reason = "Furniture purchasing is not configured.";
-
             return false;
         }
 
         if (definition == null || !furnitureCatalog.Contains(definition))
         {
             reason = "This furniture is not part of the current catalog.";
-
             return false;
         }
 
         if (!definition.IsConfigured)
         {
             reason = $"{definition.DisplayName} is not configured correctly.";
-
             return false;
         }
 
         if (playerInteraction.HasAnythingHeld || placementController.IsPlacementActive)
         {
             reason = "Put down carried items and finish existing placement first.";
-
             return false;
         }
 
         if (storeEconomy.CurrentMoney < definition.PurchasePrice)
         {
             reason = $"Not enough money to buy {definition.DisplayName}.";
-
             return false;
         }
 
@@ -64,7 +71,7 @@ public class FurnitureShop : MonoBehaviour
         return true;
     }
 
-    public bool TryBeginPurchase(FurnitureDefinition definition, out string reason)
+    public bool TryBeginPurchase(FurnitureDefinition definition, out string reason, float? initialYaw = null)
     {
         if (!CanBeginPurchase(definition, out reason))
         {
@@ -86,29 +93,30 @@ public class FurnitureShop : MonoBehaviour
             }
 
             reason = $"No available {GetPlacementAreaDisplayName(definition.PlacementArea)} build area.";
-
             return false;
         }
 
         if (!storeFurnitureLayout.TryCreatePreviewFurniture(definition, out FurnitureIdentity furniture))
         {
             if (enteredLayoutMode)
+            {
                 layoutMode.ExitLayoutMode();
+            }
 
             reason = $"Could not create {definition.DisplayName}. Check the furniture catalog and prefab.";
-
             return false;
         }
 
-        if (!placementController.BeginPurchasedFurniturePreview(furniture, this))
+        if (!placementController.BeginPurchasedFurniturePreview(furniture, this, initialYaw))
         {
             storeFurnitureLayout.DiscardUnconfirmedFurniture(furniture);
 
             if (enteredLayoutMode)
+            {
                 layoutMode.ExitLayoutMode();
+            }
 
             reason = "Couldn't start furniture placement. Make sure the Game view is active.";
-
             return false;
         }
 
@@ -130,7 +138,9 @@ public class FurnitureShop : MonoBehaviour
     public void CancelPurchase(FurnitureIdentity previewFurniture)
     {
         if (storeFurnitureLayout == null)
+        {
             return;
+        }
 
         storeFurnitureLayout.DiscardUnconfirmedFurniture(previewFurniture);
     }

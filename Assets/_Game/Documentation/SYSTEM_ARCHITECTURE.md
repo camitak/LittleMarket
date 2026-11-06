@@ -1,170 +1,181 @@
 # Little Market — System Architecture
 
-Current architecture after **Lesson 134 — Expansion Discoverability & Hover Preview UX**.
+Current architecture after **Lesson 135 — Copy / Eyedropper Furniture Purchase**.
 
 ## Verified source of truth
 
-Lesson 134 was designed after verifying GitHub `main` at:
+Lesson 135 was designed after verifying GitHub `main` at:
 
-`20202f689197cb7823010f8ce475cbea59b37500`
+`e0f042d7cb1b2b1816a0924ee5460cffdb5176ef`
 
 Commit:
 
-`Lesson 133 complete - world space expansion purchase`
+`Lesson 134 complete - expansion hover preview and discoverability`
 
 Re-verify newest `main` before every future lesson.
 
 ## Permanent teaching / implementation rules
 
-These are project-level rules and must survive fresh chats:
-
 - Inspect newest GitHub `main` before every lesson.
-- Read this complete architecture file before proposing implementation.
-- When a scene reference is known, name the exact GameObject path and component. Never write vague instructions such as “your existing LayoutCameraController” or “existing FurniturePlacementController”.
-- Current exact references include:
-    - `LayoutCameraRig -> LayoutCameraController`
-    - `Player -> FurniturePlacementController`
-    - `GameUI -> BuildCatalogUI`
-    - `StoreSystems -> StoreLayoutModeController`
-    - `StoreSystems -> LayoutWorldVisualizer`
-    - `StoreSystems -> StoreExpansionSystem`
-    - `StoreSystems -> StoreExpansionLayoutController`
-    - `StoreSystems -> StoreExpansionWorldVisualizer`
-- Every UI setup instruction must say which Unity UI object/component to create or add, the exact hierarchy path, anchor Min/Max, pivot, Anchored Position or offsets with correct sign, size, font/alignment, Raycast Target, references, and colors when relevant.
-- For top-anchored RectTransforms, moving downward normally means a negative Anchored Position Y. For bottom-anchored RectTransforms, moving upward normally means a positive Anchored Position Y. Verify the exact RectTransform mode before describing a value as “Top”, “Bottom”, or “Position”.
-- Preserve user-tuned scene values from GitHub unless the lesson explicitly changes them.
-- C# formatting must stay conventional and compact. Do not split simple declarations, method signatures, conditions, or method calls across many lines merely for wrapping. Wrap only when a line is genuinely too long or readability materially improves.
-- Entire lesson implementation stays together in chat. Only the architecture and fresh-chat continuation `.md` files are separate unless explicitly requested.
+- Read this architecture file before proposing implementation.
+- Inspect complete relevant scripts, prefabs, ScriptableObjects, and `Market.unity`.
+- Never guess scene references.
+- Use exact GameObject/component paths when verified, for example:
+  - `LayoutCameraRig -> LayoutCameraController`
+  - `Player -> FurniturePlacementController`
+  - `StoreSystems -> FurnitureShop`
+  - `GameUI -> BuildCatalogUI`
+  - `StoreSystems -> StoreLayoutModeController`
+- Every UI instruction must name the Unity object/component type, exact hierarchy, anchors, pivot, signed Anchored Position/offsets, size, font/alignment, Raycast Target, colors, and references where relevant.
+- Top-anchored downward movement normally uses negative Y; bottom-anchored upward movement normally uses positive Y.
+- Preserve user-tuned scene values.
+- Write conventional compact C#. Do not wrap simple declarations, signatures, conditions, or calls into many short lines merely for line wrapping.
+- Keep implementation, explanation, setup, tests, and suggested commit together in chat.
+- Only architecture and fresh-chat continuation `.md` files are normally separate.
+- Player playtesting may reorder roadmap.
 
-## Lesson 134 UX rule
+## Lesson 135 — Copy / Eyedropper
 
-Expansion interaction now has two levels.
+Store Design now supports copying a pointed furniture type with:
 
-### Hover preview
-Hovering a locked expansion:
-- immediately highlights the expansion
-- immediately opens `ExpansionDetailsPanel`
-- immediately explains price, area, Store Level requirement, and why it is unavailable
-- does not move the camera
-- does not arm purchase
-- panel disappears when the pointer leaves the expansion
+`C`
 
-The hover panel is intentionally non-interactive.
+This is an eyedropper-style purchase, not a runtime object clone.
 
-### Pinned selection
-Clicking a locked expansion:
-- pins the details panel
-- smoothly focuses the local expansion bounds
-- makes the panel interactive
-- allows the existing two-step BUY -> CONFIRM permanent purchase
-- remains open while the pointer moves onto the panel
+Flow:
 
-Clicking another expansion changes the pinned selection.
-Clicking empty world or pressing Esc clears the pinned selection.
+1. point at an existing managed furniture item
+2. press `C`
+3. read its `FurnitureDefinition`
+4. delegate to `FurnitureShop.TryBeginPurchase`
+5. create a fresh preview through `StoreFurnitureLayout`
+6. preserve the source furniture yaw
+7. place using all existing Structured/Free, grid, magnet, body, access, clearance and area rules
+8. charge only on confirmed placement
+9. cancel spends nothing
 
-## Expansion panel CanvasGroup
+## Copy semantics
 
-`GameUI / LayoutModeFrame / ExpansionDetailsPanel` now also has a `CanvasGroup`.
+Copy transfers:
+- FurnitureDefinition/type
+- source world yaw as the initial preview yaw
 
-Hover preview:
-- Alpha 1
-- Interactable OFF
-- Blocks Raycasts OFF
+Copy does NOT transfer:
+- PersistentID
+- shelf product assignment
+- shelf stock
+- storage bay assignment
+- storage quantity
+- runtime registration/state
+- future per-instance operational state
 
-Pinned selection:
-- Alpha 1
-- Interactable ON
-- Blocks Raycasts ON
+The new instance is created from the definition prefab and receives a fresh runtime persistent ID.
 
-This prevents the right-side panel from stealing the pointer from the world expansion during hover and avoids hover/show/hide flicker.
+This is intentionally “buy another one like this”, not “clone this live object”.
 
-The close button is hidden during hover preview and shown for pinned selection.
+## FurnitureShop changes
 
-## Verified current ExpansionDetailsPanel RectTransforms
+`FurnitureShop` adds:
 
-The latest committed scene already contains the user's corrected values:
+`IsPurchasableCatalogItem(FurnitureDefinition definition)`
 
-`ExpansionDetailsPanel`
-- anchor Min/Max `(1,0.5)`
-- pivot `(1,0.5)`
-- anchored position `(-28,0)`
-- size `460 x 320`
+This allows Store Design presentation to know whether `C Copy` is meaningful without duplicating catalog membership/configuration rules.
 
-`ExpansionTitleText`
-- top-left
-- anchored position `(20,-18)`
-- size `340 x 38`
+`TryBeginPurchase` becomes:
 
-`ExpansionCloseButton`
-- top-right
-- anchored position `(-18,-18)`
-- size `40 x 40`
+`TryBeginPurchase(FurnitureDefinition definition, out string reason, float? initialYaw = null)`
 
-`ExpansionDescriptionText`
-- top stretch
-- anchored position `(0,-100)`
-- size delta `(-40,68)`
+Existing callers remain valid.
 
-`ExpansionRequirementText`
-- top stretch
-- anchored position `(0,-142)`
-- size delta `(-40,24)`
+Catalog purchases use the default prefab yaw.
+Copy passes the source furniture yaw.
 
-`ExpansionPriceText`
-- top stretch
-- anchored position `(0,-172)`
-- size delta `(-40,30)`
+## FurniturePlacementController changes
 
-`ExpansionStatusText`
-- bottom stretch
-- anchored position `(0,80)`
-- size delta `(-40,50)`
-- pivot `(0.5,0)`
+`Player -> FurniturePlacementController` receives a new serialized reference:
 
-`ExpansionPurchaseButton`
-- bottom stretch
-- anchored position `(0,20)`
-- size delta `(-40,50)`
-- pivot `(0.5,0)`
+`Furniture Shop -> StoreSystems -> FurnitureShop`
 
-Do not reset these signs.
+When idle in Store Design:
+- LMB still moves pointed furniture when movable
+- C starts a fresh purchase of the pointed furniture definition when it is a valid catalog item
 
-The committed panel Image is currently approximately `#FFF4DE64`; preserve the committed scene value unless a later visual-polish lesson intentionally changes it.
+The pointed-item prompt can show both actions:
 
-## Expansion world visual states
+`LMB Move Standard Shelf  •  C Copy £40.00`
 
-Neutral locked:
-- fill `#625D7040`
-- border `#B9AFCE99`
+Copy remains available independently of source moveability. A source could later be temporarily non-movable because of runtime state while still being valid as an eyedropper source.
 
-Purchasable hover/pinned:
-- fill `#6FCF9738`
-- border `#A9E6D5E6`
+If a copy purchase fails, `InteractionUI` shows the business-rule reason briefly, such as insufficient money.
 
-Store-level locked while idle:
-- fill `#6B657A33`
-- border `#8A7F96A6`
+## Initial rotation
 
-Unavailable hover/pinned:
-- fill `#D9A57A38`
-- border `#E6B98FE6`
+`FurniturePlacementController.BeginPurchasedFurniturePreview` accepts optional `initialYaw`.
 
-The warm unavailable focus is not the sole explanation. The details panel always provides the textual reason, such as Store Level requirement or insufficient money.
+`StartPreview` uses:
+- source yaw for copy
+- prefab/current yaw for ordinary catalog purchase
 
-## Expansion authority
+This preserves arbitrary Free-mode angles and Structured-mode cardinal orientations without adding a separate rotation system.
 
-`StoreExpansionSystem` remains the only business authority for ownership, Store Level, affordability, spending, unlock activation, NavMesh rebuild, and save/load IDs.
+## Existing purchase authority
 
-Hover/pinned UX never duplicates those rules.
+Copy must never:
+- instantiate its own permanent object
+- spend money directly
+- bypass FurnitureShop
+- bypass StoreFurnitureLayout
+- manually generate/save IDs
+
+All purchase authority remains:
+
+`FurnitureShop -> StoreFurnitureLayout -> FurniturePlacementController`
+
+Payment still happens only in confirmed placement.
+
+## UI / controls
+
+No new UI GameObject is created.
+
+Existing:
+`GameUI / LayoutModeFrame / LayoutControlsPanel / ControlsText`
+
+remains:
+- panel Anchor Min/Max `(1,0)`
+- panel Pivot `(1,0)`
+- panel Anchored Position `(-28,28)`
+- panel Size Delta `(360,214)`
+- ControlsText stretch
+- ControlsText Size Delta `(-32,-32)`
+- TMP font size 17
+- left/top alignment
+- Raycast Target OFF
+
+Controls text first line becomes:
+
+`B   Build Catalog      C   Copy Item`
+
+All RectTransform values remain unchanged.
+
+## Current copyable catalog definitions
+
+- Standard Shelf — £40 — SalesFloor
+- Refrigerated Display — £80 — SalesFloor
+- Ambient Storage Rack — £60 — Backroom
+- Chilled Storage Rack — £100 — Backroom
+- Potted Plant — £25 — SalesFloor
+
+Only definitions in the current FurnitureCatalog are offered by the copy interaction.
 
 ## Persistence
 
 No save schema change.
 
+Copied furniture is already covered by generic furniture placement save data because it receives a new persistent ID and normal FurnitureDefinition ID.
+
 ## Roadmap
 
 Next likely:
-- copy / eyedropper placement
 - repeat placement
 - selling / refunds
 - variants / colors

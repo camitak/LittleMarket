@@ -3394,7 +3394,9 @@ MonoBehaviour:
       m_Calls: []
   m_text: 'STORE DESIGN CONTROLS
 
-    B   Build Catalog
+    
+
+    B   Build Catalog      C   Copy Item
 
     LMB   Select / Place
 
@@ -17655,6 +17657,7 @@ MonoBehaviour:
   interactionUI: {fileID: 766562198}
   layoutMode: {fileID: 1117834548}
   buildArea: {fileID: 1117834546}
+  furnitureShop: {fileID: 1117834545}
   placementVisualizer: {fileID: 1349577617}
   selectionRayDistance: 35
   previewRayDistance: 30
