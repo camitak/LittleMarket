@@ -60,6 +60,21 @@ public class LayoutWorldVisualizer : MonoBehaviour
 
         SetVisualsActive(layoutActive);
     }
+    
+    public void RefreshVisuals()
+    {
+        if (layoutMode == null ||
+            !layoutMode.IsActive)
+        {
+            return;
+        }
+
+        RebuildVisuals();
+
+        SetVisualsActive(
+            true
+        );
+    }
 
     private void CreateRuntimeObjects()
     {

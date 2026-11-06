@@ -5,29 +5,26 @@ using UnityEngine.InputSystem;
 [DisallowMultipleComponent]
 public class StoreLayoutModeController : MonoBehaviour
 {
-    [Header("Store")] [SerializeField] private StoreClock storeClock;
-
+    [Header("Store")] 
+    [SerializeField] private StoreClock storeClock;
     [SerializeField] private CustomerFlow customerFlow;
-
     [SerializeField] private NavMeshSurface navMeshSurface;
-
     [SerializeField] private StoreBuildArea buildArea;
 
-    [Header("Player")] [SerializeField] private PlayerController playerController;
-
+    [Header("Player")] 
+    [SerializeField] private PlayerController playerController;
     [SerializeField] private PlayerInteraction playerInteraction;
-
     [SerializeField] private FurniturePlacementController furniturePlacementController;
 
-    [Header("Cameras")] [SerializeField] private Camera playerCamera;
-
+    [Header("Cameras")] 
+    [SerializeField] private Camera playerCamera;
     [SerializeField] private LayoutCameraController layoutCameraController;
 
-    [Header("UI")] [SerializeField] private InteractionUI interactionUI;
-
+    [Header("UI")] 
+    [SerializeField] private InteractionUI interactionUI;
     [SerializeField] private LayoutModeUI layoutModeUI;
-
     [SerializeField] private BuildCatalogUI buildCatalogUI;
+    [SerializeField] private StoreExpansionLayoutController expansionLayoutController;
 
     private bool isActive;
     private bool navigationDirty;
@@ -176,6 +173,12 @@ public class StoreLayoutModeController : MonoBehaviour
         {
             return;
         }
+        
+        if (expansionLayoutController != null)
+        {
+            expansionLayoutController
+                .ClearSelection();
+        }
 
         /*
          * Clear transient Store Design UI before
@@ -278,9 +281,19 @@ public class StoreLayoutModeController : MonoBehaviour
             return;
         }
 
-        if (buildCatalogUI != null && buildCatalogUI.IsOpen)
+        if (buildCatalogUI != null &&
+            buildCatalogUI.IsOpen)
         {
             buildCatalogUI.Close();
+            return;
+        }
+
+        if (expansionLayoutController != null &&
+            expansionLayoutController.HasSelection)
+        {
+            expansionLayoutController
+                .ClearSelection();
+
             return;
         }
 

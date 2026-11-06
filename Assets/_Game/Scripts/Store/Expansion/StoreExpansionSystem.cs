@@ -25,6 +25,26 @@ public class StoreExpansionSystem : MonoBehaviour
         return expansionZones[index];
     }
 
+    public bool MeetsLevelRequirement(StoreExpansionZone zone)
+    {
+        if (storeLevelProgression == null || zone == null || zone.Definition == null)
+        {
+            return false;
+        }
+
+        return storeLevelProgression.CurrentLevel >= zone.Definition.RequiredStoreLevel;
+    }
+
+    public bool CanAfford(StoreExpansionZone zone)
+    {
+        if (storeEconomy == null || zone == null || zone.Definition == null)
+        {
+            return false;
+        }
+
+        return storeEconomy.CurrentMoney >= zone.Definition.PurchasePrice;
+    }
+
     public bool CanPurchase(StoreExpansionZone zone, out string reason)
     {
         if (storeEconomy == null || storeLevelProgression == null || navMeshSurface == null)
@@ -50,14 +70,14 @@ public class StoreExpansionSystem : MonoBehaviour
 
         StoreExpansionDefinition definition = zone.Definition;
 
-        if (storeLevelProgression.CurrentLevel < definition.RequiredStoreLevel)
+        if (!MeetsLevelRequirement(zone))
         {
             reason = $"Requires Store Level {definition.RequiredStoreLevel}.";
 
             return false;
         }
 
-        if (storeEconomy.CurrentMoney < definition.PurchasePrice)
+        if (!CanAfford(zone))
         {
             reason = $"Not enough money. Need £{definition.PurchasePrice:0.00}.";
 
@@ -88,6 +108,7 @@ public class StoreExpansionSystem : MonoBehaviour
         zone.SetUnlocked(true);
 
         Physics.SyncTransforms();
+
         navMeshSurface.BuildNavMesh();
 
         reason = $"{definition.DisplayName} purchased. New floor space is now available.";

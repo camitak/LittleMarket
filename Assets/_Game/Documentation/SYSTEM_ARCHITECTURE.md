@@ -1,141 +1,85 @@
 # Little Market — System Architecture
 
-Current architecture after **Lesson 132 — Protected Doorway Clearances**.
+Current architecture after **Lesson 133 — World-Space Expansion Preview & Purchase**.
 
-Verified source of truth:
-`3ee596415a57489d10670480ee6f700c23a1ed56`
-`Lesson 131 complete - decorations foundation and potted plant`
+Verified source: `3c5b57043e8edd42b3e5d26d8d4ed8705de46f15` (`Lesson 132 complete - protect store doorway clearances`). Re-verify newest `main` before every future lesson.
 
-## Permanent circulation rule
-Permanent circulation infrastructure is protected from player placement.
+## Expansion authority
+`StoreExpansionSystem` remains the single business authority for expansion ownership, Store Level requirements, affordability, spending, unlock activation, NavMesh rebuild, and save/load IDs. The Store Computer Expansion tab and Store Design world interaction both call it.
 
-Doorways use the existing `LayoutClearanceZone` system rather than customer-AI special cases.
+## Authored locked-area bounds
+`StoreBuildZone.TryGetAuthoredBounds(out Bounds)` derives BoxCollider bounds directly from authored local geometry, so locked floor preview remains available even while its collider/root is disabled. `StoreExpansionZone.TryGetPreviewBounds(out Bounds)` delegates to it.
 
-## Reused architecture
-No new scripts are required.
+## World-space expansion visualization
+New `StoreExpansionWorldVisualizer` generates runtime overlays for locked zones with no trigger colliders. Ray/plane hit testing uses authored floor bounds.
 
-Existing:
-- `LayoutClearanceZone`
-- `FurniturePlacementController.OverlapsProtectedClearance`
-- `LayoutWorldVisualizer`
+States:
+- neutral locked / insufficient money: fill `#625D7040`, border `#B9AFCE99`
+- purchasable hover/selected: fill `#6FCF9738`, border `#A9E6D5E6`
+- Store-Level locked: fill `#6B657A33`, border `#8A7F96A6`
 
-already provide:
-- furniture-body blocking
-- operational-access blocking
-- StoreAreaType filtering
-- Store Design purple clearance visualization
+Unlocked zones hide the expansion overlay and use the normal cyan build grid.
 
-## Scene hierarchy
-Under `StoreBuilding/Base` create identity root:
+## Store Design interaction
+New `StoreExpansionLayoutController` handles transient selection/UI only. Selection is available when Store Design is active, no furniture placement is active, Build Catalog is closed, camera is not orbiting, and pointer is not over UI.
 
-`LayoutClearanceZones`
+Clicking a locked zone selects it, opens the details panel, and calls `LayoutCameraController.FocusWorkingBounds` for smooth local focus without full auto-fit.
+
+## Purchase confirmation
+First BUY EXPANSION click arms confirmation without spending. Second click calls `StoreExpansionSystem.TryPurchase`.
+
+Successful purchase:
+- spends money
+- activates hidden expansion geometry/lights
+- removes barrier wall
+- enables StoreBuildZone
+- rebuilds NavMesh
+- refreshes locked expansion overlays
+- refreshes cyan build grid immediately
+- leaves panel showing OWNED
+- new floor is immediately buildable
+
+No time-of-day restriction.
+
+## LayoutWorldVisualizer
+Adds public `RefreshVisuals()` so available floor grid and clearance visuals can rebuild while Layout Mode is already active.
+
+## UI
+`GameUI / LayoutModeFrame / ExpansionDetailsPanel`
+- right-center
+- 460 x 320
+- anchored position `(-28,0)`
+- background `#FFF4DEEB`
+- raycast ON
 
 Children:
-- `Clearance_CustomerEntrance`
-- `Clearance_CustomerExit`
-- `Clearance_StaffDoor_Sales`
-- `Clearance_StaffDoor_Backroom`
+- ExpansionTitleText
+- ExpansionCloseButton
+- ExpansionDescriptionText
+- ExpansionRequirementText
+- ExpansionPriceText
+- ExpansionStatusText
+- ExpansionPurchaseButton / ExpansionPurchaseButtonText
 
-All clearance objects have:
-- identity rotation/scale
-- Transform + LayoutClearanceZone only
-- no collider
-- no renderer
-- no NavMesh component
+Inactive by default.
 
-## Customer entrance
-Door center X `5.8`, front wall near Z `-5.1`, door width `2.0m`.
+## Current expansions
+- `sales_floor_01`: 4x10 at `(10,0,0)`, £100, Store Level 1, SalesFloor
+- `backroom_01`: 4x10 at `(-10,0,0)`, £100, Store Level 1, Backroom
+- `sales_rear_01`: 12x4 at `(2,0,7)`, £120, Store Level 2, SalesFloor
 
-Clearance transform:
-`(5.8, 0, -3.9)`
+## Escape ownership
+1. furniture placement
+2. Build Catalog
+3. expansion selection/details
+4. exit Store Design
 
-Zone:
-- Area Type `SalesFloor`
-- Center `(0,0.75,0)`
-- Half Extents `(1.10,0.75,1.10)`
-- Block Furniture Body ON
-- Block Furniture Access ON
+L remains direct exit. Same-frame Pause protection remains.
 
-Horizontal protected area:
-X `4.7..6.9`
-Z `-5.0..-2.8`
+## Persistence
+Existing save schema v2 already stores `unlockedExpansionIDs`; no schema bump.
 
-## Customer exit
-Clearance transform:
-`(-1.8, 0, -3.9)`
+## Next roadmap
+Copy/eyedrop, repeat placement, selling/refunds, variants/colors, more decor/surface placement, Ambience, autosave, exact carry persistence, advanced fixture/socket semantics.
 
-Same zone values as entrance.
-
-Protected area:
-X `-2.9..-0.7`
-Z `-5.0..-2.8`
-
-## Staff doorway
-Partition at X `-4`, opening centered Z `2.5`, width about `1.4m`.
-
-Because placement area is explicit, protect both sides.
-
-Sales:
-- transform `(-3.25,0,2.5)`
-- Area `SalesFloor`
-- Center `(0,0.75,0)`
-- Half Extents `(0.75,0.75,0.80)`
-- both blockers ON
-
-Backroom:
-- transform `(-4.75,0,2.5)`
-- Area `Backroom`
-- same center/half extents
-- both blockers ON
-
-## Visual semantics
-Existing purple clearance visual remains:
-`#977EFF42`
-
-Meaning:
-permanent operational/circulation space — do not build here.
-
-Checkout and doorway clearances intentionally share the same visual language.
-
-## Placement behavior
-All placeables respect doorway clearances:
-- shelves
-- refrigerators
-- storage racks
-- potted plants
-- future decor
-
-Decor with `AccessRequirement.None` still cannot place its BODY in a doorway clearance.
-
-Functional furniture access footprints cannot extend into doorway clearance either.
-
-## Customer AI
-No AI changes.
-
-Current NavMesh/customer route system remains unchanged. The layout system prevents the obstruction that caused customers to route through the exit.
-
-## Preserved systems
-Unchanged:
-- decoration architecture
-- FurnitureAccessRequirement
-- structured/free placement
-- Build Catalog
-- camera/input behavior
-- Esc hierarchy
-- preview-first/spend-on-confirm purchase
-- save/load
-- navigation rebuild
-
-## Roadmap
-Lesson 133 — World-Space Expansion Preview & Purchase.
-
-Then:
-- copy/eyedrop
-- repeat placement
-- selling/refunds
-- variants/colors
-- more decor/surface placement
-- Ambience
-- autosave
-- exact carry persistence
-- advanced fixture/socket semantics
+Permanent rules: GitHub first; one expansion business authority; locked preview/selectability is not buildability; no trigger colliders just for editor selection; time is not permission; preserve local camera behavior; player testing may reorder roadmap; implementation stays in chat.

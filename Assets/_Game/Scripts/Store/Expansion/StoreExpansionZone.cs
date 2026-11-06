@@ -3,23 +3,22 @@ using UnityEngine;
 [DisallowMultipleComponent]
 public class StoreExpansionZone : MonoBehaviour
 {
-    [Header("Definition")]
+    [Header("Definition")] 
     [SerializeField] private StoreExpansionDefinition definition;
 
-    [Header("Scene")]
+    [Header("Scene")] 
     [SerializeField] private GameObject unlockedGeometryRoot;
     [SerializeField] private GameObject lockedBarrier;
     [SerializeField] private StoreBuildZone buildZone;
 
     public StoreExpansionDefinition Definition => definition;
+
     public StoreBuildZone BuildZone => buildZone;
+
     public bool IsUnlocked { get; private set; }
 
     public bool IsConfigured =>
-        definition != null &&
-        definition.IsConfigured &&
-        unlockedGeometryRoot != null &&
-        buildZone != null;
+        definition != null && definition.IsConfigured && unlockedGeometryRoot != null && buildZone != null;
 
     private void Awake()
     {
@@ -31,12 +30,25 @@ public class StoreExpansionZone : MonoBehaviour
         IsUnlocked = unlocked;
 
         if (lockedBarrier != null)
+        {
             lockedBarrier.SetActive(!unlocked);
+        }
 
         if (unlockedGeometryRoot != null)
+        {
             unlockedGeometryRoot.SetActive(unlocked);
+        }
 
         if (buildZone != null)
+        {
             buildZone.SetAvailable(unlocked);
+        }
+    }
+
+    public bool TryGetPreviewBounds(out Bounds bounds)
+    {
+        bounds = default;
+
+        return buildZone != null && buildZone.TryGetAuthoredBounds(out bounds);
     }
 }
