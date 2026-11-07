@@ -1,14 +1,8 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-[RequireComponent(
-    typeof(Rigidbody),
-    typeof(BoxCollider)
-)]
-public class RestockBasket :
-    MonoBehaviour,
-    IInteractable,
-    ISecondaryInteractable
+[RequireComponent(typeof(Rigidbody), typeof(BoxCollider))]
+public class RestockBasket : MonoBehaviour, IInteractable, ISecondaryInteractable
 {
     [Header("Contents")] [Min(1)] [SerializeField]
     private int capacity = 4;
@@ -42,43 +36,30 @@ public class RestockBasket :
     {
         get
         {
-            if (itemPoints == null ||
-                itemPoints.Length <= 0)
+            if (itemPoints == null || itemPoints.Length <= 0)
                 return 0;
 
-            return Mathf.Min(
-                Mathf.Max(1, capacity),
-                itemPoints.Length
-            );
+            return Mathf.Min(Mathf.Max(1, capacity), itemPoints.Length);
         }
     }
 
     public int ItemCount => items.Count;
 
-    public bool IsFull =>
-        Capacity <= 0 ||
-        ItemCount >= Capacity;
+    public bool IsFull => Capacity <= 0 || ItemCount >= Capacity;
 
-    public bool IsEmpty =>
-        ItemCount <= 0;
+    public bool IsEmpty => ItemCount <= 0;
 
-    public bool IsHeld =>
-        isHeld;
+    public bool IsHeld => isHeld;
 
-    public bool IsDocked =>
-        isDocked;
+    public bool IsDocked => isDocked;
 
     private void Awake()
     {
-        basketRigidbody =
-            GetComponent<Rigidbody>();
+        basketRigidbody = GetComponent<Rigidbody>();
 
-        basketCollider =
-            GetComponent<Collider>();
+        basketCollider = GetComponent<Collider>();
 
-        basketRigidbody.constraints |=
-            RigidbodyConstraints.FreezeRotationX |
-            RigidbodyConstraints.FreezeRotationZ;
+        basketRigidbody.constraints |= RigidbodyConstraints.FreezeRotationX | RigidbodyConstraints.FreezeRotationZ;
     }
 
     private void LateUpdate()
@@ -88,75 +69,46 @@ public class RestockBasket :
         UpdateHeldPose();
     }
 
-    public string GetInteractionPrompt(
-        PlayerInteraction player
-    )
+    public string GetInteractionPrompt(PlayerInteraction player)
     {
         if (player == null) return "";
 
         if (Capacity <= 0) return "Restock basket not configured";
 
-        if (player.GetHeldRestockBasket()
-            != null)
+        if (player.GetHeldRestockBasket() != null)
             return "Hands full";
 
-        if (player.GetHeldDeliveryBox()
-            != null)
+        if (player.GetHeldDeliveryBox() != null)
             return "Hands full";
 
-        var heldItem =
-            player.GetHeldItem();
+        var heldItem = player.GetHeldItem();
 
         if (heldItem != null)
         {
             if (IsFull)
-                return "Restock basket full ("
-                       + ItemCount
-                       + " / "
-                       + Capacity
-                       + ")";
+                return "Restock basket full (" + ItemCount + " / " + Capacity + ")";
 
-            return "[E] Add "
-                   + heldItem.GetItemName()
-                   + " to basket ("
-                   + ItemCount
-                   + " / "
-                   + Capacity
-                   + ")";
+            return "[E] Add " + heldItem.GetItemName() + " to basket (" + ItemCount + " / " + Capacity + ")";
         }
 
         if (!IsEmpty)
         {
             var firstProduct = GetFirstProductData();
 
-            var productName =
-                firstProduct != null
-                    ? firstProduct.ProductName
-                    : "product";
+            var productName = firstProduct != null ? firstProduct.ProductName : "product";
 
-            return "[E] Pick up restock basket ("
-                   + ItemCount
-                   + " / "
-                   + Capacity
-                   + ")"
-                   + "\n[R] Take "
-                   + productName
-                   + " by hand";
+            return "[E] Pick up restock basket (" + ItemCount + " / " + Capacity + ")" + "\n[R] Take " + productName +
+                   " by hand";
         }
 
-        return "[E] Pick up restock basket (0 / "
-               + Capacity
-               + ")";
+        return "[E] Pick up restock basket (0 / " + Capacity + ")";
     }
 
-    public void Interact(
-        PlayerInteraction player
-    )
+    public void Interact(PlayerInteraction player)
     {
         if (player == null || Capacity <= 0) return;
 
-        var heldItem =
-            player.GetHeldItem();
+        var heldItem = player.GetHeldItem();
 
         if (heldItem != null)
         {
@@ -170,28 +122,17 @@ public class RestockBasket :
         player.TryPickUpRestockBasket(this);
     }
 
-    public void TakeOne(
-        PlayerInteraction player
-    )
+    public void TakeOne(PlayerInteraction player)
     {
-        if (player == null ||
-            player.HasAnythingHeld ||
-            IsEmpty)
+        if (player == null || player.HasAnythingHeld || IsEmpty)
             return;
 
-        var removed =
-            TryTakeFirstItem(
-                out var item
-            );
+        var removed = TryTakeFirstItem(out var item);
 
-        if (!removed ||
-            item == null)
+        if (!removed || item == null)
             return;
 
-        var pickedUp =
-            player.TryPickUp(
-                item
-            );
+        var pickedUp = player.TryPickUp(item);
 
         if (pickedUp) return;
 
@@ -200,30 +141,20 @@ public class RestockBasket :
          * if pickup failed, return the item
          * to the basket instead of losing it.
          */
-        TryAddItem(
-            item
-        );
+        TryAddItem(item);
     }
 
-    public void SecondaryInteract(
-        PlayerInteraction player
-    )
+    public void SecondaryInteract(PlayerInteraction player)
     {
-        TakeOne(
-            player
-        );
+        TakeOne(player);
     }
 
     public bool TryAddItem(PickupItem item)
     {
-        if (item == null ||
-            item.GetProductData() == null ||
-            IsFull ||
-            items.Contains(item))
+        if (item == null || item.GetProductData() == null || IsFull || items.Contains(item))
             return false;
 
-        var targetPoint =
-            itemPoints[items.Count];
+        var targetPoint = itemPoints[items.Count];
 
         if (targetPoint == null) return false;
 
@@ -234,10 +165,7 @@ public class RestockBasket :
         return true;
     }
 
-    public bool TryTakeMatchingProduct(
-        ProductData productData,
-        out PickupItem item
-    )
+    public bool TryTakeMatchingProduct(ProductData productData, out PickupItem item)
     {
         item = null;
 
@@ -247,8 +175,7 @@ public class RestockBasket :
         {
             var candidate = items[i];
 
-            if (candidate == null ||
-                candidate.GetProductData() != productData)
+            if (candidate == null || candidate.GetProductData() != productData)
                 continue;
 
             item = candidate;
@@ -263,9 +190,7 @@ public class RestockBasket :
         return false;
     }
 
-    public bool TryTakeFirstItem(
-        out PickupItem item
-    )
+    public bool TryTakeFirstItem(out PickupItem item)
     {
         item = null;
 
@@ -286,23 +211,19 @@ public class RestockBasket :
 
         return items[0].GetProductData();
     }
-    
+
     public ProductData GetProductDataAt(int index)
     {
-        if (index < 0 ||
-            index >= items.Count)
+        if (index < 0 || index >= items.Count)
         {
             return null;
         }
 
-        PickupItem item =
-            items[index];
+        PickupItem item = items[index];
 
-        return item != null
-            ? item.GetProductData()
-            : null;
+        return item != null ? item.GetProductData() : null;
     }
-    
+
     public ProductData GetFirstProductData(System.Predicate<ProductData> predicate)
     {
         if (predicate == null)
@@ -323,7 +244,7 @@ public class RestockBasket :
 
         return null;
     }
-    
+
     public ProductData GetFirstProductData(ProductCategory category)
     {
         for (int i = 0; i < items.Count; i++)
@@ -346,9 +267,7 @@ public class RestockBasket :
         return null;
     }
 
-    public int GetProductCount(
-        ProductData productData
-    )
+    public int GetProductCount(ProductData productData)
     {
         if (productData == null) return 0;
 
@@ -358,41 +277,33 @@ public class RestockBasket :
         {
             var item = items[i];
 
-            if (item != null &&
-                item.GetProductData() == productData)
+            if (item != null && item.GetProductData() == productData)
                 count++;
         }
 
         return count;
     }
 
-    public void DockTo(
-        Transform dockPoint
-    )
+    public void DockTo(Transform dockPoint)
     {
         if (dockPoint == null) return;
 
         /*
          * Docking ends any held state.
          */
-        isHeld =
-            false;
+        isHeld = false;
 
-        heldView =
-            null;
+        heldView = null;
 
-        isDocked =
-            true;
+        isDocked = true;
 
         /*
          * A docked basket is controlled completely
          * by the station rather than physics.
          */
-        basketRigidbody.useGravity =
-            false;
+        basketRigidbody.useGravity = false;
 
-        basketRigidbody.isKinematic =
-            true;
+        basketRigidbody.isKinematic = true;
 
         /*
          * Basket interaction is handled by the
@@ -402,28 +313,42 @@ public class RestockBasket :
          * competing with the station collider.
          */
         if (basketCollider != null)
-            basketCollider.enabled =
-                false;
+            basketCollider.enabled = false;
 
-        transform.SetParent(
-            dockPoint,
-            false
-        );
+        transform.SetParent(dockPoint, false);
 
-        transform.localPosition =
-            Vector3.zero;
+        transform.localPosition = Vector3.zero;
 
-        transform.localRotation =
-            Quaternion.identity;
+        transform.localRotation = Quaternion.identity;
     }
 
-    public void PickUp(
-        Transform holdPoint,
-        Transform viewTransform
-    )
+    public void ReleaseFromDock()
     {
-        if (holdPoint == null ||
-            viewTransform == null)
+        if (!isDocked)
+        {
+            return;
+        }
+
+        isDocked = false;
+        isHeld = false;
+        heldView = null;
+
+        transform.SetParent(null, true);
+
+        if (basketCollider != null)
+        {
+            basketCollider.enabled = true;
+        }
+
+        basketRigidbody.isKinematic = false;
+        basketRigidbody.useGravity = true;
+        basketRigidbody.linearVelocity = Vector3.zero;
+        basketRigidbody.angularVelocity = Vector3.zero;
+    }
+
+    public void PickUp(Transform holdPoint, Transform viewTransform)
+    {
+        if (holdPoint == null || viewTransform == null)
             return;
 
         isDocked = false;
@@ -446,26 +371,15 @@ public class RestockBasket :
 
         // Camera-relative position keeps the basket
         // in a consistent lower-right screen area.
-        var targetPosition =
-            heldView.position +
-            heldView.right * heldViewOffset.x +
-            heldView.up * heldViewOffset.y +
-            heldView.forward * heldViewOffset.z;
+        var targetPosition = heldView.position + heldView.right * heldViewOffset.x + heldView.up * heldViewOffset.y +
+                             heldView.forward * heldViewOffset.z;
 
         // World-upright rotation ignores camera pitch.
-        var horizontalForward =
-            GetHorizontalForward(heldView);
+        var horizontalForward = GetHorizontalForward(heldView);
 
-        var targetRotation =
-            Quaternion.LookRotation(
-                -horizontalForward,
-                Vector3.up
-            );
+        var targetRotation = Quaternion.LookRotation(-horizontalForward, Vector3.up);
 
-        transform.SetPositionAndRotation(
-            targetPosition,
-            targetRotation
-        );
+        transform.SetPositionAndRotation(targetPosition, targetRotation);
     }
 
     public void Drop()
@@ -474,94 +388,52 @@ public class RestockBasket :
 
         isDocked = false;
 
-        var horizontalForward =
-            GetHorizontalForward(
-                heldView
-            );
+        var horizontalForward = GetHorizontalForward(heldView);
 
-        var targetPosition =
-            transform.position;
+        var targetPosition = transform.position;
 
         if (heldView != null)
         {
-            targetPosition =
-                heldView.position
-                + horizontalForward
-                * dropForwardDistance;
+            targetPosition = heldView.position + horizontalForward * dropForwardDistance;
 
-            var rayOrigin =
-                targetPosition
-                + Vector3.up * 0.25f;
+            var rayOrigin = targetPosition + Vector3.up * 0.25f;
 
-            if (Physics.Raycast(
-                    rayOrigin,
-                    Vector3.down,
-                    out var hit,
-                    dropRayDistance,
-                    dropSurfaceLayers,
-                    QueryTriggerInteraction.Ignore
-                ))
-                targetPosition.y =
-                    hit.point.y
-                    + dropGroundClearance;
+            if (Physics.Raycast(rayOrigin, Vector3.down, out var hit, dropRayDistance, dropSurfaceLayers,
+                    QueryTriggerInteraction.Ignore))
+                targetPosition.y = hit.point.y + dropGroundClearance;
             else
-                targetPosition.y =
-                    heldView.position.y
-                    - 1.0f;
+                targetPosition.y = heldView.position.y - 1.0f;
         }
 
-        isHeld =
-            false;
+        isHeld = false;
 
-        heldView =
-            null;
+        heldView = null;
 
-        transform.SetParent(
-            null,
-            true
-        );
+        transform.SetParent(null, true);
 
-        transform.SetPositionAndRotation(
-            targetPosition,
-            Quaternion.LookRotation(
-                -horizontalForward,
-                Vector3.up
-            )
-        );
+        transform.SetPositionAndRotation(targetPosition, Quaternion.LookRotation(-horizontalForward, Vector3.up));
 
-        basketRigidbody.constraints |=
-            RigidbodyConstraints.FreezeRotationX
-            | RigidbodyConstraints.FreezeRotationZ;
+        basketRigidbody.constraints |= RigidbodyConstraints.FreezeRotationX | RigidbodyConstraints.FreezeRotationZ;
 
         if (basketCollider != null)
-            basketCollider.enabled =
-                true;
+            basketCollider.enabled = true;
 
         /*
          * Make the body dynamic BEFORE attempting
          * to change its velocity.
          */
-        basketRigidbody.isKinematic =
-            false;
+        basketRigidbody.isKinematic = false;
 
-        basketRigidbody.useGravity =
-            true;
+        basketRigidbody.useGravity = true;
 
-        basketRigidbody.linearVelocity =
-            Vector3.zero;
+        basketRigidbody.linearVelocity = Vector3.zero;
 
-        basketRigidbody.angularVelocity =
-            Vector3.zero;
+        basketRigidbody.angularVelocity = Vector3.zero;
     }
 
-    private Vector3 GetHorizontalForward(
-        Transform reference
-    )
+    private Vector3 GetHorizontalForward(Transform reference)
     {
-        var direction =
-            reference != null
-                ? reference.forward
-                : transform.forward;
+        var direction = reference != null ? reference.forward : transform.forward;
 
         direction.y = 0f;
 
@@ -570,11 +442,7 @@ public class RestockBasket :
             // Handles the camera looking nearly
             // straight up or down.
             if (reference != null)
-                direction =
-                    Vector3.Cross(
-                        reference.right,
-                        Vector3.up
-                    );
+                direction = Vector3.Cross(reference.right, Vector3.up);
             else
                 direction = Vector3.forward;
         }
@@ -584,8 +452,7 @@ public class RestockBasket :
 
     private void RepackItems()
     {
-        var usableCount =
-            Mathf.Min(items.Count, Capacity);
+        var usableCount = Mathf.Min(items.Count, Capacity);
 
         for (var i = 0; i < usableCount; i++)
         {
@@ -609,16 +476,9 @@ public class RestockBasket :
 
             if (itemPoint == null) continue;
 
-            Gizmos.DrawWireSphere(
-                itemPoint.position,
-                0.03f
-            );
+            Gizmos.DrawWireSphere(itemPoint.position, 0.03f);
 
-            Gizmos.DrawLine(
-                itemPoint.position,
-                itemPoint.position +
-                itemPoint.forward * 0.12f
-            );
+            Gizmos.DrawLine(itemPoint.position, itemPoint.position + itemPoint.forward * 0.12f);
         }
     }
 }

@@ -7,9 +7,8 @@ public class SaveManager : MonoBehaviour
     private const int CurrentSaveVersion = 2;
     private const string SaveFileName = "little_market_dev_v2_save.json";
 
-    [Header("Store References")] [SerializeField]
-    private StoreClock storeClock;
-
+    [Header("Store References")] 
+    [SerializeField] private StoreClock storeClock;
     [SerializeField] private StoreEconomy storeEconomy;
     [SerializeField] private StoreReputation storeReputation;
     [SerializeField] private StoreProgression storeProgression;
@@ -17,7 +16,6 @@ public class SaveManager : MonoBehaviour
     [SerializeField] private StoreGoals storeGoals;
     [SerializeField] private StoreLevelProgression storeLevelProgression;
     [SerializeField] private CustomerFlow customerFlow;
-    [SerializeField] private CheckoutRegister checkoutRegister;
     [SerializeField] private ShelfRegistry shelfRegistry;
     [SerializeField] private StoreFurnitureLayout storeFurnitureLayout;
     [SerializeField] private StoreExpansionSystem storeExpansionSystem;
@@ -26,10 +24,12 @@ public class SaveManager : MonoBehaviour
     [SerializeField] private WorldItemRegistry worldItemRegistry;
     [SerializeField] private StoreReportHistory storeReportHistory;
 
-    [Header("Delivery")] [SerializeField] private DeliveryBox deliveryBoxPrefab;
+    [Header("Delivery")] 
+    [SerializeField] private DeliveryBox deliveryBoxPrefab;
     [SerializeField] private SupplierDeliveryQueue supplierDeliveryQueue;
 
-    [Header("Player")] [SerializeField] private PlayerInteraction playerInteraction;
+    [Header("Player")] 
+    [SerializeField] private PlayerInteraction playerInteraction;
     [SerializeField] private RestockBasket restockBasket;
 
     public string LastOperationMessage { get; private set; } = "";
@@ -601,7 +601,13 @@ public class SaveManager : MonoBehaviour
 
     private void ApplySaveData(StoreSaveData saveData)
     {
-        checkoutRegister.ResetForLoad();
+        CheckoutRegister activeCheckout = FindFirstObjectByType<CheckoutRegister>();
+
+        if (activeCheckout != null)
+        {
+            activeCheckout.ResetForLoad();
+        }
+        
         customerFlow.ClearForLoad();
 
         storeEconomy.SetMoney(saveData.money);
@@ -719,7 +725,7 @@ public class SaveManager : MonoBehaviour
     {
         return storeClock != null && storeEconomy != null && storeReputation != null && storeProgression != null &&
                dailyStats != null && storeGoals != null && storeLevelProgression != null && customerFlow != null &&
-               checkoutRegister != null && shelfRegistry != null && storeFurnitureLayout != null &&
+               shelfRegistry != null && storeFurnitureLayout != null &&
                storeExpansionSystem != null && storageRegistry != null && deliveryZone != null &&
                worldItemRegistry != null && storeReportHistory != null && deliveryBoxPrefab != null &&
                supplierDeliveryQueue != null && playerInteraction != null && restockBasket != null;

@@ -39,6 +39,12 @@ public class CustomerFlow : MonoBehaviour
     public int ActiveCustomerCount => activeCustomers.Count;
     public bool IsLayoutSuspended => layoutSuspended;
     
+    private void RefreshOperationalFixtures()
+    {
+        checkoutQueue = FindFirstObjectByType<CheckoutQueue>();
+        customerBasketStation = FindFirstObjectByType<CustomerBasketStation>();
+    }
+    
     public CustomerController GetActiveCustomer(int index)
     {
         RemoveDestroyedCustomers();
@@ -104,11 +110,21 @@ public class CustomerFlow : MonoBehaviour
             return;
 
         RemoveDestroyedCustomers();
+        RefreshOperationalFixtures();
 
         foreach (CustomerController customer in activeCustomers)
         {
-            if (customer != null)
-                customer.ResumeFromLayout();
+            if (customer == null)
+            {
+                continue;
+            }
+
+            customer.RefreshOperationalFixtures(
+                checkoutQueue,
+                customerBasketStation
+            );
+
+            customer.ResumeFromLayout();
         }
 
         layoutSuspended = false;
@@ -152,6 +168,8 @@ public class CustomerFlow : MonoBehaviour
 
     private void SpawnCustomer()
     {
+        RefreshOperationalFixtures();
+        
         ProductData[] shoppingList = CreateShoppingList();
 
         if (shoppingList == null ||
@@ -304,10 +322,7 @@ public class CustomerFlow : MonoBehaviour
 
         if (shelfRegistry == null)
             return false;
-
-        if (checkoutQueue == null)
-            return false;
-
+        
         if (customerSpawnPoint == null)
             return false;
 

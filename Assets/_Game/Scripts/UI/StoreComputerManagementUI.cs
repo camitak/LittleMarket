@@ -171,6 +171,9 @@ public class StoreComputerManagementUI : MonoBehaviour
             if (definition == null)
                 continue;
 
+            if (!furnitureShop.IsPurchasableCatalogItem(definition))
+                continue;
+
             FurnitureCatalogRow row = Instantiate(
                 furnitureRowPrefab,
                 furnitureListContent

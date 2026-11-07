@@ -17,10 +17,16 @@ public class CheckoutFeedback : MonoBehaviour
 
     private void Awake()
     {
+        if (moneyFeedbackUI == null)
+        {
+            moneyFeedbackUI =
+                FindFirstObjectByType<MoneyFeedbackUI>(FindObjectsInactive.Include);
+        }
+
         if (scannerLight != null)
-            scannerLight.SetActive(
-                false
-            );
+        {
+            scannerLight.SetActive(false);
+        }
     }
 
     public void PlayScanFeedback()

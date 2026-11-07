@@ -7,129 +7,88 @@ using UnityEngine.UI;
 [DisallowMultipleComponent]
 public class BuildCatalogUI : MonoBehaviour
 {
-    [Header("Panel")]
-    [SerializeField]
-    private GameObject catalogPanel;
+    [Header("Panel")] [SerializeField] private GameObject catalogPanel;
 
-    [SerializeField]
-    private TMP_Text statusText;
+    [SerializeField] private TMP_Text statusText;
 
-    [SerializeField]
-    private Button closeButton;
+    [SerializeField] private Button closeButton;
 
-    [Header("Categories")]
-    [SerializeField]
+    [Header("Categories")] [SerializeField]
     private Button allCategoryButton;
 
-    [SerializeField]
-    private Button fixturesCategoryButton;
+    [SerializeField] private Button fixturesCategoryButton;
 
-    [SerializeField]
-    private Button storageCategoryButton;
+    [SerializeField] private Button storageCategoryButton;
 
-    [SerializeField]
-    private Button refrigerationCategoryButton;
+    [SerializeField] private Button refrigerationCategoryButton;
 
-    [SerializeField]
-    private Button decorCategoryButton;
-    
-    [Header("Catalog List")]
-    [SerializeField]
+    [SerializeField] private Button decorCategoryButton;
+
+    [Header("Catalog List")] [SerializeField]
     private ScrollRect catalogScrollRect;
 
-    [SerializeField]
-    private Transform furnitureListContent;
+    [SerializeField] private Transform furnitureListContent;
 
-    [SerializeField]
-    private FurnitureCatalogRow furnitureRowPrefab;
+    [SerializeField] private FurnitureCatalogRow furnitureRowPrefab;
 
-    [Header("Store Design")]
-    [SerializeField]
+    [Header("Store Design")] [SerializeField]
     private StoreLayoutModeController layoutMode;
 
-    [SerializeField]
-    private FurnitureShop furnitureShop;
+    [SerializeField] private FurnitureShop furnitureShop;
 
-    [SerializeField]
-    private FurniturePlacementController placementController;
+    [SerializeField] private FurniturePlacementController placementController;
 
-    private readonly List<FurnitureCatalogRow>
-        spawnedRows = new();
+    private readonly List<FurnitureCatalogRow> spawnedRows = new();
 
     /*
      * Null means ALL.
      */
-    private FurnitureCatalogCategory?
-        activeCategory;
+    private FurnitureCatalogCategory? activeCategory;
 
     private bool isOpen;
     private bool reopenAfterPlacement;
 
-    private const string DefaultStatus =
-        "Choose an item to place. Payment happens only when placement is confirmed.";
+    private const string DefaultStatus = "Choose an item to place. Payment happens only when placement is confirmed.";
 
-    public bool IsOpen =>
-        isOpen;
+    public bool IsOpen => isOpen;
 
     private void Awake()
     {
         if (closeButton != null)
         {
-            closeButton.onClick.AddListener(
-                Close
-            );
+            closeButton.onClick.AddListener(Close);
         }
 
         if (allCategoryButton != null)
         {
-            allCategoryButton.onClick.AddListener(
-                ShowAll
-            );
+            allCategoryButton.onClick.AddListener(ShowAll);
         }
 
         if (fixturesCategoryButton != null)
         {
-            fixturesCategoryButton
-                .onClick
-                .AddListener(
-                    ShowFixtures
-                );
+            fixturesCategoryButton.onClick.AddListener(ShowFixtures);
         }
 
         if (storageCategoryButton != null)
         {
-            storageCategoryButton
-                .onClick
-                .AddListener(
-                    ShowStorage
-                );
+            storageCategoryButton.onClick.AddListener(ShowStorage);
         }
 
         if (refrigerationCategoryButton != null)
         {
-            refrigerationCategoryButton
-                .onClick
-                .AddListener(
-                    ShowRefrigeration
-                );
+            refrigerationCategoryButton.onClick.AddListener(ShowRefrigeration);
         }
-        
+
         if (decorCategoryButton != null)
         {
-            decorCategoryButton
-                .onClick
-                .AddListener(
-                    ShowDecor
-                );
+            decorCategoryButton.onClick.AddListener(ShowDecor);
         }
 
         activeCategory = null;
 
         if (catalogPanel != null)
         {
-            catalogPanel.SetActive(
-                false
-            );
+            catalogPanel.SetActive(false);
         }
 
         RefreshCategoryButtons();
@@ -137,25 +96,19 @@ public class BuildCatalogUI : MonoBehaviour
 
     private void Update()
     {
-        if (layoutMode == null ||
-            !layoutMode.IsActive)
+        if (layoutMode == null || !layoutMode.IsActive)
         {
             reopenAfterPlacement = false;
 
             if (isOpen)
             {
-                SetPanelVisible(
-                    false
-                );
+                SetPanelVisible(false);
             }
 
             return;
         }
 
-        bool placementActive =
-            placementController != null &&
-            placementController
-                .IsPlacementActive;
+        bool placementActive = placementController != null && placementController.IsPlacementActive;
 
         /*
          * Picking up an existing object while the
@@ -166,12 +119,9 @@ public class BuildCatalogUI : MonoBehaviour
         {
             if (isOpen)
             {
-                SetPanelVisible(
-                    false
-                );
+                SetPanelVisible(false);
 
-                reopenAfterPlacement =
-                    true;
+                reopenAfterPlacement = true;
             }
 
             return;
@@ -179,17 +129,13 @@ public class BuildCatalogUI : MonoBehaviour
 
         if (reopenAfterPlacement)
         {
-            reopenAfterPlacement =
-                false;
+            reopenAfterPlacement = false;
 
             Open();
             return;
         }
 
-        if (Keyboard.current == null ||
-            !Keyboard.current
-                .bKey
-                .wasPressedThisFrame)
+        if (Keyboard.current == null || !Keyboard.current.bKey.wasPressedThisFrame)
         {
             return;
         }
@@ -206,190 +152,131 @@ public class BuildCatalogUI : MonoBehaviour
 
     public void Open()
     {
-        if (isOpen ||
-            catalogPanel == null ||
-            layoutMode == null ||
-            !layoutMode.IsActive)
+        if (isOpen || catalogPanel == null || layoutMode == null || !layoutMode.IsActive)
         {
             return;
         }
 
-        if (placementController != null &&
-            placementController
-                .IsPlacementActive)
+        if (placementController != null && placementController.IsPlacementActive)
         {
             return;
         }
 
-        SetPanelVisible(
-            true
-        );
+        SetPanelVisible(true);
 
-        catalogPanel
-            .transform
-            .SetAsLastSibling();
+        catalogPanel.transform.SetAsLastSibling();
 
-        RebuildRows(
-            true
-        );
+        RebuildRows(true);
 
-        SetStatus(
-            DefaultStatus
-        );
+        SetStatus(DefaultStatus);
     }
 
     public void Close()
     {
-        reopenAfterPlacement =
-            false;
+        reopenAfterPlacement = false;
 
-        SetPanelVisible(
-            false
-        );
+        SetPanelVisible(false);
     }
 
     private void ShowAll()
     {
-        SetCategory(
-            null
-        );
+        SetCategory(null);
     }
 
     private void ShowFixtures()
     {
-        SetCategory(
-            FurnitureCatalogCategory.Fixtures
-        );
+        SetCategory(FurnitureCatalogCategory.Fixtures);
     }
 
     private void ShowStorage()
     {
-        SetCategory(
-            FurnitureCatalogCategory.Storage
-        );
+        SetCategory(FurnitureCatalogCategory.Storage);
     }
 
     private void ShowRefrigeration()
     {
-        SetCategory(
-            FurnitureCatalogCategory.Refrigeration
-        );
-    }
-    
-    private void ShowDecor()
-    {
-        SetCategory(
-            FurnitureCatalogCategory.Decor
-        );
+        SetCategory(FurnitureCatalogCategory.Refrigeration);
     }
 
-    private void SetCategory(
-        FurnitureCatalogCategory? category)
+    private void ShowDecor()
     {
-        activeCategory =
-            category;
+        SetCategory(FurnitureCatalogCategory.Decor);
+    }
+
+    private void SetCategory(FurnitureCatalogCategory? category)
+    {
+        activeCategory = category;
 
         RefreshCategoryButtons();
 
-        RebuildRows(
-            true
-        );
+        RebuildRows(true);
 
-        SetStatus(
-            DefaultStatus
-        );
+        SetStatus(DefaultStatus);
     }
 
-    private void RebuildRows(
-        bool resetScroll)
+    private void RebuildRows(bool resetScroll)
     {
         ClearRows();
 
-        if (furnitureShop == null ||
-            furnitureListContent == null ||
-            furnitureRowPrefab == null)
+        if (furnitureShop == null || furnitureListContent == null || furnitureRowPrefab == null)
         {
-            SetStatus(
-                "Build Catalog is not configured."
-            );
+            SetStatus("Build Catalog is not configured.");
 
             return;
         }
 
         int visibleItemCount = 0;
 
-        for (int i = 0;
-             i < furnitureShop.CatalogCount;
-             i++)
+        for (int i = 0; i < furnitureShop.CatalogCount; i++)
         {
-            FurnitureDefinition definition =
-                furnitureShop
-                    .GetCatalogItem(i);
+            FurnitureDefinition definition = furnitureShop.GetCatalogItem(i);
 
             if (definition == null)
             {
                 continue;
             }
-
-            if (activeCategory.HasValue &&
-                definition.CatalogCategory !=
-                activeCategory.Value)
+            
+            if (!furnitureShop.IsPurchasableCatalogItem(definition))
             {
                 continue;
             }
 
-            FurnitureCatalogRow row =
-                Instantiate(
-                    furnitureRowPrefab,
-                    furnitureListContent
-                );
+            if (activeCategory.HasValue && definition.CatalogCategory != activeCategory.Value)
+            {
+                continue;
+            }
 
-            row.Configure(
-                definition,
-                BeginFurniturePurchase
-            );
+            FurnitureCatalogRow row = Instantiate(furnitureRowPrefab, furnitureListContent);
 
-            spawnedRows.Add(
-                row
-            );
+            row.Configure(definition, BeginFurniturePurchase);
+
+            spawnedRows.Add(row);
 
             visibleItemCount++;
         }
 
         RefreshCategoryButtons();
 
-        RefreshScrollLayout(
-            resetScroll
-        );
+        RefreshScrollLayout(resetScroll);
 
         if (visibleItemCount == 0)
         {
-            SetStatus(
-                "No furniture is available in this category yet."
-            );
+            SetStatus("No furniture is available in this category yet.");
         }
     }
 
-    private void BeginFurniturePurchase(
-        FurnitureDefinition definition)
+    private void BeginFurniturePurchase(FurnitureDefinition definition)
     {
-        if (definition == null ||
-            furnitureShop == null)
+        if (definition == null || furnitureShop == null)
         {
-            SetStatus(
-                "Furniture purchasing is not configured."
-            );
+            SetStatus("Furniture purchasing is not configured.");
 
             return;
         }
 
-        if (!furnitureShop.CanBeginPurchase(
-                definition,
-                out string reason))
+        if (!furnitureShop.CanBeginPurchase(definition, out string reason))
         {
-            SetStatus(
-                reason
-            );
+            SetStatus(reason);
 
             return;
         }
@@ -398,229 +285,146 @@ public class BuildCatalogUI : MonoBehaviour
          * Give the complete screen back to the
          * placement workspace before beginning.
          */
-        SetPanelVisible(
-            false
-        );
+        SetPanelVisible(false);
 
-        bool started =
-            furnitureShop.TryBeginPurchase(
-                definition,
-                out reason
-            );
+        bool started = furnitureShop.TryBeginPurchase(definition, out reason);
 
         if (!started)
         {
-            SetPanelVisible(
-                true
-            );
+            SetPanelVisible(true);
 
-            RebuildRows(
-                false
-            );
+            RebuildRows(false);
 
-            SetStatus(
-                reason
-            );
+            SetStatus(reason);
 
             return;
         }
 
-        reopenAfterPlacement =
-            true;
+        reopenAfterPlacement = true;
     }
 
-    private void RefreshScrollLayout(
-        bool resetScroll)
+    private void RefreshScrollLayout(bool resetScroll)
     {
-        if (catalogScrollRect == null ||
-            furnitureListContent
-                is not RectTransform contentRect)
+        if (catalogScrollRect == null || furnitureListContent is not RectTransform contentRect)
         {
             return;
         }
 
-        float previousPosition =
-            catalogScrollRect
-                .verticalNormalizedPosition;
+        float previousPosition = catalogScrollRect.verticalNormalizedPosition;
 
-        if (float.IsNaN(
-                previousPosition))
+        if (float.IsNaN(previousPosition))
         {
             previousPosition = 1f;
         }
 
         Canvas.ForceUpdateCanvases();
 
-        LayoutRebuilder
-            .ForceRebuildLayoutImmediate(
-                contentRect
-            );
+        LayoutRebuilder.ForceRebuildLayoutImmediate(contentRect);
 
         Canvas.ForceUpdateCanvases();
 
-        RectTransform viewport =
-            catalogScrollRect.viewport;
+        RectTransform viewport = catalogScrollRect.viewport;
 
         if (viewport == null)
         {
             return;
         }
 
-        float contentHeight =
-            contentRect.rect.height;
+        float contentHeight = contentRect.rect.height;
 
-        float viewportHeight =
-            viewport.rect.height;
+        float viewportHeight = viewport.rect.height;
 
         const float overflowTolerance = 1f;
 
-        bool canScroll =
-            contentHeight >
-            viewportHeight +
-            overflowTolerance;
+        bool canScroll = contentHeight > viewportHeight + overflowTolerance;
 
         /*
          * A short catalog should behave like a
          * static list, not like an elastic surface.
          */
-        catalogScrollRect.vertical =
-            canScroll;
+        catalogScrollRect.vertical = canScroll;
 
         catalogScrollRect.StopMovement();
 
         if (!canScroll)
         {
-            Vector2 anchoredPosition =
-                contentRect.anchoredPosition;
+            Vector2 anchoredPosition = contentRect.anchoredPosition;
 
             anchoredPosition.y = 0f;
 
-            contentRect.anchoredPosition =
-                anchoredPosition;
+            contentRect.anchoredPosition = anchoredPosition;
 
-            catalogScrollRect
-                .verticalNormalizedPosition =
-                1f;
+            catalogScrollRect.verticalNormalizedPosition = 1f;
 
             return;
         }
 
-        catalogScrollRect
-            .verticalNormalizedPosition =
-            resetScroll
-                ? 1f
-                : Mathf.Clamp01(
-                    previousPosition
-                );
+        catalogScrollRect.verticalNormalizedPosition = resetScroll ? 1f : Mathf.Clamp01(previousPosition);
     }
 
     private void RefreshCategoryButtons()
     {
-        SetCategoryButtonState(
-            allCategoryButton,
-            !activeCategory.HasValue,
-            "ALL"
-        );
+        SetCategoryButtonState(allCategoryButton, !activeCategory.HasValue, "ALL");
 
-        SetCategoryButtonState(
-            fixturesCategoryButton,
-            activeCategory ==
-            FurnitureCatalogCategory.Fixtures,
-            "FIXTURES"
-        );
+        SetCategoryButtonState(fixturesCategoryButton, activeCategory == FurnitureCatalogCategory.Fixtures, "FIXTURES");
 
-        SetCategoryButtonState(
-            storageCategoryButton,
-            activeCategory ==
-            FurnitureCatalogCategory.Storage,
-            "STORAGE"
-        );
+        SetCategoryButtonState(storageCategoryButton, activeCategory == FurnitureCatalogCategory.Storage, "STORAGE");
 
-        SetCategoryButtonState(
-            refrigerationCategoryButton,
-            activeCategory ==
-            FurnitureCatalogCategory.Refrigeration,
-            "REFRIGERATION"
-        );
-        
-        SetCategoryButtonState(
-            decorCategoryButton,
-            activeCategory ==
-            FurnitureCatalogCategory.Decor,
-            "DECOR"
-        );
+        SetCategoryButtonState(refrigerationCategoryButton, activeCategory == FurnitureCatalogCategory.Refrigeration,
+            "REFRIGERATION");
+
+        SetCategoryButtonState(decorCategoryButton, activeCategory == FurnitureCatalogCategory.Decor, "DECOR");
     }
 
-    private static void SetCategoryButtonState(
-        Button button,
-        bool active,
-        string label)
+    private static void SetCategoryButtonState(Button button, bool active, string label)
     {
         if (button == null)
         {
             return;
         }
 
-        button.interactable =
-            !active;
+        button.interactable = !active;
 
-        TMP_Text buttonText =
-            button.GetComponentInChildren<TMP_Text>(
-                true
-            );
+        TMP_Text buttonText = button.GetComponentInChildren<TMP_Text>(true);
 
         if (buttonText != null)
         {
-            buttonText.text =
-                active
-                    ? $"> {label}"
-                    : label;
+            buttonText.text = active ? $"> {label}" : label;
         }
     }
 
-    private void SetStatus(
-        string message)
+    private void SetStatus(string message)
     {
         if (statusText == null)
         {
             return;
         }
 
-        statusText.text =
-            message ?? "";
+        statusText.text = message ?? "";
     }
 
-    private void SetPanelVisible(
-        bool visible)
+    private void SetPanelVisible(bool visible)
     {
-        isOpen =
-            visible;
+        isOpen = visible;
 
         if (catalogPanel != null)
         {
-            catalogPanel.SetActive(
-                visible
-            );
+            catalogPanel.SetActive(visible);
         }
     }
 
     private void ClearRows()
     {
-        foreach (FurnitureCatalogRow row
-                 in spawnedRows)
+        foreach (FurnitureCatalogRow row in spawnedRows)
         {
             if (row == null)
             {
                 continue;
             }
 
-            row.gameObject.SetActive(
-                false
-            );
+            row.gameObject.SetActive(false);
 
-            Destroy(
-                row.gameObject
-            );
+            Destroy(row.gameObject);
         }
 
         spawnedRows.Clear();
@@ -630,54 +434,32 @@ public class BuildCatalogUI : MonoBehaviour
     {
         if (closeButton != null)
         {
-            closeButton.onClick.RemoveListener(
-                Close
-            );
+            closeButton.onClick.RemoveListener(Close);
         }
 
         if (allCategoryButton != null)
         {
-            allCategoryButton
-                .onClick
-                .RemoveListener(
-                    ShowAll
-                );
+            allCategoryButton.onClick.RemoveListener(ShowAll);
         }
 
         if (fixturesCategoryButton != null)
         {
-            fixturesCategoryButton
-                .onClick
-                .RemoveListener(
-                    ShowFixtures
-                );
+            fixturesCategoryButton.onClick.RemoveListener(ShowFixtures);
         }
 
         if (storageCategoryButton != null)
         {
-            storageCategoryButton
-                .onClick
-                .RemoveListener(
-                    ShowStorage
-                );
+            storageCategoryButton.onClick.RemoveListener(ShowStorage);
         }
 
         if (refrigerationCategoryButton != null)
         {
-            refrigerationCategoryButton
-                .onClick
-                .RemoveListener(
-                    ShowRefrigeration
-                );
+            refrigerationCategoryButton.onClick.RemoveListener(ShowRefrigeration);
         }
-        
+
         if (decorCategoryButton != null)
         {
-            decorCategoryButton
-                .onClick
-                .RemoveListener(
-                    ShowDecor
-                );
+            decorCategoryButton.onClick.RemoveListener(ShowDecor);
         }
     }
 }

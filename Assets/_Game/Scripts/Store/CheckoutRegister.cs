@@ -1,7 +1,7 @@
 using System.Collections;
 using UnityEngine;
 
-public class CheckoutRegister : MonoBehaviour, IInteractable
+public class CheckoutRegister : MonoBehaviour, IInteractable, IFurnitureSellConstraint
 {
     [Header("Store References")]
     [SerializeField] private CheckoutQueue checkoutQueue;
@@ -26,6 +26,34 @@ public class CheckoutRegister : MonoBehaviour, IInteractable
     private bool scanInProgress;
     private PickupItem reservedScanItem;
     private int reservedScanIndex = -1;
+    
+    private void Awake()
+    {
+        ResolveDependencies();
+    }
+
+    private void ResolveDependencies()
+    {
+        if (checkoutQueue == null)
+        {
+            checkoutQueue = GetComponent<CheckoutQueue>();
+        }
+
+        if (checkoutFeedback == null)
+        {
+            checkoutFeedback = GetComponent<CheckoutFeedback>();
+        }
+
+        if (storeEconomy == null)
+        {
+            storeEconomy = FindFirstObjectByType<StoreEconomy>();
+        }
+
+        if (dailyStats == null)
+        {
+            dailyStats = FindFirstObjectByType<DailyStats>();
+        }
+    }
 
     public string GetInteractionPrompt(PlayerInteraction player)
     {
@@ -197,6 +225,21 @@ public class CheckoutRegister : MonoBehaviour, IInteractable
                 scanIndex
             )
         );
+    }
+    
+    public bool CanSellFurniture(out string reason)
+    {
+        if (scanInProgress ||
+            activeCustomer != null ||
+            activeShoppingBag != null ||
+            (checkoutQueue != null && checkoutQueue.GetFrontCustomer() != null))
+        {
+            reason = "Finish serving waiting customers before selling this checkout.";
+            return false;
+        }
+
+        reason = "";
+        return true;
     }
 
     private IEnumerator ScanReservedItemRoutine(

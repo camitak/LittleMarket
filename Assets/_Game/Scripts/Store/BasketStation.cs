@@ -3,217 +3,257 @@ using UnityEngine;
 public class BasketStation :
     MonoBehaviour,
     IInteractable,
-    IManagementInteractable
+    IManagementInteractable,
+    IFurnitureRuntimeParticipant
 {
-    [Header("Basket")] [SerializeField] private RestockBasket basket;
-
+    [Header("Basket")]
+    [SerializeField] private RestockBasket basket;
     [SerializeField] private Transform dockPoint;
 
-    [Header("Locator")] [SerializeField] private BasketLocatorUI basketLocatorUI;
+    [Header("Locator")]
+    [SerializeField] private BasketLocatorUI basketLocatorUI;
 
-    [Header("Startup")] [SerializeField] private bool dockBasketOnStart = true;
+    [Header("Startup")]
+    [SerializeField] private bool dockBasketOnStart = true;
 
-    public float ManagementHoldDuration =>
-        0.8f;
+    private bool runtimeRegistered;
 
-    private void Start()
+    public float ManagementHoldDuration => 0.8f;
+
+    private void Awake()
     {
-        if (basketLocatorUI != null) basketLocatorUI.Hide();
-
-        if (!dockBasketOnStart ||
-            basket == null ||
-            dockPoint == null)
-            return;
-
-        basket.DockTo(
-            dockPoint
-        );
+        ResolveSceneReferences();
     }
 
-    public string GetInteractionPrompt(
-        PlayerInteraction player
-    )
+    public void RegisterFurnitureRuntime()
     {
-        if (player == null) return "";
+        if (runtimeRegistered)
+        {
+            return;
+        }
 
-        if (basket == null ||
-            dockPoint == null)
+        runtimeRegistered = true;
+
+        ResolveSceneReferences();
+
+        if (basketLocatorUI != null)
+        {
+            basketLocatorUI.Hide();
+        }
+
+        TryDockAvailableBasket();
+    }
+
+    public void UnregisterFurnitureRuntime()
+    {
+        if (!runtimeRegistered)
+        {
+            return;
+        }
+
+        runtimeRegistered = false;
+
+        if (basketLocatorUI != null)
+        {
+            basketLocatorUI.Hide();
+        }
+
+        if (basket != null &&
+            basket.IsDocked &&
+            basket.transform.IsChildOf(transform))
+        {
+            basket.ReleaseFromDock();
+        }
+    }
+
+    private void OnDestroy()
+    {
+        if (runtimeRegistered)
+        {
+            UnregisterFurnitureRuntime();
+        }
+    }
+
+    public string GetInteractionPrompt(PlayerInteraction player)
+    {
+        if (player == null)
+        {
+            return "";
+        }
+
+        ResolveSceneReferences();
+
+        if (basket == null || dockPoint == null)
+        {
             return "Basket station not configured";
+        }
 
-        var heldBasket =
-            player.GetHeldRestockBasket();
+        RestockBasket heldBasket = player.GetHeldRestockBasket();
 
-        /*
-         * Player returned carrying our basket.
-         */
         if (heldBasket != null)
         {
             if (heldBasket != basket)
-                return "This basket does not belong "
-                       + "to this station";
+            {
+                return "This basket does not belong to this station";
+            }
 
-            return "[E] Return restock basket"
-                   + "\n"
-                   + basket.ItemCount
-                   + " / "
-                   + basket.Capacity;
+            return "[E] Return restock basket\n" +
+                   basket.ItemCount + " / " + basket.Capacity;
         }
 
-        /*
-         * Other carried objects block the station.
-         */
-        if (player.GetHeldDeliveryBox()
-            != null ||
-            player.GetHeldItem()
-            != null)
-            return "Put down what you're carrying "
-                   + "to use the basket station";
+        if (player.GetHeldDeliveryBox() != null || player.GetHeldItem() != null)
+        {
+            return "Put down what you're carrying to use the basket station";
+        }
 
-        /*
-         * Normal docked state.
-         */
         if (basket.IsDocked)
-            return "[E] Take restock basket"
-                   + "\n"
-                   + basket.ItemCount
-                   + " / "
-                   + basket.Capacity;
+        {
+            return "[E] Take restock basket\n" +
+                   basket.ItemCount + " / " + basket.Capacity;
+        }
 
-        /*
-         * Defensive state.
-         */
-        if (basket.IsHeld) return "Restock basket is currently in use";
+        if (basket.IsHeld)
+        {
+            return "Restock basket is currently in use";
+        }
 
-        /*
-         * Loaded basket:
-         *
-         * locating is allowed,
-         * teleporting is not.
-         */
         if (!basket.IsEmpty)
-            return "Basket away"
-                   + "  •  "
-                   + basket.ItemCount
-                   + " / "
-                   + basket.Capacity
-                   + "\n[E] Locate basket";
+        {
+            return "Basket away  •  " +
+                   basket.ItemCount + " / " + basket.Capacity +
+                   "\n[E] Locate basket";
+        }
 
-        /*
-         * Empty basket:
-         *
-         * locate OR recall.
-         */
-        return "Basket away"
-               + "\n[E] Locate basket"
-               + "  •  "
-               + "[Hold X] Recall";
+        return "Basket away\n[E] Locate basket  •  [Hold X] Recall";
     }
 
-    public void Interact(
-        PlayerInteraction player
-    )
+    public void Interact(PlayerInteraction player)
     {
-        if (player == null ||
-            basket == null ||
-            dockPoint == null)
+        if (player == null)
+        {
             return;
+        }
 
-        var heldBasket =
-            player.GetHeldRestockBasket();
+        ResolveSceneReferences();
 
-        /*
-         * Return carried basket.
-         */
+        if (basket == null || dockPoint == null)
+        {
+            return;
+        }
+
+        RestockBasket heldBasket = player.GetHeldRestockBasket();
+
         if (heldBasket != null)
         {
-            if (heldBasket != basket) return;
+            if (heldBasket != basket)
+            {
+                return;
+            }
 
-            basket.DockTo(
-                dockPoint
-            );
-
+            basket.DockTo(dockPoint);
             player.RemoveHeldRestockBasket();
 
-            if (basketLocatorUI != null) basketLocatorUI.Hide();
+            if (basketLocatorUI != null)
+            {
+                basketLocatorUI.Hide();
+            }
 
             return;
         }
 
-        /*
-         * Other carried things block station use.
-         */
-        if (player.HasAnythingHeld) return;
+        if (player.HasAnythingHeld)
+        {
+            return;
+        }
 
-        /*
-         * Take basket from dock.
-         */
         if (basket.IsDocked)
         {
-            if (basketLocatorUI != null) basketLocatorUI.Hide();
+            if (basketLocatorUI != null)
+            {
+                basketLocatorUI.Hide();
+            }
 
-            player.TryPickUpRestockBasket(
-                basket
-            );
-
+            player.TryPickUpRestockBasket(basket);
             return;
         }
 
-        if (basket.IsHeld) return;
+        if (basket.IsHeld)
+        {
+            return;
+        }
 
-        /*
-         * Basket is somewhere in the world.
-         *
-         * E gives information rather than moving
-         * the object.
-         */
         if (basketLocatorUI != null)
-            basketLocatorUI.Show(
-                basket
-            );
+        {
+            basketLocatorUI.Show(basket);
+        }
     }
 
-    public bool CanUseManagementAction(
-        PlayerInteraction player
-    )
+    public bool CanUseManagementAction(PlayerInteraction player)
     {
+        ResolveSceneReferences();
+
         if (player == null ||
             basket == null ||
-            dockPoint == null)
-            return false;
-
-        if (player.HasAnythingHeld) return false;
-
-        if (basket.IsDocked ||
+            dockPoint == null ||
+            player.HasAnythingHeld ||
+            basket.IsDocked ||
             basket.IsHeld)
+        {
             return false;
+        }
 
-        /*
-         * Only an empty basket may teleport home.
-         */
         return basket.IsEmpty;
     }
 
-    public void ManagementInteract(
-        PlayerInteraction player
-    )
+    public void ManagementInteract(PlayerInteraction player)
     {
-        if (!CanUseManagementAction(
-                player
-            ))
+        if (!CanUseManagementAction(player))
+        {
             return;
+        }
 
-        basket.DockTo(
-            dockPoint
-        );
+        basket.DockTo(dockPoint);
 
-        if (basketLocatorUI != null) basketLocatorUI.Hide();
+        if (basketLocatorUI != null)
+        {
+            basketLocatorUI.Hide();
+        }
+    }
+
+    private void ResolveSceneReferences()
+    {
+        if (basket == null)
+        {
+            basket = FindFirstObjectByType<RestockBasket>(FindObjectsInactive.Include);
+        }
+
+        if (basketLocatorUI == null)
+        {
+            basketLocatorUI =
+                FindFirstObjectByType<BasketLocatorUI>(FindObjectsInactive.Include);
+        }
+    }
+
+    private void TryDockAvailableBasket()
+    {
+        if (!dockBasketOnStart ||
+            basket == null ||
+            dockPoint == null ||
+            basket.IsHeld)
+        {
+            return;
+        }
+
+        if (!basket.IsDocked && !basket.IsEmpty)
+        {
+            return;
+        }
+
+        basket.DockTo(dockPoint);
     }
 
     private void OnDrawGizmosSelected()
     {
-        PlacementUtility.DrawFrameGizmo(
-            dockPoint,
-            0.15f
-        );
+        PlacementUtility.DrawFrameGizmo(dockPoint, 0.15f);
     }
 }

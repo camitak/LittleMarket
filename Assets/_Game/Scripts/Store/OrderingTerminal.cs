@@ -13,9 +13,36 @@ public class OrderingTerminal :
     [SerializeField] private CustomerFlow customerFlow;
 
     public float ManagementHoldDuration => 0.8f;
+    
+    private void Awake()
+    {
+        ResolveDependencies();
+    }
+
+    private void ResolveDependencies()
+    {
+        if (orderingUI == null)
+        {
+            orderingUI =
+                FindFirstObjectByType<OrderingUI>(FindObjectsInactive.Include);
+        }
+
+        if (storeClock == null)
+        {
+            storeClock = FindFirstObjectByType<StoreClock>();
+        }
+
+        if (customerFlow == null)
+        {
+            customerFlow = FindFirstObjectByType<CustomerFlow>();
+        }
+    }
 
     public string GetInteractionPrompt(PlayerInteraction player)
     {
+        
+        ResolveDependencies();
+        
         if (player == null)
         {
             return "";
@@ -60,6 +87,9 @@ public class OrderingTerminal :
 
     public void Interact(PlayerInteraction player)
     {
+        
+        ResolveDependencies();
+        
         if (player == null || player.HasAnythingHeld)
         {
             return;

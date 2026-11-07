@@ -635,11 +635,9 @@ public class FurniturePlacementController : MonoBehaviour
             prompt = $"C Copy {furnitureName}  •  £{definition.PurchasePrice:0.00}";
         }
 
-        bool playerPurchased =
-            furnitureShop != null &&
-            furnitureShop.IsPlayerPurchasedFurniture(furniture);
-
-        if (playerPurchased)
+        if (definition != null &&
+            definition.Sellable &&
+            furnitureShop != null)
         {
             if (furnitureShop.CanSellFurniture(furniture, out float refund, out string sellReason))
             {

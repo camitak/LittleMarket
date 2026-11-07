@@ -28,16 +28,12 @@ public class FurnitureShop : MonoBehaviour
 
     public bool IsPurchasableCatalogItem(FurnitureDefinition definition)
     {
-        return furnitureCatalog != null &&
-               definition != null &&
-               furnitureCatalog.Contains(definition) &&
-               definition.IsConfigured;
-    }
+        if (!IsPurchaseDefinitionEnabled(definition) || storeFurnitureLayout == null)
+        {
+            return false;
+        }
 
-    public bool IsPlayerPurchasedFurniture(FurnitureIdentity furniture)
-    {
-        return storeFurnitureLayout != null &&
-               storeFurnitureLayout.IsPlayerPurchasedFurniture(furniture);
+        return !HasReachedOwnershipLimit(definition);
     }
 
     public float GetSellRefund(FurnitureDefinition definition)
@@ -62,16 +58,22 @@ public class FurnitureShop : MonoBehaviour
             return false;
         }
 
-        if (!storeFurnitureLayout.CanSellFurniture(furniture, out reason))
+        if (furniture == null || furniture.FurnitureDefinition == null)
         {
+            reason = "This furniture has no valid definition.";
             return false;
         }
 
         FurnitureDefinition definition = furniture.FurnitureDefinition;
 
-        if (definition == null)
+        if (!definition.Sellable)
         {
-            reason = "This furniture has no valid definition.";
+            reason = $"{definition.DisplayName} cannot be sold.";
+            return false;
+        }
+
+        if (!storeFurnitureLayout.CanSellFurniture(furniture, out reason))
+        {
             return false;
         }
 
@@ -87,7 +89,7 @@ public class FurnitureShop : MonoBehaviour
             return false;
         }
 
-        if (!storeFurnitureLayout.TryRemovePurchasedFurniture(furniture, out reason))
+        if (!storeFurnitureLayout.TryRemoveFurniture(furniture, out reason))
         {
             refund = 0f;
             return false;
@@ -120,6 +122,18 @@ public class FurnitureShop : MonoBehaviour
         if (!definition.IsConfigured)
         {
             reason = $"{definition.DisplayName} is not configured correctly.";
+            return false;
+        }
+
+        if (!definition.Purchasable)
+        {
+            reason = $"{definition.DisplayName} cannot be purchased.";
+            return false;
+        }
+
+        if (HasReachedOwnershipLimit(definition))
+        {
+            reason = $"You already own the maximum number of {definition.DisplayName}.";
             return false;
         }
 
@@ -195,6 +209,7 @@ public class FurnitureShop : MonoBehaviour
     public bool TryCompletePurchase(FurnitureDefinition definition)
     {
         if (definition == null ||
+            !definition.Purchasable ||
             furnitureCatalog == null ||
             !furnitureCatalog.Contains(definition) ||
             storeEconomy == null)
@@ -213,6 +228,27 @@ public class FurnitureShop : MonoBehaviour
         }
 
         storeFurnitureLayout.DiscardUnconfirmedFurniture(previewFurniture);
+    }
+
+    private bool IsPurchaseDefinitionEnabled(FurnitureDefinition definition)
+    {
+        return furnitureCatalog != null &&
+               definition != null &&
+               furnitureCatalog.Contains(definition) &&
+               definition.IsConfigured &&
+               definition.Purchasable;
+    }
+
+    private bool HasReachedOwnershipLimit(FurnitureDefinition definition)
+    {
+        if (definition == null ||
+            definition.MaxOwned <= 0 ||
+            storeFurnitureLayout == null)
+        {
+            return false;
+        }
+
+        return storeFurnitureLayout.CountFurnitureByDefinition(definition) >= definition.MaxOwned;
     }
 
     private static string GetPlacementAreaDisplayName(StoreAreaType areaType)

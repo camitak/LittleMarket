@@ -185,6 +185,24 @@ public class CustomerController : MonoBehaviour
 
     }
     
+    public void RefreshOperationalFixtures(
+        CheckoutQueue newCheckoutQueue,
+        CustomerBasketStation newCustomerBasketStation)
+    {
+        if (checkoutQueue != newCheckoutQueue)
+        {
+            if (checkoutQueue != null)
+            {
+                checkoutQueue.LeaveQueue(this);
+            }
+
+            checkoutQueue = newCheckoutQueue;
+            assignedQueuePoint = null;
+        }
+
+        customerBasketStation = newCustomerBasketStation;
+    }
+    
     public void SuspendForLayout()
     {
         if (layoutSuspended)
@@ -412,25 +430,20 @@ public class CustomerController : MonoBehaviour
     {
         if (assignedQueuePoint == null)
         {
-            Debug.LogWarning(
-                "Customer lost its checkout queue point during Layout Mode and will leave the store.",
-                this
-            );
-
-            BeginLeaving();
+            TryJoinCheckoutQueue();
             return;
         }
 
-        currentState =
-            CustomerState.WalkingToCheckout;
+        currentState = CustomerState.WalkingToCheckout;
 
-        bool accepted =
-            agent.SetDestination(
-                assignedQueuePoint.position
-            );
+        bool accepted = agent.SetDestination(
+            assignedQueuePoint.position
+        );
 
         if (!accepted)
+        {
             BeginLeaving();
+        }
     }
     
     private void BeginEnteringStore()
