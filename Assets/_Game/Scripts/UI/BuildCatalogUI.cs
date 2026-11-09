@@ -236,7 +236,7 @@ public class BuildCatalogUI : MonoBehaviour
                 continue;
             }
             
-            if (!furnitureShop.IsPurchasableCatalogItem(definition))
+            if (!furnitureShop.ShouldListCatalogItem(definition))
             {
                 continue;
             }

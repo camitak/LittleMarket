@@ -1,3 +1,4 @@
+
 using UnityEngine;
 
 [DisallowMultipleComponent]
@@ -24,6 +25,21 @@ public class FurnitureShop : MonoBehaviour
     public FurnitureDefinition GetCatalogItem(int index)
     {
         return furnitureCatalog != null ? furnitureCatalog.GetAt(index) : null;
+    }
+
+    public bool ShouldListCatalogItem(FurnitureDefinition definition)
+    {
+        return IsPurchaseDefinitionEnabled(definition);
+    }
+
+    public int GetOwnedCount(FurnitureDefinition definition)
+    {
+        if (definition == null || storeFurnitureLayout == null)
+        {
+            return 0;
+        }
+
+        return storeFurnitureLayout.CountFurnitureByDefinition(definition);
     }
 
     public bool IsPurchasableCatalogItem(FurnitureDefinition definition)
@@ -96,7 +112,6 @@ public class FurnitureShop : MonoBehaviour
         }
 
         storeEconomy.AddMoney(refund);
-
         return true;
     }
 
@@ -241,14 +256,9 @@ public class FurnitureShop : MonoBehaviour
 
     private bool HasReachedOwnershipLimit(FurnitureDefinition definition)
     {
-        if (definition == null ||
-            definition.MaxOwned <= 0 ||
-            storeFurnitureLayout == null)
-        {
-            return false;
-        }
-
-        return storeFurnitureLayout.CountFurnitureByDefinition(definition) >= definition.MaxOwned;
+        return definition != null &&
+               definition.MaxOwned > 0 &&
+               GetOwnedCount(definition) >= definition.MaxOwned;
     }
 
     private static string GetPlacementAreaDisplayName(StoreAreaType areaType)

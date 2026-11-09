@@ -16,6 +16,7 @@ GameObject:
   - component: {fileID: 3543657953402474023}
   - component: {fileID: 7598965951387816022}
   - component: {fileID: 5612387723984810123}
+  - component: {fileID: 2686587629025835775}
   m_Layer: 0
   m_Name: PF_CheckoutCounter
   m_TagString: Untagged
@@ -161,6 +162,18 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::FurnitureNavigationBlocker
   horizontalPadding: 0.05
   floorOverlap: 0.2
+--- !u!114 &2686587629025835775
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 613616828646612990}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: bf99fb119ac037d4282a85aa45a48620, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::MinimumCheckoutSellConstraint
 --- !u!1 &1274817683706630338
 GameObject:
   m_ObjectHideFlags: 0

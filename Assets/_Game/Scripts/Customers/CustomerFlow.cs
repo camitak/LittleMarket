@@ -166,14 +166,21 @@ public class CustomerFlow : MonoBehaviour
         ResetSpawnTimerForNewDay();
     }
 
+    
     private void SpawnCustomer()
     {
         RefreshOperationalFixtures();
-        
+
+        // Never allow a new shopping trip without a checkout.
+        // This also protects saves created before the checkout-selling rule.
+        if (checkoutQueue == null)
+        {
+            return;
+        }
+
         ProductData[] shoppingList = CreateShoppingList();
 
-        if (shoppingList == null ||
-            shoppingList.Length == 0)
+        if (shoppingList == null || shoppingList.Length == 0)
         {
             return;
         }
@@ -197,6 +204,7 @@ public class CustomerFlow : MonoBehaviour
 
         activeCustomers.Add(customer);
     }
+
 
     private ProductData[] CreateShoppingList()
     {

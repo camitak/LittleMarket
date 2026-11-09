@@ -1,291 +1,67 @@
-# Little Market — System Architecture
+# Little Market — System Architecture (Lesson 139 update)
 
-Current architecture after **Lesson 138 — Managed Core Fixtures & Sellable Starter Furniture**.
+**Source-of-truth checkpoint:** GitHub `camitak/LittleMarket`, `main` at `9bc60caeaf2710e16e45b9ceaddcd34b393d6ddc` — `Lesson 138 complete - managed core fixtures and sellable starter furniture` (verified 2026-11-09).
 
-## Verified source of truth
+**Important:** This document records the **Lesson 139 implementation to apply and test**; it does not claim these changes have already been pushed. Before the next lesson, recheck the newest GitHub `main` and inspect the files and assets again.
 
-Lesson 138 was designed after verifying GitHub `main` at:
+## Permanent instructions
 
-`69fdb49de652e4babfe3a509170c58f20e223dd9`
+- Inspect newest GitHub `main` before every lesson; read `Assets/_Game/Documentation/SYSTEM_ARCHITECTURE.md`; inspect complete affected scripts, prefabs, ScriptableObjects, and `Assets/Scenes/Market.unity`.
+- Never assume scene paths or references; specify verified full paths and exact component names.
+- Preserve all authored and user-tuned values except changes explicitly requested by that lesson.
+- When creating UI, explicitly specify object/component type, hierarchy, anchors Min/Max, pivot, signed anchored position/offsets, dimensions, TMP size/alignment, raycast target, colors, and Inspector references.
+- Conventional compact C#; full implementation and testing instructions in chat; only architecture and continuation files normally attached.
+- Player playtesting overrides the planned feature roadmap when material UX issues arise.
 
-Commit:
+## Lesson 138 baseline retained
 
-`Lesson 137 complete - safe furniture selling and refunds`
+- `StoreFurnitureLayout` archives authored managed objects instead of destroying them upon sale; runtime furniture is destroyed, authored furniture may be absent from a save.
+- `FurnitureDefinition` supplies `Purchasable`, `Sellable`, `MaxOwned` (0 = unlimited), prefab, area, body/access extents.
+- `CheckoutCounter`, `BasketStation`, `CustomerBasketStation`, `OrderingTerminal` are managed furniture roots. OrderingTerminal movable but not purchasable or sellable. The other three are currently capped at 1.
+- `StoreFurnitureLayout.CountFurnitureByDefinition` counts ownership, while `FurnitureShop.CanBeginPurchase` validates caps, balance, and state.
+- `FurnitureIdentity` checks all `IFurnitureSellConstraint` implementations, and `CheckoutRegister` already blocks sale while serving customers.
+- `BasketStation` docks the unique global `RestockBasket` in `RegisterFurnitureRuntime`, releases it when retiring, and uses the `DockPoint` transform. Do not instantiate duplicate baskets per purchasable station prefab.
+- `CustomerFlow.RefreshOperationalFixtures` rebinds active checkout and customer basket station before spawning / resuming.
 
-Re-verify newest `main` before every future lesson.
+## Lesson 139: safety and UI rules
 
-## Permanent teaching / implementation rules
+1. **Never sell the last operational checkout.** New `Assets/_Game/Scripts/Store/MinimumCheckoutSellConstraint.cs` implements `IFurnitureSellConstraint` and is added to the `PF_CheckoutCounter` prefab root (inherited by scene `CheckoutCounter`). The constraint checks for another enabled, active `CheckoutRegister` with managed `FurnitureIdentity`; returns a reason if none exists. Do NOT simply turn `SO_Furniture_CheckoutCounter.Sellable` off; preserve it `true`, `Purchasable=true`, `MaxOwned=1` for a later multi-checkout upgrade path. This means the only checkout is effectively unsellable now but movable.
+2. **Prevent customer shopping without checkout in historical saves.** In `CustomerFlow.SpawnCustomer()`, call `RefreshOperationalFixtures()` and return if `checkoutQueue == null` before creating shopping lists or spawning customers. Saves made during Lesson 138 without a checkout need repurchasing it to resume arrivals.
+3. **Keep capped furniture listed.** Add `FurnitureShop.ShouldListCatalogItem(definition)` using configured, present, purchasable eligibility *without* excluding max-owned entries. Preserve `IsPurchasableCatalogItem(definition)` as the actual owned-cap check: `FurniturePlacementController` uses it for copy prompts. Change the two list filters only in `BuildCatalogUI.RebuildRows` and `StoreComputerManagementUI.RebuildFurnitureRows` to `ShouldListCatalogItem`. `FurnitureCatalogRow` gets a `FurnitureShop`, displays `Owned N / MaxOwned` when limited, and disables the button with text `SOLD OUT` at the cap. `FurnitureShop.CanBeginPurchase` continues to enforce the cap.
+4. **Product distinction.** `ProductCatalogueUI`/`OrderingUI` already show unlocked/locked products, and `ProductData` has reputation and store level unlocks but no per-product ownership max. Do not invent product caps; continue showing products and their stock status. Product max-stock policy is a separate future design decision.
 
-- Inspect newest GitHub `main` before every lesson.
-- Read this architecture file before proposing implementation.
-- Inspect complete relevant scripts, prefabs, ScriptableObjects, and `Market.unity`.
-- Never guess scene references.
-- Use exact GameObject/component paths when verified.
-- Every UI instruction must name the Unity object/component type, exact hierarchy, anchors, pivot, signed Anchored Position/offsets, size, font/alignment, Raycast Target, colors, and references where relevant.
-- Top-anchored downward movement normally uses negative Y; bottom-anchored upward movement normally uses positive Y.
-- Preserve all user-tuned scene values.
-- Write conventional compact C#.
-- Keep the complete lesson implementation in chat. Only architecture and fresh-chat continuation `.md` files are normally separate.
-- Player playtesting may reorder the roadmap.
+## Lesson 139: restocking equipment
 
-## Design direction confirmed by Lesson 138
+- Verified authored scene `BasketStation` position `(-6.2, 0, -2.8)` at Y=0°; separate `PF_RestockBasket` scene prefab instance currently at `(-9.738, 0.172, -3.5179799)`. It is an independent gameplay object but docks on start.
+- In **Market.unity Scene**, reparent the unique `PF_RestockBasket` instance under `BasketStation/DockPoint` and reset basket local position/rotation to zero and scale one. This makes one visually assembled station in the editor without creating duplicate baskets upon future purchases. Verify `BasketStation -> BasketStation` fields `basket` and `dockPoint` still reference the unique basket and child `DockPoint`.
+- `PF_RestockBasketStation.prefab` local `DockPoint` position is `(0,0.16,0)`, backboard local Z `-0.41`, base z `0`. In `SO_Furniture_RestockBasketStation` correct **accessCenter from `(0,0.75,-0.9)` to `(0,0.75,+0.9)`**. Do not change existing body/access extents, station world pose, nav modifier settings, or player placement tunings.
+- Do not embed a fresh `PF_RestockBasket` in the purchasable station prefab; runtime station prefab reuses the unique basket through `BasketStation` resolution and docking.
 
-Starter furniture is no longer a permanent special ownership class.
+## Lesson 139: first-person comfort baseline
 
-“Starter” means:
-- present in a fresh store scene/save baseline
+`Assets/Scenes/Market.unity` currently has `Player -> PlayerController: moveSpeed=6, mouseSensitivity=0.12`; `Player/Main Camera -> Camera: field of view=60`. In Lesson 139 try `moveSpeed=4.5`, `mouseSensitivity=0.09`, `field of view=75`. These are explicit prototype changes intended for a comfort playtest, not a universal prescription.
 
-It does NOT mean:
-- permanently unsellable
-- outside normal furniture ownership
+The game `Global Volume` references `Assets/Settings/SampleSceneProfile.asset`, where Motion Blur is inactive; keep it inactive. Current `PlayerController` has no camera head bob or roll. Test separate gameplay and layout camera symptoms with steady FPS and multiple people, and later implement persistent Comfort options (FOV, sensitivity, optional camera effects) in Pause Menu.
 
-Authored furniture can now be absent from a save. StoreFurnitureLayout archives authored scene objects instead of destroying them so a same-session load can restore the exact authored object and its scene overrides.
+## Existing values to preserve
 
-## StoreFurnitureLayout persistence model
+- `LayoutCameraRig -> LayoutCameraController -> Scroll Zoom Sensitivity = 2`, working distance 9, overview pitch 62, overview yaw 0 and all other existing user-tuned layout camera values.
+- `Player -> FurniturePlacementController -> Outline Width = 0.01`, Grid 0.5, Socket Capture 0.30, Socket Release 0.55, Max Facing Angle 15.
+- `PF_RestockBasket` capacity 4; basket physics and local item points; original station prefab `DockPoint` and front-access half-extents.
+- `SO_Furniture_CheckoutCounter` price £120, Purchasable ON, Sellable ON, MaxOwned 1; `SO_Furniture_RestockBasketStation` price £40, MaxOwned 1.
+- Maintain all other existing prefab and scene overrides unless explicitly changed.
 
-At Awake:
-- capture authored FurnitureIdentity objects
-- capture their authored Pose
-- retain exact authored object references
+## Playtests before proceeding
 
-Retirement:
-- player-purchased furniture: unregister -> deactivate -> destroy
-- authored furniture: unregister -> deactivate -> keep archived
+- Standalone checkout cannot be sold when empty or during a checkout; moving it still works; menu explains why. Historical no-checkout saves spawn no customers; placing checkout resumes arrivals.
+- Station with basket appears as a visually single object in edit/play. Taking basket detaches, returning redocks, moving station preserves dock relationship; retiring and repurchasing it never produces duplicate baskets.
+- Station access footprint is visually in front (+Z), rotates with station, and rejects blocked access; placement/navigation work.
+- Build catalog and computer furniture tab show capped fixtures as `SOLD OUT` + `Owned 1/1`, disable buy; repurchase availability returns after sale. Copy shortcut does not promise copy while capped.
+- Product catalog still shows locked/unlocked products and ordering stock counts.
+- Comfort retest at 75 FOV, 4.5 movement and .09 mouse sensitivity without motion blur. Compare first person vs Layout Mode separately.
 
-Save:
-- only active managed furniture is written
-- zero active sellable furniture is valid
+## Roadmap after Lesson 139 verification
 
-Load:
-- retire every current active managed furniture
-- for a saved authored ID: reactivate the exact archived scene object and restore pose
-- for a saved runtime ID: instantiate from FurnitureDefinition prefab
-
-This preserves authored scene overrides such as the bakery shelf configuration while allowing authored objects to be sold.
-
-No save schema version change.
-
-## FurnitureDefinition availability
-
-FurnitureDefinition now has:
-- `Purchasable`
-- `Sellable`
-- `Max Owned` (0 = unlimited)
-
-Existing shelf/storage/decor:
-- Purchasable ON
-- Sellable ON
-- Max Owned 0
-
-Managed core fixture definitions:
-- Checkout Counter: Purchasable ON, Sellable ON, Max Owned 1
-- Restock Basket Station: Purchasable ON, Sellable ON, Max Owned 1
-- Customer Basket Rack: Purchasable ON, Sellable ON, Max Owned 1
-- Ordering Terminal: Purchasable OFF, Sellable OFF, Max Owned 1
-
-All four definitions remain in SO_FurnitureCatalog because StoreFurnitureLayout persistence resolves definitions through that catalog.
-
-Build Catalog and Store Computer Furniture list hide definitions that are not currently purchasable. A max-owned fixture disappears while owned and becomes available again after sale.
-
-## Core fixture scene roots
-
-Exact current root objects:
-- `CheckoutCounter`
-- `BasketStation`
-- `CustomerBasketStation`
-- `OrderingTerminal`
-
-All become managed FurnitureIdentity roots.
-
-### CheckoutCounter
-
-Current authored transform:
-- Position `(0.3, 0, -3.4)`
-- Rotation Y `180`
-
-Managed components:
-- BoxCollider
-- CheckoutQueue
-- CheckoutRegister
-- CheckoutFeedback
-- FurnitureIdentity
-- NavMeshModifierVolume
-- FurnitureNavigationBlocker
-
-Remove:
-- FixedNavigationBlocker
-- LayoutClearanceZone
-- NavMeshModifier
-
-Checkout operational clearance moves into the FurnitureDefinition:
-- Body center `(0, 0.5, 0)`
-- Body half extents `(0.9, 0.5, 0.4)`
-- Access center `(0, 0.75, -2)`
-- Access half extents `(0.8, 0.75, 1.55)`
-- Sales Floor
-- FrontOperational
-
-Queue points, scan point and bag point are children of CheckoutCounter, so they move with the fixture.
-
-Checkout sale is blocked while a customer is queued or a checkout transaction is active.
-
-### BasketStation
-
-Current authored transform:
-- Position `(-6.2, 0, -2.8)`
-- Rotation Y `0`
-
-Managed components:
-- existing trigger BoxCollider
-- BasketStation
-- FurnitureIdentity
-- NavMeshModifierVolume
-- FurnitureNavigationBlocker
-
-Definition:
-- Backroom
-- Body center `(0, 0.6, 0)`
-- Body half extents `(0.65, 0.6, 0.5)`
-- Access center `(0, 0.75, -0.9)`
-- Access half extents `(0.65, 0.75, 0.4)`
-- FrontOperational
-
-The unique RestockBasket is never owned by the furniture root.
-When the station retires while the basket is docked, the basket is released into the world before the station is deactivated/destroyed.
-A confirmed/active station may dock an available empty basket; an unconfirmed preview never steals the basket.
-
-### CustomerBasketStation
-
-Current authored transform:
-- Position `(4.2, 0, -3.173)`
-- Rotation Y `0`
-
-Current pickup point:
-- local position `(0.9, 0, 0.3)`
-
-Managed components:
-- CustomerBasketStation
-- BoxCollider
-- FurnitureIdentity
-- NavMeshModifierVolume
-- FurnitureNavigationBlocker
-
-Remove:
-- FixedNavigationBlocker
-- NavMeshModifier
-
-Definition:
-- Sales Floor
-- Body center `(0, 0.2, 0)`
-- Body half extents `(0.475, 0.325, 0.36)`
-- Access center `(0.9, 0.75, 0.3)`
-- Access half extents `(0.55, 0.75, 0.55)`
-- FrontOperational
-
-CustomerFlow refreshes the active checkout/customer basket fixtures after Layout Mode and before spawning customers.
-
-### OrderingTerminal
-
-Current authored transform before pivot normalization:
-- Position `(-5, 1, 0)`
-- Rotation Y `90`
-
-Normalize the furniture root to floor:
-- OrderingTerminal root Position `(-5, 0, 0)`
-- root rotation unchanged Y `90`
-- root BoxCollider Center `(0, 1, 0)`
-- root size `(0.9, 1.3, 0.5)`
-- `OrderingTerminal/Visual` local Position `(0, 1, 0)`
-
-This preserves the existing world visual position while giving the managed furniture a floor pivot.
-
-Managed components:
-- OrderingTerminal
-- BoxCollider
-- FurnitureIdentity
-- NavMeshModifierVolume
-- FurnitureNavigationBlocker
-
-Definition:
-- Backroom
-- Body center `(0, 1, 0)`
-- Body half extents `(0.45, 0.65, 0.25)`
-- Access center `(0, 0.75, -0.65)`
-- Access half extents `(0.55, 0.75, 0.4)`
-- FrontOperational
-- Purchasable OFF
-- Sellable OFF
-
-OrderingTerminal resolves its external OrderingUI / StoreClock / CustomerFlow references at runtime when prefab-created references are null.
-
-## Runtime fixture rebinding
-
-Because repurchasing destroys/recreates fixture components, global systems may not keep one authored object reference forever.
-
-CustomerFlow:
-- refreshes active CheckoutQueue and CustomerBasketStation before spawn
-- refreshes them before customers resume after Layout Mode
-- active customers receive updated fixture references
-
-CustomerController:
-- if its checkout queue changed during Layout Mode, it clears the stale queue point
-- when resuming checkout with no assigned queue point, it attempts to join the current checkout instead of immediately leaving
-
-SaveManager:
-- checkout is no longer required as a permanent serialized configuration dependency
-- ResetForLoad finds the active CheckoutRegister at runtime if one exists
-- saving/loading remains valid even when no checkout currently exists
-
-CheckoutRegister:
-- runtime-created checkout resolves StoreEconomy / DailyStats / internal queue/feedback when missing
-- implements IFurnitureSellConstraint
-- cannot be sold while a customer is queued or checkout transaction is active
-
-CheckoutFeedback:
-- finds MoneyFeedbackUI at runtime when prefab reference is null
-
-BasketStation:
-- resolves the unique RestockBasket and BasketLocatorUI at runtime
-- implements IFurnitureRuntimeParticipant so docking/release follows furniture activation
-
-RestockBasket:
-- adds ReleaseFromDock() so a station can be retired without destroying the unique basket
-
-## Store Design UX direction
-
-Lesson 138 keeps the prototype C/X interaction so the ownership mechanics can stabilize.
-
-The next recommended lesson after playtesting Lesson 138 is a dedicated Store Design interaction UX pass BEFORE variants/colors.
-
-That UX pass should likely move toward:
-- explicit selected-object state
-- compact contextual action panel
-- Move / Copy / Sell actions presented together
-- keyboard shortcuts as accelerators, not the only discoverability
-- immediate reason text for unavailable actions
-- cleaner hover vs selection behavior
-
-Do not add more major Store Design object actions before revisiting this UX.
-
-## Existing tuned values to preserve
-
-- `LayoutCameraRig -> LayoutCameraController -> Scroll Zoom Sensitivity = 2`
-- `Player -> FurniturePlacementController -> Outline Width = 0.01`
-- Grid Size `0.5`
-- Socket Capture Distance `0.30`
-- Socket Release Distance `0.55`
-- Maximum Socket Facing Angle `15`
-
-## Roadmap
-
-Recommended next:
-1. Store Design interaction UX overhaul
-2. furniture variants/colors
-3. more decor / surface placement
-4. Ambience
-5. autosave
-6. exact carry persistence
-7. advanced fixture/socket semantics
-8. multi-checkout / multiple infrastructure models when needed
-
-Player testing may reorder this roadmap.
+1. Full Store Design UX overhaul: selected object, compact action panel Move/Copy/Sell, clearer disabled reasons, keyboard shortcuts as accelerators.
+2. Dedicated comfort settings menu, saved preferences and focused player testing if discomfort persists.
+3. Furniture variants/colors, surface placement and decoration; ambience; autosave; exact carry persistence; advanced fixtures; eventual multi-checkout model.
