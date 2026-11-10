@@ -66,15 +66,12 @@ public class FurniturePlacementController : MonoBehaviour
     private bool isNewFurniturePurchase;
 
     private FurnitureShop pendingPurchase;
+    private bool repeatPurchasedPlacement;
+    private int lastPlacementCancelledFrame = -1;
     
     private string transientStatusMessage = "";
     private float transientStatusUntil;
-
-    private FurnitureIdentity pendingSaleFurniture;
-    private float pendingSaleUntil;
-
     private const float TransientStatusDuration = 1.75f;
-    private const float SaleConfirmationDuration = 3f;
 
     private Collider[] selectedColliders;
     private bool[] originallyEnabled;
@@ -96,17 +93,14 @@ public class FurniturePlacementController : MonoBehaviour
 
     public bool IsFreePlacementActive => !IsStructuredPlacementActive;
     
-    public bool HasPendingSaleConfirmation =>
-        pendingSaleFurniture != null &&
-        Time.unscaledTime < pendingSaleUntil;
-
-/*
- * Compatibility property.
- *
- * Grid participation now follows the complete
- * Structured/Free placement mode rather than
- * existing as an independent preference.
- */
+    public bool CancelledPlacementThisFrame => lastPlacementCancelledFrame == Time.frameCount;
+    /*
+     * Compatibility property.
+     *
+     * Grid participation now follows the complete
+     * Structured/Free placement mode rather than
+     * existing as an independent preference.
+     */
     public bool GridSnapEnabled => IsStructuredPlacementActive;
 
     public bool IsPlacementModeTemporarilyInverted => IsPlacementModeModifierHeld;
@@ -179,6 +173,7 @@ public class FurniturePlacementController : MonoBehaviour
         CurrentDefinition == null ||
         CurrentDefinition.RequiresOperationalAccess;
 
+    
     private void Update()
     {
         if (Keyboard.current == null || Mouse.current == null)
@@ -193,15 +188,7 @@ public class FurniturePlacementController : MonoBehaviour
             Keyboard.current.gKey.wasPressedThisFrame &&
             !IsPlacementModeModifierHeld)
         {
-            structuredPlacementByDefault =
-                !structuredPlacementByDefault;
-
-            /*
-             * Changing the default can immediately move us
-             * from Structured into Free mode.
-             *
-             * Never leave a stale magnetic guide active.
-             */
+            structuredPlacementByDefault = !structuredPlacementByDefault;
             ClearActiveMagneticSnap();
         }
 
@@ -209,40 +196,27 @@ public class FurniturePlacementController : MonoBehaviour
         {
             if (!CanStartPlacement() || layoutMode.IsCameraManipulating || IsPointerOverUI())
             {
-                ClearPendingSale();
-                return;
-            }
-
-            if (pendingSaleFurniture != null && Mouse.current.rightButton.wasPressedThisFrame)
-            {
-                ClearPendingSale();
-                return;
-            }
-
-            if (Keyboard.current.xKey.wasPressedThisFrame)
-            {
-                TrySellPointedFurniture();
                 return;
             }
 
             if (Keyboard.current.cKey.wasPressedThisFrame)
             {
-                ClearPendingSale();
                 TryCopyPointedFurniture();
                 return;
             }
 
+            // Keep Lesson 139's direct movement!
             if (Mouse.current.leftButton.wasPressedThisFrame)
             {
-                ClearPendingSale();
                 TryStartPlacement();
             }
 
+            // Idle right-click is handled by StoreDesignFurnitureContextMenuUI.
             return;
         }
 
-        if (Time.timeScale <= 0f || 
-            layoutMode == null || 
+        if (Time.timeScale <= 0f ||
+            layoutMode == null ||
             !layoutMode.IsActive ||
             Cursor.lockState != CursorLockMode.None)
         {
@@ -250,9 +224,8 @@ public class FurniturePlacementController : MonoBehaviour
             return;
         }
 
-        bool cancelPressed =
-            Keyboard.current.qKey.wasPressedThisFrame ||
-            Mouse.current.rightButton.wasPressedThisFrame;
+        bool cancelPressed = Keyboard.current.qKey.wasPressedThisFrame ||
+                             Mouse.current.rightButton.wasPressedThisFrame;
 
         if (cancelPressed)
         {
@@ -260,8 +233,7 @@ public class FurniturePlacementController : MonoBehaviour
             return;
         }
 
-        if (!IsStructuredPlacementActive &&
-            IsMagneticallySnapped)
+        if (!IsStructuredPlacementActive && IsMagneticallySnapped)
         {
             ClearActiveMagneticSnap();
         }
@@ -275,13 +247,15 @@ public class FurniturePlacementController : MonoBehaviour
             UpdatePreview();
         }
 
-        bool confirmPressed = Mouse.current.leftButton.wasPressedThisFrame || Keyboard.current.eKey.wasPressedThisFrame;
+        bool confirmPressed = Mouse.current.leftButton.wasPressedThisFrame ||
+                              Keyboard.current.eKey.wasPressedThisFrame;
 
         if (pointerAvailable && confirmPressed && canPlace)
         {
             ConfirmPlacement();
         }
     }
+
     
     private void HandlePlacementRotation()
     {
@@ -399,16 +373,17 @@ public class FurniturePlacementController : MonoBehaviour
         return normalizedYaw;
     }
 
+    
     private void LateUpdate()
     {
-        if (interactionUI == null || 
-            layoutMode == null || 
+        if (interactionUI == null ||
+            layoutMode == null ||
             !layoutMode.IsActive ||
             Cursor.lockState != CursorLockMode.None)
         {
             return;
         }
-        
+
         if (TryShowTransientStatus())
         {
             return;
@@ -418,8 +393,9 @@ public class FurniturePlacementController : MonoBehaviour
         {
             if (!canPlace)
             {
-                interactionUI.ShowPrompt("Can't place here — keep furniture and customer access clear.");
-
+                interactionUI.ShowPrompt(
+                    "Can't place here — keep furniture and customer access clear.\n" +
+                    "R / T Rotate  •  RMB / Q Cancel");
                 return;
             }
 
@@ -427,21 +403,13 @@ public class FurniturePlacementController : MonoBehaviour
             {
                 FurnitureDefinition definition = CurrentDefinition;
 
-                if (definition != null)
-                {
-                    interactionUI.ShowPrompt($"LMB Buy & place £{definition.PurchasePrice:0.00}  •  RMB Stop");
-                }
-                else
-                {
-                    interactionUI.ShowPrompt("LMB Buy & place  •  RMB Stop");
-                }
-
+                interactionUI.ShowPrompt(definition != null
+                    ? $"LMB / E Buy & place £{definition.PurchasePrice:0.00}  •  RMB Cancel"
+                    : "LMB / E Place  •  RMB Cancel");
                 return;
             }
 
-            ClearPendingSale();
-            interactionUI.HidePrompt();
-            
+            interactionUI.ShowPrompt("LMB / E Place  •  R / T Rotate  •  RMB Cancel");
             return;
         }
 
@@ -455,8 +423,8 @@ public class FurniturePlacementController : MonoBehaviour
         }
 
         interactionUI.HidePrompt();
-
     }
+
 
     private bool CanStartPlacement()
     {
@@ -465,7 +433,7 @@ public class FurniturePlacementController : MonoBehaviour
                Time.timeScale > 0f && Cursor.lockState == CursorLockMode.None;
     }
 
-    private bool TryFindPointedAtFurniture(out FurnitureIdentity furniture)
+    public bool TryFindPointedAtFurniture(out FurnitureIdentity furniture)
     {
         furniture = null;
 
@@ -478,7 +446,13 @@ public class FurniturePlacementController : MonoBehaviour
 
         Ray ray = CreatePointerRay(placementCamera);
 
-        RaycastHit[] hits = Physics.RaycastAll(ray, selectionRayDistance, ~0, QueryTriggerInteraction.Ignore);
+        
+        RaycastHit[] hits = Physics.RaycastAll(
+            ray,
+            selectionRayDistance,
+            ~0,
+            QueryTriggerInteraction.Collide);
+
 
         Array.Sort(hits, (a, b) => a.distance.CompareTo(b.distance));
 
@@ -503,6 +477,7 @@ public class FurniturePlacementController : MonoBehaviour
         return false;
     }
     
+    
     private void TryCopyPointedFurniture()
     {
         if (furnitureShop == null ||
@@ -512,165 +487,42 @@ public class FurniturePlacementController : MonoBehaviour
         }
 
         FurnitureDefinition definition = sourceFurniture.FurnitureDefinition;
-
-        if (!furnitureShop.IsPurchasableCatalogItem(definition))
-        {
-            return;
-        }
-
         float sourceYaw = sourceFurniture.transform.eulerAngles.y;
 
-        if (!furnitureShop.TryBeginPurchase(definition, out string reason, sourceYaw))
+        if (!furnitureShop.TryBeginPurchase(definition, out string reason, sourceYaw, false))
         {
             ShowTransientStatus(reason);
         }
     }
+
     
-    private void TrySellPointedFurniture()
-    {
-        if (furnitureShop == null ||
-            !TryFindPointedAtFurniture(out FurnitureIdentity furniture))
-        {
-            ClearPendingSale();
-            return;
-        }
-
-        if (!furnitureShop.CanSellFurniture(furniture, out float refund, out string reason))
-        {
-            ClearPendingSale();
-            ShowTransientStatus(reason);
-            return;
-        }
-
-        if (!IsSaleConfirmationActiveFor(furniture))
-        {
-            pendingSaleFurniture = furniture;
-            pendingSaleUntil = Time.unscaledTime + SaleConfirmationDuration;
-            return;
-        }
-
-        FurnitureDefinition definition = furniture.FurnitureDefinition;
-        string furnitureName = definition != null ? definition.DisplayName : "Furniture";
-
-        ClearPendingSale();
-
-        if (!furnitureShop.TrySellFurniture(furniture, out refund, out reason))
-        {
-            ShowTransientStatus(reason);
-            return;
-        }
-
-        if (layoutMode != null)
-        {
-            layoutMode.MarkNavigationDirty();
-        }
-
-        ShowTransientStatus($"{furnitureName} sold for £{refund:0.00}.");
-    }
-
-    private bool IsSaleConfirmationActiveFor(FurnitureIdentity furniture)
-    {
-        return furniture != null &&
-               pendingSaleFurniture == furniture &&
-               Time.unscaledTime < pendingSaleUntil;
-    }
-
-    private void ClearPendingSale()
-    {
-        pendingSaleFurniture = null;
-        pendingSaleUntil = 0f;
-    }
-
-    public void CancelPendingSaleConfirmation()
-    {
-        ClearPendingSale();
-    }
-
+    
     private void ShowFurnitureIdlePrompt(FurnitureIdentity furniture)
     {
         if (furniture == null)
         {
-            ClearPendingSale();
             interactionUI.HidePrompt();
             return;
-        }
-
-        if (pendingSaleFurniture != null && !IsSaleConfirmationActiveFor(furniture))
-        {
-            ClearPendingSale();
         }
 
         FurnitureDefinition definition = furniture.FurnitureDefinition;
         string furnitureName = definition != null ? definition.DisplayName : "furniture";
-
-        if (IsSaleConfirmationActiveFor(furniture))
-        {
-            float refund = furnitureShop != null ? furnitureShop.GetSellRefund(definition) : 0f;
-
-            interactionUI.ShowPrompt(
-                $"Sell {furnitureName} for £{refund:0.00}?\nX Confirm  •  RMB / Esc Cancel"
-            );
-
-            return;
-        }
-
         bool canMove = furniture.CanMoveFurniture(out _);
 
-        bool canCopy =
-            furnitureShop != null &&
-            furnitureShop.IsPurchasableCatalogItem(definition);
+        string prompt = canMove
+            ? $"LMB Move {furnitureName}  •  RMB Options"
+            : $"RMB Options: {furnitureName}";
 
-        string prompt = "";
-
-        if (canMove && canCopy)
+        if (furnitureShop != null && furnitureShop.IsPurchasableCatalogItem(definition))
         {
-            prompt = $"LMB Move {furnitureName}  •  C Copy £{definition.PurchasePrice:0.00}";
-        }
-        else if (canMove)
-        {
-            prompt = $"LMB Move {furnitureName}";
-        }
-        else if (canCopy)
-        {
-            prompt = $"C Copy {furnitureName}  •  £{definition.PurchasePrice:0.00}";
-        }
-
-        if (definition != null &&
-            definition.Sellable &&
-            furnitureShop != null)
-        {
-            if (furnitureShop.CanSellFurniture(furniture, out float refund, out string sellReason))
-            {
-                prompt = AddPromptLine(prompt, $"X Sell +£{refund:0.00}");
-            }
-            else if (!string.IsNullOrWhiteSpace(sellReason))
-            {
-                prompt = AddPromptLine(prompt, sellReason);
-            }
-        }
-
-        if (string.IsNullOrWhiteSpace(prompt))
-        {
-            interactionUI.HidePrompt();
-            return;
+            prompt += "  •  C Quick Copy";
         }
 
         interactionUI.ShowPrompt(prompt);
     }
 
-    private static string AddPromptLine(string current, string line)
-    {
-        if (string.IsNullOrWhiteSpace(line))
-        {
-            return current;
-        }
 
-        return string.IsNullOrWhiteSpace(current)
-            ? line
-            : $"{current}\n{line}";
-    }
-
-    private void ShowTransientStatus(string message)
+    public void ShowTransientStatus(string message)
     {
         if (string.IsNullOrWhiteSpace(message))
         {
@@ -699,21 +551,28 @@ public class FurniturePlacementController : MonoBehaviour
         return true;
     }
 
+    
     public bool BeginPurchasedFurniturePreview(
         FurnitureIdentity furniture,
         FurnitureShop shop,
-        float? initialYaw = null)
+        float? initialYaw = null,
+        bool repeatPlacement = true)
     {
-        if (furniture == null || furniture.FurnitureDefinition == null || shop == null || selectedFurniture != null ||
+        if (furniture == null ||
+            furniture.FurnitureDefinition == null ||
+            shop == null ||
+            selectedFurniture != null ||
             !CanStartPlacement())
         {
             return false;
         }
 
         StartPreview(furniture, true, shop, initialYaw);
+        repeatPurchasedPlacement = repeatPlacement;
 
         return true;
     }
+
 
     private void TryStartPlacement()
     {
@@ -742,7 +601,6 @@ public class FurniturePlacementController : MonoBehaviour
 
         transientStatusMessage = "";
         transientStatusUntil = 0f;
-        ClearPendingSale();
 
         originalPosition = furniture.transform.position;
         originalRotation = furniture.transform.rotation;
@@ -1442,7 +1300,10 @@ public class FurniturePlacementController : MonoBehaviour
         string furnitureName = definition != null ? definition.DisplayName : "Furniture";
 
         bool wasNewFurniturePurchase = isNewFurniturePurchase;
+        bool shouldRepeatPurchase = repeatPurchasedPlacement;
+        
         FurnitureShop purchaseShop = pendingPurchase;
+        
         float repeatYaw = previewYaw;
 
         if (wasNewFurniturePurchase)
@@ -1463,7 +1324,8 @@ public class FurniturePlacementController : MonoBehaviour
             layoutMode.MarkNavigationDirty();
         }
 
-        if (wasNewFurniturePurchase && definition != null && purchaseShop != null)
+        if (wasNewFurniturePurchase && shouldRepeatPurchase &&
+            definition != null && purchaseShop != null)
         {
             string repeatReason;
 
@@ -1493,6 +1355,8 @@ public class FurniturePlacementController : MonoBehaviour
         {
             return;
         }
+        
+        lastPlacementCancelledFrame = Time.frameCount;
 
         if (isNewFurniturePurchase)
         {
@@ -1568,6 +1432,7 @@ public class FurniturePlacementController : MonoBehaviour
         snapSocketCandidates = null;
 
         isNewFurniturePurchase = false;
+        repeatPurchasedPlacement = false;
         pendingPurchase = null;
 
         selectedColliders = null;
@@ -1585,7 +1450,6 @@ public class FurniturePlacementController : MonoBehaviour
 
     private void OnDisable()
     {
-        ClearPendingSale();
         CancelPlacement();
 
         if (placementVisualizer != null)

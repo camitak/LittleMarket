@@ -1,67 +1,80 @@
-# Little Market — System Architecture (Lesson 139 update)
+# Little Market — System Architecture (Lesson 140 proposed implementation)
 
-**Source-of-truth checkpoint:** GitHub `camitak/LittleMarket`, `main` at `9bc60caeaf2710e16e45b9ceaddcd34b393d6ddc` — `Lesson 138 complete - managed core fixtures and sellable starter furniture` (verified 2026-11-09).
+**Verified source-of-truth:** GitHub `camitak/LittleMarket` `main` at `d56bb8033c7e0e8d3a16d0a75767519312bed23e`, commit "Lesson 139 complete - checkout safety, basket station alignment, comfort and catalog limits" (checked November 9, 2026).
 
-**Important:** This document records the **Lesson 139 implementation to apply and test**; it does not claim these changes have already been pushed. Before the next lesson, recheck the newest GitHub `main` and inspect the files and assets again.
+**Implementation status:** This document describes the revised Lesson 140 to implement and playtest, **not** a change already pushed. It **supersedes** the discarded Lesson 140 proposal that required click-to-select + M for moving. Read the latest GitHub `main` and this document before Lesson 141.
 
-## Permanent instructions
+## Permanent development rules
 
-- Inspect newest GitHub `main` before every lesson; read `Assets/_Game/Documentation/SYSTEM_ARCHITECTURE.md`; inspect complete affected scripts, prefabs, ScriptableObjects, and `Assets/Scenes/Market.unity`.
-- Never assume scene paths or references; specify verified full paths and exact component names.
-- Preserve all authored and user-tuned values except changes explicitly requested by that lesson.
-- When creating UI, explicitly specify object/component type, hierarchy, anchors Min/Max, pivot, signed anchored position/offsets, dimensions, TMP size/alignment, raycast target, colors, and Inspector references.
-- Conventional compact C#; full implementation and testing instructions in chat; only architecture and continuation files normally attached.
-- Player playtesting overrides the planned feature roadmap when material UX issues arise.
+- Before each lesson, inspect the newest `main`, read this architecture file, examine complete affected scripts, prefabs, ScriptableObjects, and `Assets/Scenes/Market.unity`.
+- Provide verified exact GameObject paths, component names, and complete UI Inspector anchors/pivots/positions/dimensions/colours/raycast settings/references. No invented paths or vague 'existing controller' references.
+- Preserve all player-tuned camera, grid, placement and scene parameters, unless specifically identified as lesson changes.
+- Give normal C# formatting, complete implementation + Unity setup + tests in chat, plus architecture and continuation `.md` downloads.
+- Prioritise playtesting and regressions, especially motion comfort and UX, over roadmap.
 
-## Lesson 138 baseline retained
+## Core baseline verified from Lesson 139
 
-- `StoreFurnitureLayout` archives authored managed objects instead of destroying them upon sale; runtime furniture is destroyed, authored furniture may be absent from a save.
-- `FurnitureDefinition` supplies `Purchasable`, `Sellable`, `MaxOwned` (0 = unlimited), prefab, area, body/access extents.
-- `CheckoutCounter`, `BasketStation`, `CustomerBasketStation`, `OrderingTerminal` are managed furniture roots. OrderingTerminal movable but not purchasable or sellable. The other three are currently capped at 1.
-- `StoreFurnitureLayout.CountFurnitureByDefinition` counts ownership, while `FurnitureShop.CanBeginPurchase` validates caps, balance, and state.
-- `FurnitureIdentity` checks all `IFurnitureSellConstraint` implementations, and `CheckoutRegister` already blocks sale while serving customers.
-- `BasketStation` docks the unique global `RestockBasket` in `RegisterFurnitureRuntime`, releases it when retiring, and uses the `DockPoint` transform. Do not instantiate duplicate baskets per purchasable station prefab.
-- `CustomerFlow.RefreshOperationalFixtures` rebinds active checkout and customer basket station before spawning / resuming.
+- `Player -> FurniturePlacementController` manages direct LMB movement, placement checks, snap sockets, purchase previews, body/front-access footprints, and a legacy double-X sale timer.
+- `StoreSystems -> FurnitureShop` owns purchase authorization, ownership caps and sale refunds (50%). `FurnitureIdentity` delegates move/sale rules to components implementing `IFurnitureMoveConstraint` / `IFurnitureSellConstraint`.
+- `StoreSystems -> StoreFurnitureLayout` manages authored vs runtime furniture persistence; authorized sale calls `TryRemoveFurniture` and updates navigation via `StoreLayoutModeController.MarkNavigationDirty()`.
+- `PF_CheckoutCounter.prefab` has `MinimumCheckoutSellConstraint`: no sale if it is the last active managed checkout. `SO_Furniture_CheckoutCounter` still Purchasable=true, Sellable=true, MaxOwned=1, £120.
+- `PF_RestockBasketStation.prefab` owns station; the scene has one unique basket docked under its `DockPoint`, not an extra basket inside each purchasable station prefab. `SO_Furniture_RestockBasketStation` access centre `(0,0.75,+0.9)`, MaxOwned=1, price £40.
+- `FurnitureShop.ShouldListCatalogItem` preserves capped products in furniture listings with owned cap and SOLD OUT state; `FurnitureShop.CanBeginPurchase` enforces actual purchase limits.
+- Scene authored `Player -> PlayerController` speed 4.5 and sensitivity .09, `Player/Main Camera -> Camera` FOV 75. `LayoutCameraRig -> LayoutCameraController` working distance 9, overview pitch 62°, yaw 0°, MMB free orbit enabled, yaw sensitivity .12, pitch .10, scroll sensitivity **2**, smoothing .06/.10, max distance 32. Motion blur remains disabled.
+- `GameUI` Canvas is Screen Space Overlay, reference resolution 1920×1080, match .5. `GameUI/LayoutModeFrame` full-stretch anchors (0,0)-(1,1), pivot (.5,.5), transparent and raycast off. Controls panel `GameUI/LayoutModeFrame/LayoutControlsPanel` anchored bottom-right, position (-28,+28), 360×214; `ControlsText` stretches with SizeDelta (-32,-32), font17 pre-lesson. `BuildCatalogPanel` is left-centre, `ExpansionDetailsPanel` right-centre.
 
-## Lesson 139: safety and UI rules
+## Revised Lesson 140 — agreed UX
 
-1. **Never sell the last operational checkout.** New `Assets/_Game/Scripts/Store/MinimumCheckoutSellConstraint.cs` implements `IFurnitureSellConstraint` and is added to the `PF_CheckoutCounter` prefab root (inherited by scene `CheckoutCounter`). The constraint checks for another enabled, active `CheckoutRegister` with managed `FurnitureIdentity`; returns a reason if none exists. Do NOT simply turn `SO_Furniture_CheckoutCounter.Sellable` off; preserve it `true`, `Purchasable=true`, `MaxOwned=1` for a later multi-checkout upgrade path. This means the only checkout is effectively unsellable now but movable.
-2. **Prevent customer shopping without checkout in historical saves.** In `CustomerFlow.SpawnCustomer()`, call `RefreshOperationalFixtures()` and return if `checkoutQueue == null` before creating shopping lists or spawning customers. Saves made during Lesson 138 without a checkout need repurchasing it to resume arrivals.
-3. **Keep capped furniture listed.** Add `FurnitureShop.ShouldListCatalogItem(definition)` using configured, present, purchasable eligibility *without* excluding max-owned entries. Preserve `IsPurchasableCatalogItem(definition)` as the actual owned-cap check: `FurniturePlacementController` uses it for copy prompts. Change the two list filters only in `BuildCatalogUI.RebuildRows` and `StoreComputerManagementUI.RebuildFurnitureRows` to `ShouldListCatalogItem`. `FurnitureCatalogRow` gets a `FurnitureShop`, displays `Owned N / MaxOwned` when limited, and disables the button with text `SOLD OUT` at the cap. `FurnitureShop.CanBeginPurchase` continues to enforce the cap.
-4. **Product distinction.** `ProductCatalogueUI`/`OrderingUI` already show unlocked/locked products, and `ProductData` has reputation and store level unlocks but no per-product ownership max. Do not invent product caps; continue showing products and their stock status. Product max-stock policy is a separate future design decision.
+**Not** a click-to-select / Move-button panel. The user rejected the extra step. Do NOT apply old `StoreDesignSelectionUI` instructions or create its UI hierarchy.
 
-## Lesson 139: restocking equipment
+- LMB over stationary furniture immediately starts move (retain).
+- RMB over stationary furniture opens a **small contextual Copy/Sell panel next to pointer**, clamped to viewport.
+- RMB while previewing/moving furniture cancels as before; `Q`/Esc also cancel. Avoid RMB opening a new menu in the cancellation frame (`CancelledPlacementThisFrame` guard).
+- A transparent full-frame `ContextMenuDismissLayer` UI Image with Raycast Target on blocks world clicks while menu is open. On outside **left-button release**, dismiss the menu; mouse-down occurred while overlay blocked world interactions. Esc dismisses using centralized layout-mode handling. Right-click again dismisses or goes back from confirmation.
+- Copy and Sell buttons remain visible but disabled with reasons if unavailable (cap, insufficient funds, last checkout, non-sellable ordering terminal, live checkout, etc.). No direct X sell; no timed double-X. `C` stays an optional quick-copy shortcut, now **one-shot**.
+- Sell opens explicit name/refund confirmation; Confirm executes `FurnitureShop.TrySellFurniture`, marks nav dirty and shows money feedback; Cancel/Esc returns without selling.
+- Context Copy yields one Unity UI frame after closing overlay then calls `FurnitureShop.TryBeginPurchase(definition, out reason, sourceYaw, repeatPlacement:false)` to preserve pointer UI correctness. Only one new preview; normal Build Catalog purchase remains repeatable.
+- `FurniturePlacementController.TryFindPointedAtFurniture` made public; raycast uses `QueryTriggerInteraction.Collide` so `PF_RestockBasketStation` trigger collider is selectable. Keep validation otherwise unchanged.
+- `StoreLayoutModeController` references `GameUI -> StoreDesignFurnitureContextMenuUI` to dismiss on Esc and exit. Retire the obsolete double-X confirmation state and calls.
+- `LayoutCameraRig -> LayoutCameraController` already has MMB smooth yaw/pitch orbit. Add public `RotateViewLeft/RotateViewRight` yaw steps of 45° without rotating world contents. Bind keyboard Left/Right Arrow and visible top-right buttons. Do not change serialized camera tuning.
 
-- Verified authored scene `BasketStation` position `(-6.2, 0, -2.8)` at Y=0°; separate `PF_RestockBasket` scene prefab instance currently at `(-9.738, 0.172, -3.5179799)`. It is an independent gameplay object but docks on start.
-- In **Market.unity Scene**, reparent the unique `PF_RestockBasket` instance under `BasketStation/DockPoint` and reset basket local position/rotation to zero and scale one. This makes one visually assembled station in the editor without creating duplicate baskets upon future purchases. Verify `BasketStation -> BasketStation` fields `basket` and `dockPoint` still reference the unique basket and child `DockPoint`.
-- `PF_RestockBasketStation.prefab` local `DockPoint` position is `(0,0.16,0)`, backboard local Z `-0.41`, base z `0`. In `SO_Furniture_RestockBasketStation` correct **accessCenter from `(0,0.75,-0.9)` to `(0,0.75,+0.9)`**. Do not change existing body/access extents, station world pose, nav modifier settings, or player placement tunings.
-- Do not embed a fresh `PF_RestockBasket` in the purchasable station prefab; runtime station prefab reuses the unique basket through `BasketStation` resolution and docking.
+## New scene UI and references
 
-## Lesson 139: first-person comfort baseline
+Under `GameUI/LayoutModeFrame` create:
 
-`Assets/Scenes/Market.unity` currently has `Player -> PlayerController: moveSpeed=6, mouseSensitivity=0.12`; `Player/Main Camera -> Camera: field of view=60`. In Lesson 139 try `moveSpeed=4.5`, `mouseSensitivity=0.09`, `field of view=75`. These are explicit prototype changes intended for a comfort playtest, not a universal prescription.
+```
+ContextMenuDismissLayer (UI > Image, full stretch, rgba white 0, Raycast Target ON, inactive initially)
+└── FurnitureContextMenuPanel (UI > Image, anchor centre, pivot (0,1), 360×310, positioned at pointer by script)
+    ├── FurnitureNameText (UI > Text - TextMeshPro)
+    ├── OwnershipText (UI > Text - TextMeshPro)
+    ├── CopyButton (UI > Button - TextMeshPro)
+    ├── SellButton (UI > Button - TextMeshPro)
+    ├── StatusText (UI > Text - TextMeshPro)
+    ├── CloseButton (UI > Button - TextMeshPro)
+    └── SaleConfirmationPanel (UI > Image, full stretch, opaque, inactive initially)
+        ├── ConfirmationText (UI > Text - TextMeshPro)
+        ├── CancelSaleButton (UI > Button - TextMeshPro)
+        └── ConfirmSaleButton (UI > Button - TextMeshPro)
+CameraRotatePanel (UI > Image, upper-right, 280×58)
+├── RotateViewLeftButton (UI > Button - TextMeshPro)
+└── RotateViewRightButton (UI > Button - TextMeshPro)
+```
 
-The game `Global Volume` references `Assets/Settings/SampleSceneProfile.asset`, where Motion Blur is inactive; keep it inactive. Current `PlayerController` has no camera head bob or roll. Test separate gameplay and layout camera symptoms with steady FPS and multiple people, and later implement persistent Comfort options (FOV, sensitivity, optional camera effects) in Pause Menu.
+Add `StoreDesignFurnitureContextMenuUI` component on `GameUI`, assign `StoreSystems -> StoreLayoutModeController`, `Player -> FurniturePlacementController`, `StoreSystems -> FurnitureShop`, `GameUI -> BuildCatalogUI`, `StoreSystems -> StoreExpansionLayoutController`, and all exact UI references. Assign same component on `StoreSystems -> StoreLayoutModeController`. Bind CameraRotatePanel buttons to `LayoutCameraRig -> LayoutCameraController.RotateViewLeft/Right`, Dynamic single-runtime listeners or OnClick inspector as lesson instructs.
 
-## Existing values to preserve
+Use full exact component/RectTransform instructions from the Lesson 140 chat, not the older discarded Lesson 140 design.
 
-- `LayoutCameraRig -> LayoutCameraController -> Scroll Zoom Sensitivity = 2`, working distance 9, overview pitch 62, overview yaw 0 and all other existing user-tuned layout camera values.
-- `Player -> FurniturePlacementController -> Outline Width = 0.01`, Grid 0.5, Socket Capture 0.30, Socket Release 0.55, Max Facing Angle 15.
-- `PF_RestockBasket` capacity 4; basket physics and local item points; original station prefab `DockPoint` and front-access half-extents.
-- `SO_Furniture_CheckoutCounter` price £120, Purchasable ON, Sellable ON, MaxOwned 1; `SO_Furniture_RestockBasketStation` price £40, MaxOwned 1.
-- Maintain all other existing prefab and scene overrides unless explicitly changed.
+## Required regression checks
 
-## Playtests before proceeding
+1. LMB immediately moves shelf (NO intermediate selection panel); RMB opens options only while idle; RMB during move cancels and does NOT reopen options that same frame.
+2. Click outside dismisses without moving shelf/expansion or placing a purchase; hover over UI blocks world input.
+3. Menu Copy one-shot (no automatic repeat); normal Build Catalog can repeat purchases; purchase charged only when placed; cancel costs nothing.
+4. Last checkout and Ordering Terminal protected, disabled Sell shows reason; cap and insufficient money disabled Copy show reason; sale confirmation cancel and Esc safe; X never sells.
+5. Middle-mouse orbit works; Left/Right Arrow and camera buttons turn view 45° around current pivot, not rotate store objects. Rotation works during layout but not in first-person mode; zoom scroll speed stays 2.
+6. Layout exit clears menu, restores gameplay camera, preserves save/load, basket station, customer pathing, expansion selection, and money behaviour.
 
-- Standalone checkout cannot be sold when empty or during a checkout; moving it still works; menu explains why. Historical no-checkout saves spawn no customers; placing checkout resumes arrivals.
-- Station with basket appears as a visually single object in edit/play. Taking basket detaches, returning redocks, moving station preserves dock relationship; retiring and repurchasing it never produces duplicate baskets.
-- Station access footprint is visually in front (+Z), rotates with station, and rejects blocked access; placement/navigation work.
-- Build catalog and computer furniture tab show capped fixtures as `SOLD OUT` + `Owned 1/1`, disable buy; repurchase availability returns after sale. Copy shortcut does not promise copy while capped.
-- Product catalog still shows locked/unlocked products and ordering stock counts.
-- Comfort retest at 75 FOV, 4.5 movement and .09 mouse sensitivity without motion blur. Compare first person vs Layout Mode separately.
+## Roadmap after Lesson 140
 
-## Roadmap after Lesson 139 verification
-
-1. Full Store Design UX overhaul: selected object, compact action panel Move/Copy/Sell, clearer disabled reasons, keyboard shortcuts as accelerators.
-2. Dedicated comfort settings menu, saved preferences and focused player testing if discomfort persists.
-3. Furniture variants/colors, surface placement and decoration; ambience; autosave; exact carry persistence; advanced fixtures; eventual multi-checkout model.
+- Playtest action-popup discoverability and comfort with fresh players.
+- Prototype optional third-person local player camera/visible character, separate input, interaction and camera concerns before any networking.
+- Persistent comfort options and performance testing; future multiplayer store-visit/helper role needs explicit host/server-authoritative commerce and permissions.

@@ -25,6 +25,7 @@ public class StoreLayoutModeController : MonoBehaviour
     [SerializeField] private LayoutModeUI layoutModeUI;
     [SerializeField] private BuildCatalogUI buildCatalogUI;
     [SerializeField] private StoreExpansionLayoutController expansionLayoutController;
+    [SerializeField] private StoreDesignFurnitureContextMenuUI furnitureContextMenuUI;
 
     private bool isActive;
     private bool navigationDirty;
@@ -174,9 +175,9 @@ public class StoreLayoutModeController : MonoBehaviour
             return;
         }
         
-        if (furniturePlacementController != null)
+        if (furnitureContextMenuUI != null)
         {
-            furniturePlacementController.CancelPendingSaleConfirmation();
+            furnitureContextMenuUI.CloseMenu();
         }
         
         if (expansionLayoutController != null)
@@ -268,44 +269,32 @@ public class StoreLayoutModeController : MonoBehaviour
         return true;
     }
 
+    
     private void HandleEscapePressed()
     {
-        /*
-         * Remember this frame even if handling Esc
-         * causes Store Design to become inactive.
-         *
-         * PauseMenuUI uses this to avoid processing
-         * the exact same keypress afterward.
-         */
         escapeConsumedFrame = Time.frameCount;
 
-        if (furniturePlacementController != null && furniturePlacementController.IsPlacementActive)
+        if (furniturePlacementController != null &&
+            furniturePlacementController.IsPlacementActive)
         {
             furniturePlacementController.CancelActivePlacement();
-
             return;
         }
 
-        if (buildCatalogUI != null &&
-            buildCatalogUI.IsOpen)
+        if (buildCatalogUI != null && buildCatalogUI.IsOpen)
         {
             buildCatalogUI.Close();
             return;
         }
 
-        if (expansionLayoutController != null &&
-            expansionLayoutController.HasSelection)
+        if (expansionLayoutController != null && expansionLayoutController.HasSelection)
         {
-            expansionLayoutController
-                .ClearSelection();
-
+            expansionLayoutController.ClearSelection();
             return;
         }
-        
-        if (furniturePlacementController != null &&
-            furniturePlacementController.HasPendingSaleConfirmation)
+
+        if (furnitureContextMenuUI != null && furnitureContextMenuUI.HandleBack())
         {
-            furniturePlacementController.CancelPendingSaleConfirmation();
             return;
         }
 

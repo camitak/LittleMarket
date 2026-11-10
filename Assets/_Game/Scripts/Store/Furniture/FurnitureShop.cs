@@ -168,7 +168,12 @@ public class FurnitureShop : MonoBehaviour
         return true;
     }
 
-    public bool TryBeginPurchase(FurnitureDefinition definition, out string reason, float? initialYaw = null)
+    
+    public bool TryBeginPurchase(
+        FurnitureDefinition definition,
+        out string reason,
+        float? initialYaw = null,
+        bool repeatPlacement = true)
     {
         if (!CanBeginPurchase(definition, out reason))
         {
@@ -204,7 +209,8 @@ public class FurnitureShop : MonoBehaviour
             return false;
         }
 
-        if (!placementController.BeginPurchasedFurniturePreview(furniture, this, initialYaw))
+        if (!placementController.BeginPurchasedFurniturePreview(
+                furniture, this, initialYaw, repeatPlacement))
         {
             storeFurnitureLayout.DiscardUnconfirmedFurniture(furniture);
 

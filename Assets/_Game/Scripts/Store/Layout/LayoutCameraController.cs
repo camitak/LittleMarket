@@ -5,34 +5,31 @@ using UnityEngine.InputSystem;
 [DisallowMultipleComponent]
 public class LayoutCameraController : MonoBehaviour
 {
-    [Header("Camera")] [SerializeField] private Camera layoutCamera;
+    [Header("Camera")] 
+    [SerializeField] private Camera layoutCamera;
 
-    [Header("Working View")] [Min(1f)] [SerializeField]
-    private float workingDistance = 9f;
+    [Header("Working View")] 
+    [Min(1f)] [SerializeField] private float workingDistance = 9f;
 
-    [Header("Overview / Target Framing")] [Range(5f, 85f)] [SerializeField]
-    private float overviewPitch = 62f;
-
+    [Header("Overview / Target Framing")] 
+    [Range(5f, 85f)] [SerializeField] private float overviewPitch = 62f;
     [SerializeField] private float overviewYaw = 0f;
     [Min(1f)] [SerializeField] private float overviewPadding = 1.08f;
     [Min(1f)] [SerializeField] private float fallbackDistance = 4f;
 
-    [Header("Orbit Limits")] [Range(5f, 85f)] [SerializeField]
-    private float minimumPitch = 15f;
-
+    [Header("Orbit Limits")] 
+    [Range(5f, 85f)] [SerializeField] private float minimumPitch = 15f;
     [Range(15f, 89f)] [SerializeField] private float maximumPitch = 88f;
     [Min(1f)] [SerializeField] private float minimumDistance = 4f;
     [Min(1f)] [SerializeField] private float maximumDistance = 32f;
 
-    [Header("Movement")] [Min(0.1f)] [SerializeField]
-    private float panSpeed = 7f;
-
+    [Header("Movement")]
+    [Min(0.1f)] [SerializeField] private float panSpeed = 7f;
     [Min(1f)] [SerializeField] private float boostMultiplier = 2f;
     [Min(0.01f)] [SerializeField] private float panSmoothTime = 0.08f;
 
-    [Header("Mouse")] [Min(0.01f)] [SerializeField]
-    private float yawSensitivity = 0.12f;
-
+    [Header("Mouse")] 
+    [Min(0.01f)] [SerializeField] private float yawSensitivity = 0.12f;
     [Min(0.01f)] [SerializeField] private float pitchSensitivity = 0.10f;
     [Min(0.001f)] [SerializeField] private float scrollZoomSensitivity = 2f;
     [Min(0.01f)] [SerializeField] private float orbitSmoothTime = 0.06f;
@@ -58,7 +55,27 @@ public class LayoutCameraController : MonoBehaviour
     public Vector3 PivotPosition => transform.position;
 
     public bool IsOrbiting => Mouse.current != null && Mouse.current.middleButton.isPressed && !IsPointerOverUI();
+    
+    public void RotateViewLeft()
+    {
+        RotateViewBy(-45f);
+    }
 
+    public void RotateViewRight()
+    {
+        RotateViewBy(45f);
+    }
+
+    private void RotateViewBy(float degrees)
+    {
+        if (!isActiveAndEnabled || Time.timeScale <= 0f)
+        {
+            return;
+        }
+
+        targetYaw = Mathf.Repeat(targetYaw + degrees, 360f);
+    }
+    
     private void OnValidate()
     {
         maximumPitch = Mathf.Max(minimumPitch, maximumPitch);
@@ -191,12 +208,30 @@ public class LayoutCameraController : MonoBehaviour
         HandleMovement(deltaTime);
 
         HandleRotation();
-
+        HandleKeyboardViewRotation();
         HandleZoom();
 
         SmoothCameraState(deltaTime);
 
         ApplyCameraOrbit();
+    }
+    
+    private void HandleKeyboardViewRotation()
+    {
+        if (Keyboard.current == null || Time.timeScale <= 0f || IsPointerOverUI())
+        {
+            return;
+        }
+
+        if (Keyboard.current.leftArrowKey.wasPressedThisFrame)
+        {
+            RotateViewLeft();
+        }
+
+        if (Keyboard.current.rightArrowKey.wasPressedThisFrame)
+        {
+            RotateViewRight();
+        }
     }
 
     private void HandleMovement(float deltaTime)
