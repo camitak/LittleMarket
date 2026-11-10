@@ -4,15 +4,22 @@ using UnityEngine.InputSystem;
 [RequireComponent(typeof(CharacterController))]
 public class PlayerController : MonoBehaviour
 {
-    [Header("Movement")] [SerializeField] private float moveSpeed = 4f;
+    [Header("Movement")]
+    [SerializeField] private float moveSpeed = 4f;
 
-    [Header("Mouse Look")] [SerializeField]
-    private Camera playerCamera;
+    [Header("Mouse Look")]
+    [SerializeField] private Camera playerCamera;
 
     [SerializeField] private float mouseSensitivity = 0.15f;
+    
+    public float MouseSensitivity => mouseSensitivity;
 
-    private CharacterController
-        characterController;
+    public void SetMouseSensitivity(float sensitivity)
+    {
+        mouseSensitivity = Mathf.Max(0.001f, sensitivity);
+    }
+    
+    private CharacterController characterController;
 
     private float verticalVelocity;
 
@@ -20,10 +27,7 @@ public class PlayerController : MonoBehaviour
 
     private void Awake()
     {
-        characterController =
-            GetComponent<
-                CharacterController
-            >();
+        characterController = GetComponent<CharacterController>();
     }
 
     private void Start()
@@ -40,28 +44,23 @@ public class PlayerController : MonoBehaviour
 
     public void CaptureCursor()
     {
-        Cursor.lockState =
-            CursorLockMode.Locked;
+        Cursor.lockState = CursorLockMode.Locked;
 
-        Cursor.visible =
-            false;
+        Cursor.visible = false;
     }
 
     public void ReleaseCursor()
     {
-        Cursor.lockState =
-            CursorLockMode.None;
+        Cursor.lockState = CursorLockMode.None;
 
-        Cursor.visible =
-            true;
+        Cursor.visible = true;
     }
 
     private void HandleMovement()
     {
         if (Keyboard.current == null) return;
 
-        var movementInput =
-            Vector2.zero;
+        var movementInput = Vector2.zero;
 
         if (Keyboard.current.wKey.isPressed) movementInput.y += 1f;
 
@@ -71,72 +70,37 @@ public class PlayerController : MonoBehaviour
 
         if (Keyboard.current.aKey.isPressed) movementInput.x -= 1f;
 
-        movementInput =
-            movementInput.normalized;
+        movementInput = movementInput.normalized;
 
-        var movement =
-            transform.forward
-            * movementInput.y
-            +
-            transform.right
-            * movementInput.x;
+        var movement = transform.forward * movementInput.y + transform.right * movementInput.x;
 
         if (characterController.isGrounded)
             if (verticalVelocity < 0f)
-                verticalVelocity =
-                    -2f;
+                verticalVelocity = -2f;
 
-        verticalVelocity +=
-            Physics.gravity.y
-            * Time.deltaTime;
+        verticalVelocity += Physics.gravity.y * Time.deltaTime;
 
-        movement.y =
-            verticalVelocity;
+        movement.y = verticalVelocity;
 
-        characterController.Move(
-            movement
-            * moveSpeed
-            * Time.deltaTime
-        );
+        characterController.Move(movement * moveSpeed * Time.deltaTime);
     }
 
     private void HandleMouseLook()
     {
         if (Mouse.current == null) return;
 
-        var mouseDelta =
-            Mouse.current.delta
-                .ReadValue();
+        var mouseDelta = Mouse.current.delta.ReadValue();
 
-        var mouseX =
-            mouseDelta.x
-            * mouseSensitivity;
+        var mouseX = mouseDelta.x * mouseSensitivity;
 
-        var mouseY =
-            mouseDelta.y
-            * mouseSensitivity;
+        var mouseY = mouseDelta.y * mouseSensitivity;
 
-        transform.Rotate(
-            Vector3.up
-            * mouseX
-        );
+        transform.Rotate(Vector3.up * mouseX);
 
-        cameraPitch -=
-            mouseY;
+        cameraPitch -= mouseY;
 
-        cameraPitch =
-            Mathf.Clamp(
-                cameraPitch,
-                -80f,
-                80f
-            );
+        cameraPitch = Mathf.Clamp(cameraPitch, -80f, 80f);
 
-        playerCamera.transform
-                .localRotation =
-            Quaternion.Euler(
-                cameraPitch,
-                0f,
-                0f
-            );
+        playerCamera.transform.localRotation = Quaternion.Euler(cameraPitch, 0f, 0f);
     }
 }

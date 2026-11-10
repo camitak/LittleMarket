@@ -5,20 +5,26 @@ using UnityEngine.UI;
 
 public class PauseMenuUI : MonoBehaviour
 {
-    [Header("UI")] [SerializeField] private GameObject pauseOverlay;
+    [Header("UI")]
+    [SerializeField] private GameObject pauseOverlay;
     [SerializeField] private Button resumeButton;
     [SerializeField] private Button saveGameButton;
     [SerializeField] private Button loadGameButton;
     [SerializeField] private TMP_Text saveStatusText;
+    
+    [Header("Comfort Settings")]
+    [SerializeField] private ComfortSettingsUI comfortSettingsUI;
 
-    [Header("Systems")] [SerializeField] private SaveManager saveManager;
+    [Header("Systems")]
+    [SerializeField] private SaveManager saveManager;
     [SerializeField] private StoreLayoutModeController layoutMode;
     [SerializeField] private OrderingUI orderingUI;
     [SerializeField] private EndOfDayUI endOfDayUI;
     [SerializeField] private ManagerBookUI managerBookUI;
     [SerializeField] private InteractionUI interactionUI;
 
-    [Header("Player")] [SerializeField] private PlayerController playerController;
+    [Header("Player")]
+    [SerializeField] private PlayerController playerController;
     [SerializeField] private PlayerInteraction playerInteraction;
 
     private bool isOpen;
@@ -71,10 +77,16 @@ public class PauseMenuUI : MonoBehaviour
             return;
         }
 
+        
         if (isOpen)
         {
-            Close();
+            if (comfortSettingsUI != null && comfortSettingsUI.IsOpen)
+            {
+                comfortSettingsUI.Close();
+                return;
+            }
 
+            Close();
             return;
         }
 
@@ -88,11 +100,7 @@ public class PauseMenuUI : MonoBehaviour
             return;
         }
 
-        if (layoutMode != null &&
-            (
-                layoutMode.IsActive ||
-                layoutMode.ConsumedEscapeThisFrame
-            ))
+        if (layoutMode != null && (layoutMode.IsActive || layoutMode.ConsumedEscapeThisFrame))
         {
             return;
         }
@@ -131,6 +139,11 @@ public class PauseMenuUI : MonoBehaviour
     public void Close()
     {
         if (!isOpen) return;
+        
+        if (comfortSettingsUI != null)
+        {
+            comfortSettingsUI.Close();
+        }
 
         isOpen = false;
 
