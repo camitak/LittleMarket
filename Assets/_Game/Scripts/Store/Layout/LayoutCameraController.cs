@@ -23,7 +23,7 @@ public class LayoutCameraController : MonoBehaviour
     [Min(1f)] [SerializeField] private float minimumDistance = 4f;
     [Min(1f)] [SerializeField] private float maximumDistance = 32f;
 
-    [Header("Movement")]
+    [Header("Movement")] 
     [Min(0.1f)] [SerializeField] private float panSpeed = 7f;
     [Min(1f)] [SerializeField] private float boostMultiplier = 2f;
     [Min(0.01f)] [SerializeField] private float panSmoothTime = 0.08f;
@@ -50,21 +50,48 @@ public class LayoutCameraController : MonoBehaviour
     private float targetDistance;
     private float distanceSmoothVelocity;
 
+    private Vector3 homePivotPosition;
+    private float homeYaw;
+    private float homePitch;
+    private float homeDistance;
+    private bool hasHomeView;
+
+
     public Camera LayoutCamera => layoutCamera;
 
     public Vector3 PivotPosition => transform.position;
 
     public bool IsOrbiting => Mouse.current != null && Mouse.current.middleButton.isPressed && !IsPointerOverUI();
-    
+
     public void RotateViewLeft()
     {
-        RotateViewBy(-45f);
+        RotateViewBy(45f);
     }
 
     public void RotateViewRight()
     {
-        RotateViewBy(45f);
+        RotateViewBy(-45f);
     }
+
+    public void ResetView()
+    {
+        if (!isActiveAndEnabled || layoutCamera == null || !hasHomeView || Time.timeScale <= 0f)
+        {
+            return;
+        }
+
+        SetImmediateState(homePivotPosition, homeYaw, homePitch, homeDistance);
+    }
+
+    private void CaptureHomeView()
+    {
+        homePivotPosition = targetPivotPosition;
+        homeYaw = currentYaw;
+        homePitch = currentPitch;
+        homeDistance = currentDistance;
+        hasHomeView = true;
+    }
+
 
     private void RotateViewBy(float degrees)
     {
@@ -75,7 +102,7 @@ public class LayoutCameraController : MonoBehaviour
 
         targetYaw = Mathf.Repeat(targetYaw + degrees, 360f);
     }
-    
+
     private void OnValidate()
     {
         maximumPitch = Mathf.Max(minimumPitch, maximumPitch);
@@ -113,6 +140,7 @@ public class LayoutCameraController : MonoBehaviour
         gameObject.SetActive(true);
 
         SetImmediateState(GetBoundsPivot(targetBounds), overviewYaw, overviewPitch, workingDistance);
+        CaptureHomeView();
     }
 
     /*
@@ -131,6 +159,7 @@ public class LayoutCameraController : MonoBehaviour
 
         SetImmediateState(GetBoundsPivot(targetBounds), overviewYaw, overviewPitch,
             CalculateFramingDistance(targetBounds));
+        CaptureHomeView();
     }
 
     public void ActivateFrom(Transform source)
@@ -149,6 +178,7 @@ public class LayoutCameraController : MonoBehaviour
         float yaw = source != null ? source.eulerAngles.y : overviewYaw;
 
         SetImmediateState(pivot, yaw, overviewPitch, fallbackDistance);
+        CaptureHomeView();
     }
 
     /*
@@ -191,10 +221,13 @@ public class LayoutCameraController : MonoBehaviour
         targetDistance = CalculateFramingDistance(targetBounds);
     }
 
+
     public void Deactivate()
     {
+        hasHomeView = false;
         gameObject.SetActive(false);
     }
+
 
     private void Update()
     {
@@ -206,19 +239,28 @@ public class LayoutCameraController : MonoBehaviour
         }
 
         HandleMovement(deltaTime);
-
         HandleRotation();
         HandleKeyboardViewRotation();
         HandleZoom();
-
         SmoothCameraState(deltaTime);
-
         ApplyCameraOrbit();
     }
-    
+
+
     private void HandleKeyboardViewRotation()
     {
-        if (Keyboard.current == null || Time.timeScale <= 0f || IsPointerOverUI())
+        if (Keyboard.current == null || Time.timeScale <= 0f)
+        {
+            return;
+        }
+
+        if (Keyboard.current.homeKey.wasPressedThisFrame)
+        {
+            ResetView();
+            return;
+        }
+
+        if (IsPointerOverUI())
         {
             return;
         }
@@ -233,6 +275,7 @@ public class LayoutCameraController : MonoBehaviour
             RotateViewRight();
         }
     }
+
 
     private void HandleMovement(float deltaTime)
     {
@@ -414,19 +457,15 @@ public class LayoutCameraController : MonoBehaviour
 
         layoutCamera.transform.localRotation = Quaternion.Euler(currentPitch, 0f, 0f);
     }
-    
+
     private static bool IsPointerOverUI()
     {
-        if (EventSystem.current == null ||
-            Mouse.current == null)
+        if (EventSystem.current == null || Mouse.current == null)
         {
             return false;
         }
 
-        return EventSystem.current
-            .IsPointerOverGameObject(
-                Mouse.current.deviceId
-            );
+        return EventSystem.current.IsPointerOverGameObject(Mouse.current.deviceId);
     }
 
     private static Vector3 GetBoundsPivot(Bounds bounds)

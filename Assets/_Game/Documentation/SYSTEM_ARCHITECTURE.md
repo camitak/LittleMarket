@@ -1,80 +1,37 @@
-# Little Market — System Architecture (Lesson 140 proposed implementation)
+# Little Market — System Architecture (Lesson 141 camera UX refinement)
 
-**Verified source-of-truth:** GitHub `camitak/LittleMarket` `main` at `d56bb8033c7e0e8d3a16d0a75767519312bed23e`, commit "Lesson 139 complete - checkout safety, basket station alignment, comfort and catalog limits" (checked November 9, 2026).
+## Source-of-truth checkpoint
 
-**Implementation status:** This document describes the revised Lesson 140 to implement and playtest, **not** a change already pushed. It **supersedes** the discarded Lesson 140 proposal that required click-to-select + M for moving. Read the latest GitHub `main` and this document before Lesson 141.
+GitHub `camitak/LittleMarket`, `main` at `831213d164cc06e539ea260a8e49f52be8dae92f`, commit `Lesson 140 complete - contextual copy-sell menu and camera rotation` (verified 2026-11-10). This document records the verified Lesson 140 baseline and the *Lesson 141 modifications to apply and playtest*. The latter have **not yet been verified in Unity, compiled, or committed**. Reinspect latest GitHub main before the next lesson.
 
-## Permanent development rules
+## Existing systems verified
 
-- Before each lesson, inspect the newest `main`, read this architecture file, examine complete affected scripts, prefabs, ScriptableObjects, and `Assets/Scenes/Market.unity`.
-- Provide verified exact GameObject paths, component names, and complete UI Inspector anchors/pivots/positions/dimensions/colours/raycast settings/references. No invented paths or vague 'existing controller' references.
-- Preserve all player-tuned camera, grid, placement and scene parameters, unless specifically identified as lesson changes.
-- Give normal C# formatting, complete implementation + Unity setup + tests in chat, plus architecture and continuation `.md` downloads.
-- Prioritise playtesting and regressions, especially motion comfort and UX, over roadmap.
+- `LayoutCameraRig -> LayoutCameraController` (`Assets/_Game/Scripts/Store/Layout/LayoutCameraController.cs`) owns camera pivot/yaw/pitch/zoom, free MMB orbit, WASD pan, mouse-wheel zoom, 45-degree view rotation using arrow keys and `RotateViewLeft()`/`RotateViewRight()`, camera activation/focus and smoothing. Current `Market.unity` Inspector values: workingDistance=9; overviewPitch=62; overviewYaw=0; overviewPadding=1.08; fallbackDistance=4; minimumPitch=15; maximumPitch=88; minimumDistance=4; maximumDistance=32; panSpeed=7; boostMultiplier=2; panSmoothTime=.08; yawSensitivity=.12; pitchSensitivity=.10; scrollZoomSensitivity=2; orbitSmoothTime=.06; zoomSmoothTime=.10. **Preserve all.**
+- `StoreSystems -> StoreLayoutModeController` chooses camera activation from `StoreBuildArea.TryGetWorkingZoneBounds(playerPosition, ...)` (local sales-floor or backroom); fallback `LayoutCameraController.ActivateFrom(playerController.transform)`; focus may subsequently move via `FocusPlacementArea` or expansion preview. Layout entry/exit swaps active cameras; no camera-state persistence in saves. `LayoutCameraController.ActivateForBounds` also exists for intentional full-bounds framing.
+- `GameUI -> LayoutModeUI` activates/deactivates `GameUI/LayoutModeFrame`; `GameUI -> BuildCatalogUI` operates a left-center panel, and `StoreSystems -> StoreExpansionLayoutController` operates a right-center details panel. `GameUI -> StoreDesignFurnitureContextMenuUI` controls transient RMB Copy/Sell via the dismiss layer. Leave those controls untouched.
+- `GameUI` Canvas: Screen Space Overlay; Canvas Scaler Scale With Screen Size, Reference Resolution `(1920,1080)`, Match Width or Height `.5`. `GameUI/MoneyText` top-right anchor and pivot `(1,1)`, position `(-30,-25)`, size `(300,60)`; `GameUI/MoneyGainText` top-right `(1,1)`, position `(-30,-75)`, size `(300,50)`. Do not modify them.
+- `GameUI/LayoutModeFrame/PlacementModeStatusText` top-left `(0,1)`, pivot `(0,1)`, position `(28,-28)`, size `(720,28)`. `BuildCatalogPanel` left-center `(0,.5)`, position `(28,0)`, size `(700,800)`; `ExpansionDetailsPanel` right-center `(1,.5)`, position `(-28,0)`, size `(460,320)`; `LayoutControlsPanel` bottom-right `(1,0)`, position `(-28,28)`, size `(360,214)`. Preserve these.
+- `GameUI/LayoutModeFrame/CameraRotatePanel` currently top-right anchors/pivot `(1,1)`, position `(-28,-28)`, size `(280,58)`, Image `#FFF4E6FF`, Raycast Target off. Its buttons are `RotateViewLeftButton` (left-centre anchors/pivot `(0,.5)`, position `(8,0)`, size `(128,42)`) and `RotateViewRightButton` (right-centre anchors/pivot `(1,.5)`, position `(-8,0)`, size `(128,42)`). Their Button OnClick events are already wired to `LayoutCameraRig -> LayoutCameraController.RotateViewLeft/RotateViewRight`; Button Navigation Automatic; Image `#B8D2E2FF`; TMP font is `Assets/TextMesh Pro/Resources/Fonts & Materials/LiberationSans SDF.asset`, 14 bold, centered, `#344E5B`, raycast off. The panel currently covers the money display.
+- Unity version `6000.6.0f1`. No new prefab or ScriptableObject changes needed for Lesson 141.
 
-## Core baseline verified from Lesson 139
+## Lesson 141 proposed implementation (must test)
 
-- `Player -> FurniturePlacementController` manages direct LMB movement, placement checks, snap sockets, purchase previews, body/front-access footprints, and a legacy double-X sale timer.
-- `StoreSystems -> FurnitureShop` owns purchase authorization, ownership caps and sale refunds (50%). `FurnitureIdentity` delegates move/sale rules to components implementing `IFurnitureMoveConstraint` / `IFurnitureSellConstraint`.
-- `StoreSystems -> StoreFurnitureLayout` manages authored vs runtime furniture persistence; authorized sale calls `TryRemoveFurniture` and updates navigation via `StoreLayoutModeController.MarkNavigationDirty()`.
-- `PF_CheckoutCounter.prefab` has `MinimumCheckoutSellConstraint`: no sale if it is the last active managed checkout. `SO_Furniture_CheckoutCounter` still Purchasable=true, Sellable=true, MaxOwned=1, £120.
-- `PF_RestockBasketStation.prefab` owns station; the scene has one unique basket docked under its `DockPoint`, not an extra basket inside each purchasable station prefab. `SO_Furniture_RestockBasketStation` access centre `(0,0.75,+0.9)`, MaxOwned=1, price £40.
-- `FurnitureShop.ShouldListCatalogItem` preserves capped products in furniture listings with owned cap and SOLD OUT state; `FurnitureShop.CanBeginPurchase` enforces actual purchase limits.
-- Scene authored `Player -> PlayerController` speed 4.5 and sensitivity .09, `Player/Main Camera -> Camera` FOV 75. `LayoutCameraRig -> LayoutCameraController` working distance 9, overview pitch 62°, yaw 0°, MMB free orbit enabled, yaw sensitivity .12, pitch .10, scroll sensitivity **2**, smoothing .06/.10, max distance 32. Motion blur remains disabled.
-- `GameUI` Canvas is Screen Space Overlay, reference resolution 1920×1080, match .5. `GameUI/LayoutModeFrame` full-stretch anchors (0,0)-(1,1), pivot (.5,.5), transparent and raycast off. Controls panel `GameUI/LayoutModeFrame/LayoutControlsPanel` anchored bottom-right, position (-28,+28), 360×214; `ControlsText` stretches with SizeDelta (-32,-32), font17 pre-lesson. `BuildCatalogPanel` is left-centre, `ExpansionDetailsPanel` right-centre.
+1. **Move the camera toolbar** (change only `GameUI/LayoutModeFrame/CameraRotatePanel` RectTransform): top-centre anchors `(0.5,1)` to `(0.5,1)`, pivot `(0.5,1)`, anchored position `(0,-78)`, size `(392,58)`. Preserve its Image colour and raycast state. This puts the toolbar below the existing placement-mode status line, above the Build Catalog, and away from `MoneyText`/`MoneyGainText` at the reference resolution.
+2. **Resize existing camera buttons** to width 120, height 42 with their existing anchors/pivots/positions, labels, colours, navigation and OnClick targets unchanged. Add sibling `ResetViewButton` between left/right buttons with `UI > Button - TextMeshPro`, anchor min/max `(0.5,0.5)`, pivot `(0.5,0.5)`, anchored position `(0,0)`, size `(120,42)`, Image `#B8D2E2FF`, native rounded UI sprite, Raycast Target on; Button interactable, Color Tint (normal white, highlighted #F5F5F5, pressed #C8C8C8, selected #F5F5F5, disabled #C8C8C880), fade .1, navigation Automatic; TMP child stretch 0 offsets, LiberationSans SDF size 14 bold centered, `#344E5B`, text `RESET VIEW`, no wrapping or autosizing, raycast off. Wire `Button -> OnClick()` to `LayoutCameraRig -> LayoutCameraController.ResetView()`.
+3. **Implement home snapshot** in `Assets/_Game/Scripts/Store/Layout/LayoutCameraController.cs` by recording target pivot, current yaw/pitch/distance immediately after `SetImmediateState` in each camera activation method (`ActivateForWorkingBounds`, `ActivateForBounds`, `ActivateFrom`). Do not update home snapshot when zooming/panning/orbiting or when `FocusWorkingBoundsImmediate` changes current focus. Public `ResetView` should call the existing `SetImmediateState` with captured home values, restoring position, yaw, pitch, zoom and zeroing smoothing velocities; it should guard against inactive/unconfigured/no home/paused states. This is an instant return for motion comfort. `Deactivate` should clear home availability, then disable the camera rig. Add `Keyboard.current.homeKey` in `HandleKeyboardViewRotation` (before pointer-over-UI check) as an optional keyboard shortcut.
+4. Append `Home Reset View` to the verified `GameUI/LayoutModeFrame/LayoutControlsPanel/ControlsText`, preserving its RectTransform and TMP styling. Keep existing camera button shortcuts, MMB orbit, LMB move, RMB Copy/Sell, and all furniture/money/save flows unchanged.
+5. **Future UX audit** is deliberately a separate milestone. Record the user's feedback that the present HUD and interactions need a holistic review (hierarchy, money prominence, information density, tool discoverability, keyboard/controller accessibility, responsive layouts, camera comfort, user testing). This lesson fixes a concrete overlap and reset need rather than undertaking speculative global UI changes.
 
-## Revised Lesson 140 — agreed UX
+## Required playtests (not yet performed)
 
-**Not** a click-to-select / Move-button panel. The user rejected the extra step. Do NOT apply old `StoreDesignSelectionUI` instructions or create its UI hierarchy.
+- At 1920×1080, verify top-centre toolbar does not cover money, money gains, placement status or Build Catalog. Repeat at 1280×720, 16:10 and narrower aspect if supported.
+- Button Left/Right rotate exactly 45°; existing MMB orbit and camera keyboard arrows remain; hover over active UI does not select/move furniture behind it.
+- Enter Store Design from sales floor; pan, zoom, orbit, rotate and click Reset View / Home: restore exactly the original pivot, yaw, pitch, distance. Reset twice: stable.
+- Enter Store Design from backroom; Reset View returns to that backroom entry framing. Moving focus to a new area then resetting returns to **entry** working area, not full store. Test both starting paths from StoreLayoutModeController.
+- Test reset during active furniture placement, Build Catalog and expansion interactions; no purchases, furniture transforms, navigation data or save data should be modified by camera reset.
+- Exit/re-enter Store Design at another player location: new home snapshot is used; do not reuse the old one. No reset when outside layout mode.
+- Reconfirm comfort, checkout protection, basket docking, copy/sell action menu, and save/load.
 
-- LMB over stationary furniture immediately starts move (retain).
-- RMB over stationary furniture opens a **small contextual Copy/Sell panel next to pointer**, clamped to viewport.
-- RMB while previewing/moving furniture cancels as before; `Q`/Esc also cancel. Avoid RMB opening a new menu in the cancellation frame (`CancelledPlacementThisFrame` guard).
-- A transparent full-frame `ContextMenuDismissLayer` UI Image with Raycast Target on blocks world clicks while menu is open. On outside **left-button release**, dismiss the menu; mouse-down occurred while overlay blocked world interactions. Esc dismisses using centralized layout-mode handling. Right-click again dismisses or goes back from confirmation.
-- Copy and Sell buttons remain visible but disabled with reasons if unavailable (cap, insufficient funds, last checkout, non-sellable ordering terminal, live checkout, etc.). No direct X sell; no timed double-X. `C` stays an optional quick-copy shortcut, now **one-shot**.
-- Sell opens explicit name/refund confirmation; Confirm executes `FurnitureShop.TrySellFurniture`, marks nav dirty and shows money feedback; Cancel/Esc returns without selling.
-- Context Copy yields one Unity UI frame after closing overlay then calls `FurnitureShop.TryBeginPurchase(definition, out reason, sourceYaw, repeatPlacement:false)` to preserve pointer UI correctness. Only one new preview; normal Build Catalog purchase remains repeatable.
-- `FurniturePlacementController.TryFindPointedAtFurniture` made public; raycast uses `QueryTriggerInteraction.Collide` so `PF_RestockBasketStation` trigger collider is selectable. Keep validation otherwise unchanged.
-- `StoreLayoutModeController` references `GameUI -> StoreDesignFurnitureContextMenuUI` to dismiss on Esc and exit. Retire the obsolete double-X confirmation state and calls.
-- `LayoutCameraRig -> LayoutCameraController` already has MMB smooth yaw/pitch orbit. Add public `RotateViewLeft/RotateViewRight` yaw steps of 45° without rotating world contents. Bind keyboard Left/Right Arrow and visible top-right buttons. Do not change serialized camera tuning.
+## Suggested commit after playtest
 
-## New scene UI and references
-
-Under `GameUI/LayoutModeFrame` create:
-
-```
-ContextMenuDismissLayer (UI > Image, full stretch, rgba white 0, Raycast Target ON, inactive initially)
-└── FurnitureContextMenuPanel (UI > Image, anchor centre, pivot (0,1), 360×310, positioned at pointer by script)
-    ├── FurnitureNameText (UI > Text - TextMeshPro)
-    ├── OwnershipText (UI > Text - TextMeshPro)
-    ├── CopyButton (UI > Button - TextMeshPro)
-    ├── SellButton (UI > Button - TextMeshPro)
-    ├── StatusText (UI > Text - TextMeshPro)
-    ├── CloseButton (UI > Button - TextMeshPro)
-    └── SaleConfirmationPanel (UI > Image, full stretch, opaque, inactive initially)
-        ├── ConfirmationText (UI > Text - TextMeshPro)
-        ├── CancelSaleButton (UI > Button - TextMeshPro)
-        └── ConfirmSaleButton (UI > Button - TextMeshPro)
-CameraRotatePanel (UI > Image, upper-right, 280×58)
-├── RotateViewLeftButton (UI > Button - TextMeshPro)
-└── RotateViewRightButton (UI > Button - TextMeshPro)
-```
-
-Add `StoreDesignFurnitureContextMenuUI` component on `GameUI`, assign `StoreSystems -> StoreLayoutModeController`, `Player -> FurniturePlacementController`, `StoreSystems -> FurnitureShop`, `GameUI -> BuildCatalogUI`, `StoreSystems -> StoreExpansionLayoutController`, and all exact UI references. Assign same component on `StoreSystems -> StoreLayoutModeController`. Bind CameraRotatePanel buttons to `LayoutCameraRig -> LayoutCameraController.RotateViewLeft/Right`, Dynamic single-runtime listeners or OnClick inspector as lesson instructs.
-
-Use full exact component/RectTransform instructions from the Lesson 140 chat, not the older discarded Lesson 140 design.
-
-## Required regression checks
-
-1. LMB immediately moves shelf (NO intermediate selection panel); RMB opens options only while idle; RMB during move cancels and does NOT reopen options that same frame.
-2. Click outside dismisses without moving shelf/expansion or placing a purchase; hover over UI blocks world input.
-3. Menu Copy one-shot (no automatic repeat); normal Build Catalog can repeat purchases; purchase charged only when placed; cancel costs nothing.
-4. Last checkout and Ordering Terminal protected, disabled Sell shows reason; cap and insufficient money disabled Copy show reason; sale confirmation cancel and Esc safe; X never sells.
-5. Middle-mouse orbit works; Left/Right Arrow and camera buttons turn view 45° around current pivot, not rotate store objects. Rotation works during layout but not in first-person mode; zoom scroll speed stays 2.
-6. Layout exit clears menu, restores gameplay camera, preserves save/load, basket station, customer pathing, expansion selection, and money behaviour.
-
-## Roadmap after Lesson 140
-
-- Playtest action-popup discoverability and comfort with fresh players.
-- Prototype optional third-person local player camera/visible character, separate input, interaction and camera concerns before any networking.
-- Persistent comfort options and performance testing; future multiplayer store-visit/helper role needs explicit host/server-authoritative commerce and permissions.
+`Lesson 141 complete - camera toolbar placement and reset view`
