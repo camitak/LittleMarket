@@ -5,17 +5,21 @@ public class CheckoutRegister : MonoBehaviour, IInteractable, IFurnitureSellCons
 {
     [Header("Store References")]
     [SerializeField] private CheckoutQueue checkoutQueue;
+
     [SerializeField] private StoreEconomy storeEconomy;
     [SerializeField] private DailyStats dailyStats;
     [SerializeField] private CheckoutFeedback checkoutFeedback;
 
     [Header("Physical Checkout")]
     [SerializeField] private Transform scanPoint;
+
     [SerializeField] private ShoppingBag shoppingBagPrefab;
     [SerializeField] private Transform bagPoint;
 
-    [Min(0.05f)]
-    [SerializeField] private float scanDisplaySeconds = 0.12f;
+    [Header("Cashier Work Area")]
+    [SerializeField] private CheckoutWorkArea checkoutWorkArea;
+
+    [Min(0.05f)] [SerializeField] private float scanDisplaySeconds = 0.12f;
 
     private CustomerController activeCustomer;
     private ShoppingBag activeShoppingBag;
@@ -26,7 +30,7 @@ public class CheckoutRegister : MonoBehaviour, IInteractable, IFurnitureSellCons
     private bool scanInProgress;
     private PickupItem reservedScanItem;
     private int reservedScanIndex = -1;
-    
+
     private void Awake()
     {
         ResolveDependencies();
@@ -42,6 +46,11 @@ public class CheckoutRegister : MonoBehaviour, IInteractable, IFurnitureSellCons
         if (checkoutFeedback == null)
         {
             checkoutFeedback = GetComponent<CheckoutFeedback>();
+        }
+
+        if (checkoutWorkArea == null)
+        {
+            checkoutWorkArea = GetComponent<CheckoutWorkArea>();
         }
 
         if (storeEconomy == null)
@@ -65,6 +74,18 @@ public class CheckoutRegister : MonoBehaviour, IInteractable, IFurnitureSellCons
         if (player.HasAnythingHeld)
         {
             return "Put down what you're carrying to use checkout";
+        }
+
+        if (checkoutWorkArea == null)
+        {
+            return "Checkout cashier work area not configured";
+        }
+
+        string positionPrompt = checkoutWorkArea.GetPositionPrompt(player.transform.position);
+
+        if (!string.IsNullOrEmpty(positionPrompt))
+        {
+            return positionPrompt;
         }
 
         if (checkoutQueue == null)
@@ -105,17 +126,15 @@ public class CheckoutRegister : MonoBehaviour, IInteractable, IFurnitureSellCons
 
         if (scannedItemCount < itemCount)
         {
-            ProductData nextProduct =
-                customer.GetCarriedProductData(scannedItemCount);
+            ProductData nextProduct = customer.GetCarriedProductData(scannedItemCount);
 
             if (nextProduct == null)
             {
                 return "Checkout item not configured";
             }
 
-            return
-                $"[E] Scan {nextProduct.ProductName}\n" +
-                $"{scannedItemCount} / {itemCount} scanned  •  £{scannedTotal:0.00}";
+            return $"[E] Scan {nextProduct.ProductName}\n" +
+                   $"{scannedItemCount} / {itemCount} scanned  •  £{scannedTotal:0.00}";
         }
 
         return $"[E] Take payment\nTOTAL £{scannedTotal:0.00}";
@@ -123,9 +142,12 @@ public class CheckoutRegister : MonoBehaviour, IInteractable, IFurnitureSellCons
 
     public void Interact(PlayerInteraction player)
     {
-        if (player == null ||
-            player.HasAnythingHeld ||
-            scanInProgress)
+        if (player == null || player.HasAnythingHeld || scanInProgress)
+        {
+            return;
+        }
+
+        if (checkoutWorkArea == null || !checkoutWorkArea.CanServeFrom(player.transform.position))
         {
             return;
         }
@@ -172,7 +194,7 @@ public class CheckoutRegister : MonoBehaviour, IInteractable, IFurnitureSellCons
 
         CompletePayment(customer, itemCount);
     }
-    
+
     public void ResetForLoad()
     {
         ResetCheckoutSession();
@@ -217,21 +239,12 @@ public class CheckoutRegister : MonoBehaviour, IInteractable, IFurnitureSellCons
         reservedScanItem = item;
         reservedScanIndex = scanIndex;
 
-        StartCoroutine(
-            ScanReservedItemRoutine(
-                customer,
-                item,
-                product,
-                scanIndex
-            )
-        );
+        StartCoroutine(ScanReservedItemRoutine(customer, item, product, scanIndex));
     }
-    
+
     public bool CanSellFurniture(out string reason)
     {
-        if (scanInProgress ||
-            activeCustomer != null ||
-            activeShoppingBag != null ||
+        if (scanInProgress || activeCustomer != null || activeShoppingBag != null ||
             (checkoutQueue != null && checkoutQueue.GetFrontCustomer() != null))
         {
             reason = "Finish serving waiting customers before selling this checkout.";
@@ -246,14 +259,13 @@ public class CheckoutRegister : MonoBehaviour, IInteractable, IFurnitureSellCons
         CustomerController customer,
         PickupItem item,
         ProductData product,
-        int scanIndex
-    )
+        int scanIndex)
     {
         if (!IsCurrentScanReservation(customer, item, scanIndex))
         {
             yield break;
         }
-        
+
         customer.RestoreBasketItemForCheckout(item);
         item.PlaceInContainer(scanPoint);
 
@@ -262,9 +274,7 @@ public class CheckoutRegister : MonoBehaviour, IInteractable, IFurnitureSellCons
             checkoutFeedback.PlayScanFeedback();
         }
 
-        yield return new WaitForSeconds(
-            Mathf.Max(0.05f, scanDisplaySeconds)
-        );
+        yield return new WaitForSeconds(Mathf.Max(0.05f, scanDisplaySeconds));
 
         if (!IsCurrentScanReservation(customer, item, scanIndex))
         {
@@ -312,28 +322,16 @@ public class CheckoutRegister : MonoBehaviour, IInteractable, IFurnitureSellCons
             return;
         }
 
-        activeShoppingBag = Instantiate(
-            shoppingBagPrefab,
-            bagPoint.position,
-            bagPoint.rotation,
-            bagPoint
-        );
+        activeShoppingBag = Instantiate(shoppingBagPrefab, bagPoint.position, bagPoint.rotation, bagPoint);
 
         activeShoppingBag.transform.localPosition = Vector3.zero;
         activeShoppingBag.transform.localRotation = Quaternion.identity;
     }
 
-    private bool IsCurrentScanReservation(
-        CustomerController customer,
-        PickupItem item,
-        int scanIndex
-    )
+    private bool IsCurrentScanReservation(CustomerController customer, PickupItem item, int scanIndex)
     {
-        return
-            scanInProgress &&
-            activeCustomer == customer &&
-            reservedScanItem == item &&
-            reservedScanIndex == scanIndex;
+        return scanInProgress && activeCustomer == customer && reservedScanItem == item &&
+               reservedScanIndex == scanIndex;
     }
 
     private void ClearScanReservation()
@@ -343,10 +341,7 @@ public class CheckoutRegister : MonoBehaviour, IInteractable, IFurnitureSellCons
         reservedScanIndex = -1;
     }
 
-    private void CompletePayment(
-        CustomerController customer,
-        int itemCount
-    )
+    private void CompletePayment(CustomerController customer, int itemCount)
     {
         if (customer == null || scanInProgress)
         {
@@ -360,8 +355,7 @@ public class CheckoutRegister : MonoBehaviour, IInteractable, IFurnitureSellCons
 
         ShoppingBag purchasedBag = activeShoppingBag;
 
-        bool checkoutCompleted =
-            customer.CompleteCheckout(purchasedBag);
+        bool checkoutCompleted = customer.CompleteCheckout(purchasedBag);
 
         if (!checkoutCompleted)
         {
@@ -435,10 +429,7 @@ public class CheckoutRegister : MonoBehaviour, IInteractable, IFurnitureSellCons
 
     private bool HasValidPhysicalCheckout()
     {
-        return
-            scanPoint != null &&
-            shoppingBagPrefab != null &&
-            bagPoint != null;
+        return scanPoint != null && shoppingBagPrefab != null && bagPoint != null;
     }
 
     private void OnDrawGizmosSelected()

@@ -17,6 +17,7 @@ GameObject:
   - component: {fileID: 7598965951387816022}
   - component: {fileID: 5612387723984810123}
   - component: {fileID: 2686587629025835775}
+  - component: {fileID: 5900053237242098694}
   m_Layer: 0
   m_Name: PF_CheckoutCounter
   m_TagString: Untagged
@@ -99,6 +100,7 @@ MonoBehaviour:
   scanPoint: {fileID: 4887745571044094096}
   shoppingBagPrefab: {fileID: 522564594587775003, guid: 44425077c5374c84f970965784a00175, type: 3}
   bagPoint: {fileID: 8143064119211590124}
+  checkoutWorkArea: {fileID: 5900053237242098694}
   scanDisplaySeconds: 0.12
 --- !u!114 &7472617073244439004
 MonoBehaviour:
@@ -174,6 +176,21 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: bf99fb119ac037d4282a85aa45a48620, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::MinimumCheckoutSellConstraint
+--- !u!114 &5900053237242098694
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 613616828646612990}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ba90dd300900d3f46baca72779a2b680, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CheckoutWorkArea
+  cashierStandPoint: {fileID: 7090642783032633229}
+  workingRadius: 0.75
+  minimumStaffSideZ: 0.45
 --- !u!1 &1274817683706630338
 GameObject:
   m_ObjectHideFlags: 0
@@ -329,6 +346,37 @@ MeshRenderer:
   m_SortingOrder: 0
   m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
+--- !u!1 &3567156047295939518
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 7090642783032633229}
+  m_Layer: 0
+  m_Name: CashierStandPoint
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &7090642783032633229
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3567156047295939518}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 1}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 8500627242735263012}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &3819071614728590434
 GameObject:
   m_ObjectHideFlags: 0
@@ -391,6 +439,7 @@ Transform:
   m_Children:
   - {fileID: 4887745571044094096}
   - {fileID: 8143064119211590124}
+  - {fileID: 7090642783032633229}
   m_Father: {fileID: 4643556741017863621}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &5187282795508999282
