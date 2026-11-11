@@ -1,3 +1,4 @@
+
 using UnityEngine;
 
 [CreateAssetMenu(fileName = "SO_Furniture_", menuName = "Little Market/Furniture/Furniture Definition")]
@@ -32,6 +33,11 @@ public class FurnitureDefinition : ScriptableObject
     [SerializeField] private Vector3 accessHalfExtents = new(1.25f, 0.75f, 0.50f);
     [SerializeField] private Vector3 accessCenter = new(0f, 0.80f, -1.02f);
 
+    [Header("Placement - Staff Access")]
+    [SerializeField] private bool requiresStaffAccess;
+    [SerializeField] private Vector3 staffAccessCenter = new(0f, 0.75f, 0.95f);
+    [SerializeField] private Vector3 staffAccessHalfExtents = new(0.85f, 0.75f, 0.55f);
+
     public string FurnitureID => furnitureID;
     public string DisplayName => displayName;
     public string Description => description;
@@ -52,6 +58,10 @@ public class FurnitureDefinition : ScriptableObject
     public Vector3 BodyCenter => bodyCenter;
     public Vector3 AccessHalfExtents => accessHalfExtents;
     public Vector3 AccessCenter => accessCenter;
+
+    public bool RequiresStaffAccess => requiresStaffAccess;
+    public Vector3 StaffAccessCenter => staffAccessCenter;
+    public Vector3 StaffAccessHalfExtents => staffAccessHalfExtents;
 
     public bool IsConfigured => !string.IsNullOrWhiteSpace(furnitureID) && prefab != null;
 }

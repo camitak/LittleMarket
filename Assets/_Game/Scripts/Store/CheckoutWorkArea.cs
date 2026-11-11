@@ -32,12 +32,12 @@ using UnityEngine;
 
         if (localPosition.z < minimumStaffSideZ)
         {
-            return "Go behind the checkout to serve";
+            return "Cashier position: behind counter, opposite the customer queue";
         }
 
         if (!IsWithinWorkingRadius(localPosition))
         {
-            return "Move closer to the cashier position";
+            return "Move into the cashier area behind the counter";
         }
 
         return "";

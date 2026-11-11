@@ -4,49 +4,56 @@ using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
 using UnityEngine.Serialization;
 
-[DisallowMultipleComponent]
-public class FurniturePlacementController : MonoBehaviour
+[DisallowMultipleComponent] public class FurniturePlacementController : MonoBehaviour
 {
-    [Header("Player")] 
+    [Header("Player")]
     [SerializeField] private PlayerInteraction playerInteraction;
+
     [SerializeField] private InteractionUI interactionUI;
 
     [Header("Store")]
     [SerializeField] private StoreLayoutModeController layoutMode;
+
     [SerializeField] private StoreBuildArea buildArea;
     [SerializeField] private FurnitureShop furnitureShop;
 
-    [Header("Visuals")] 
+    [Header("Visuals")]
     [SerializeField] private FurniturePlacementVisualizer placementVisualizer;
 
-    [Header("Placement")] 
+    [Header("Placement")]
     [Min(1f)] [SerializeField] private float selectionRayDistance = 35f;
+
     [Min(1f)] [SerializeField] private float previewRayDistance = 30f;
     [Min(0f)] [SerializeField] private float bodyContactTolerance = 0.01f;
 
-    [Header("Placement Mode")] 
-    [FormerlySerializedAs("gridSnapEnabled")] 
-    [SerializeField] private bool structuredPlacementByDefault = true;
+    [Header("Placement Mode")]
+    [FormerlySerializedAs("gridSnapEnabled")] [SerializeField]
+    private bool structuredPlacementByDefault = true;
+
     [Min(0.01f)] [SerializeField] private float gridSize = 0.5f;
     [Min(1f)] [SerializeField] private float freeRotationDegreesPerSecond = 90f;
 
-    [Header("Magnetic Snap")] 
+    [Header("Magnetic Snap")]
     [SerializeField] private bool magneticSnapEnabled = true;
+
     [Min(0.01f)] [SerializeField] private float socketCaptureDistance = 0.30f;
     [Min(0.01f)] [SerializeField] private float socketReleaseDistance = 0.55f;
     [Range(0f, 45f)] [SerializeField] private float maximumSocketFacingAngle = 15f;
 
-    [Header("Fallback Body Footprint")] 
+    [Header("Fallback Body Footprint")]
     [SerializeField] private Vector3 footprintHalfExtents = new(1.30f, 1.05f, 0.52f);
+
     [SerializeField] private Vector3 footprintCenter = new(0f, 1.10f, 0f);
 
-    [Header("Fallback Front Access Footprint")] 
+    [Header("Fallback Front Access Footprint")]
     [SerializeField] private Vector3 accessHalfExtents = new(1.25f, 0.75f, 0.50f);
+
     [SerializeField] private Vector3 accessCenter = new(0f, 0.80f, -1.02f);
     [Min(0.01f)] [SerializeField] private float outlineWidth = 0.05f;
 
-    [Header("Preview Colours")] 
+    [Header("Preview Colours")]
     [SerializeField] private Color validColor = new Color32(111, 207, 151, 255);
+
     [SerializeField] private Color invalidColor = new Color32(196, 107, 107, 255);
 
     private FurnitureIdentity selectedFurniture;
@@ -68,7 +75,7 @@ public class FurniturePlacementController : MonoBehaviour
     private FurnitureShop pendingPurchase;
     private bool repeatPurchasedPlacement;
     private int lastPlacementCancelledFrame = -1;
-    
+
     private string transientStatusMessage = "";
     private float transientStatusUntil;
     private const float TransientStatusDuration = 1.75f;
@@ -92,8 +99,9 @@ public class FurniturePlacementController : MonoBehaviour
         IsPlacementModeModifierHeld ? !structuredPlacementByDefault : structuredPlacementByDefault;
 
     public bool IsFreePlacementActive => !IsStructuredPlacementActive;
-    
+
     public bool CancelledPlacementThisFrame => lastPlacementCancelledFrame == Time.frameCount;
+
     /*
      * Compatibility property.
      *
@@ -112,20 +120,13 @@ public class FurniturePlacementController : MonoBehaviour
     // Read-only access for Layout Mode presentation.
     public FurnitureIdentity SelectedFurniture => selectedFurniture;
 
-    private float EffectiveSocketReleaseDistance =>
-        Mathf.Max(
-            socketCaptureDistance,
-            socketReleaseDistance
-        );
+    private float EffectiveSocketReleaseDistance => Mathf.Max(socketCaptureDistance, socketReleaseDistance);
 
     private bool IsPlacementModeModifierHeld =>
-        Keyboard.current != null &&
-        (
-            Keyboard.current.leftCtrlKey.isPressed ||
-            Keyboard.current.rightCtrlKey.isPressed
-        );
+        Keyboard.current != null && (Keyboard.current.leftCtrlKey.isPressed || Keyboard.current.rightCtrlKey.isPressed);
 
-    public bool TryGetSelectedBodyFootprint(out Vector3 worldCenter,
+    public bool TryGetSelectedBodyFootprint(
+        out Vector3 worldCenter,
         out Quaternion rotation,
         out Vector2 halfExtents,
         out StoreAreaType placementArea)
@@ -168,12 +169,20 @@ public class FurniturePlacementController : MonoBehaviour
         CurrentDefinition != null ? CurrentDefinition.AccessHalfExtents : accessHalfExtents;
 
     private Vector3 CurrentAccessCenter => CurrentDefinition != null ? CurrentDefinition.AccessCenter : accessCenter;
-   
-    private bool CurrentRequiresOperationalAccess =>
-        CurrentDefinition == null ||
-        CurrentDefinition.RequiresOperationalAccess;
 
-    
+    private bool CurrentRequiresOperationalAccess =>
+        CurrentDefinition == null || CurrentDefinition.RequiresOperationalAccess;
+
+
+    private bool CurrentRequiresStaffAccess => CurrentDefinition != null && CurrentDefinition.RequiresStaffAccess;
+
+    private Vector3 CurrentStaffAccessCenter =>
+        CurrentDefinition != null ? CurrentDefinition.StaffAccessCenter : Vector3.zero;
+
+    private Vector3 CurrentStaffAccessHalfExtents =>
+        CurrentDefinition != null ? CurrentDefinition.StaffAccessHalfExtents : Vector3.zero;
+
+
     private void Update()
     {
         if (Keyboard.current == null || Mouse.current == null)
@@ -181,11 +190,8 @@ public class FurniturePlacementController : MonoBehaviour
             return;
         }
 
-        if (layoutMode != null &&
-            layoutMode.IsActive &&
-            Time.timeScale > 0f &&
-            Cursor.lockState == CursorLockMode.None &&
-            Keyboard.current.gKey.wasPressedThisFrame &&
+        if (layoutMode != null && layoutMode.IsActive && Time.timeScale > 0f &&
+            Cursor.lockState == CursorLockMode.None && Keyboard.current.gKey.wasPressedThisFrame &&
             !IsPlacementModeModifierHeld)
         {
             structuredPlacementByDefault = !structuredPlacementByDefault;
@@ -215,17 +221,14 @@ public class FurniturePlacementController : MonoBehaviour
             return;
         }
 
-        if (Time.timeScale <= 0f ||
-            layoutMode == null ||
-            !layoutMode.IsActive ||
+        if (Time.timeScale <= 0f || layoutMode == null || !layoutMode.IsActive ||
             Cursor.lockState != CursorLockMode.None)
         {
             CancelPlacement();
             return;
         }
 
-        bool cancelPressed = Keyboard.current.qKey.wasPressedThisFrame ||
-                             Mouse.current.rightButton.wasPressedThisFrame;
+        bool cancelPressed = Keyboard.current.qKey.wasPressedThisFrame || Mouse.current.rightButton.wasPressedThisFrame;
 
         if (cancelPressed)
         {
@@ -247,8 +250,7 @@ public class FurniturePlacementController : MonoBehaviour
             UpdatePreview();
         }
 
-        bool confirmPressed = Mouse.current.leftButton.wasPressedThisFrame ||
-                              Keyboard.current.eKey.wasPressedThisFrame;
+        bool confirmPressed = Mouse.current.leftButton.wasPressedThisFrame || Keyboard.current.eKey.wasPressedThisFrame;
 
         if (pointerAvailable && confirmPressed && canPlace)
         {
@@ -256,11 +258,10 @@ public class FurniturePlacementController : MonoBehaviour
         }
     }
 
-    
+
     private void HandlePlacementRotation()
     {
-        if (Keyboard.current == null ||
-            selectedFurniture == null)
+        if (Keyboard.current == null || selectedFurniture == null)
         {
             return;
         }
@@ -269,20 +270,12 @@ public class FurniturePlacementController : MonoBehaviour
         {
             if (Keyboard.current.rKey.wasPressedThisFrame)
             {
-                previewYaw =
-                    GetNextStructuredYaw(
-                        previewYaw,
-                        1
-                    );
+                previewYaw = GetNextStructuredYaw(previewYaw, 1);
             }
 
             if (Keyboard.current.tKey.wasPressedThisFrame)
             {
-                previewYaw =
-                    GetNextStructuredYaw(
-                        previewYaw,
-                        -1
-                    );
+                previewYaw = GetNextStructuredYaw(previewYaw, -1);
             }
 
             return;
@@ -300,27 +293,14 @@ public class FurniturePlacementController : MonoBehaviour
             rotationInput -= 1f;
         }
 
-        if (Mathf.Approximately(
-                rotationInput,
-                0f))
+        if (Mathf.Approximately(rotationInput, 0f))
         {
             return;
         }
 
-        float rotationSpeed =
-            Mathf.Max(
-                1f,
-                freeRotationDegreesPerSecond
-            );
+        float rotationSpeed = Mathf.Max(1f, freeRotationDegreesPerSecond);
 
-        previewYaw =
-            Mathf.Repeat(
-                previewYaw +
-                rotationInput *
-                rotationSpeed *
-                Time.deltaTime,
-                360f
-            );
+        previewYaw = Mathf.Repeat(previewYaw + rotationInput * rotationSpeed * Time.deltaTime, 360f);
 
         /*
          * Free placement never participates in
@@ -329,56 +309,34 @@ public class FurniturePlacementController : MonoBehaviour
         ClearActiveMagneticSnap();
     }
 
-    private static float GetNextStructuredYaw(
-        float currentYaw,
-        int direction)
+    private static float GetNextStructuredYaw(float currentYaw, int direction)
     {
         const float step = 90f;
         const float tolerance = 0.01f;
 
-        float normalizedYaw =
-            Mathf.Repeat(
-                currentYaw,
-                360f
-            );
+        float normalizedYaw = Mathf.Repeat(currentYaw, 360f);
 
         if (direction > 0)
         {
-            float nextStep =
-                Mathf.Floor(
-                    (normalizedYaw + tolerance) /
-                    step
-                ) + 1f;
+            float nextStep = Mathf.Floor((normalizedYaw + tolerance) / step) + 1f;
 
-            return Mathf.Repeat(
-                nextStep * step,
-                360f
-            );
+            return Mathf.Repeat(nextStep * step, 360f);
         }
 
         if (direction < 0)
         {
-            float previousStep =
-                Mathf.Ceil(
-                    (normalizedYaw - tolerance) /
-                    step
-                ) - 1f;
+            float previousStep = Mathf.Ceil((normalizedYaw - tolerance) / step) - 1f;
 
-            return Mathf.Repeat(
-                previousStep * step,
-                360f
-            );
+            return Mathf.Repeat(previousStep * step, 360f);
         }
 
         return normalizedYaw;
     }
 
-    
+
     private void LateUpdate()
     {
-        if (interactionUI == null ||
-            layoutMode == null ||
-            !layoutMode.IsActive ||
+        if (interactionUI == null || layoutMode == null || !layoutMode.IsActive ||
             Cursor.lockState != CursorLockMode.None)
         {
             return;
@@ -393,9 +351,8 @@ public class FurniturePlacementController : MonoBehaviour
         {
             if (!canPlace)
             {
-                interactionUI.ShowPrompt(
-                    "Can't place here — keep furniture and customer access clear.\n" +
-                    "R / T Rotate  •  RMB / Q Cancel");
+                interactionUI.ShowPrompt("Can't place here — keep furniture and customer access clear.\n" +
+                                         "R / T Rotate  •  RMB / Q Cancel");
                 return;
             }
 
@@ -413,9 +370,7 @@ public class FurniturePlacementController : MonoBehaviour
             return;
         }
 
-        if (!layoutMode.IsCameraManipulating &&
-            CanStartPlacement() &&
-            !IsPointerOverUI() &&
+        if (!layoutMode.IsCameraManipulating && CanStartPlacement() && !IsPointerOverUI() &&
             TryFindPointedAtFurniture(out FurnitureIdentity furniture))
         {
             ShowFurnitureIdlePrompt(furniture);
@@ -446,13 +401,7 @@ public class FurniturePlacementController : MonoBehaviour
 
         Ray ray = CreatePointerRay(placementCamera);
 
-        
-        RaycastHit[] hits = Physics.RaycastAll(
-            ray,
-            selectionRayDistance,
-            ~0,
-            QueryTriggerInteraction.Collide);
-
+        RaycastHit[] hits = Physics.RaycastAll(ray, selectionRayDistance, ~0, QueryTriggerInteraction.Collide);
 
         Array.Sort(hits, (a, b) => a.distance.CompareTo(b.distance));
 
@@ -476,12 +425,11 @@ public class FurniturePlacementController : MonoBehaviour
 
         return false;
     }
-    
-    
+
+
     private void TryCopyPointedFurniture()
     {
-        if (furnitureShop == null ||
-            !TryFindPointedAtFurniture(out FurnitureIdentity sourceFurniture))
+        if (furnitureShop == null || !TryFindPointedAtFurniture(out FurnitureIdentity sourceFurniture))
         {
             return;
         }
@@ -495,8 +443,7 @@ public class FurniturePlacementController : MonoBehaviour
         }
     }
 
-    
-    
+
     private void ShowFurnitureIdlePrompt(FurnitureIdentity furniture)
     {
         if (furniture == null)
@@ -509,9 +456,7 @@ public class FurniturePlacementController : MonoBehaviour
         string furnitureName = definition != null ? definition.DisplayName : "furniture";
         bool canMove = furniture.CanMoveFurniture(out _);
 
-        string prompt = canMove
-            ? $"LMB Move {furnitureName}  •  RMB Options"
-            : $"RMB Options: {furnitureName}";
+        string prompt = canMove ? $"LMB Move {furnitureName}  •  RMB Options" : $"RMB Options: {furnitureName}";
 
         if (furnitureShop != null && furnitureShop.IsPurchasableCatalogItem(definition))
         {
@@ -551,17 +496,14 @@ public class FurniturePlacementController : MonoBehaviour
         return true;
     }
 
-    
+
     public bool BeginPurchasedFurniturePreview(
         FurnitureIdentity furniture,
         FurnitureShop shop,
         float? initialYaw = null,
         bool repeatPlacement = true)
     {
-        if (furniture == null ||
-            furniture.FurnitureDefinition == null ||
-            shop == null ||
-            selectedFurniture != null ||
+        if (furniture == null || furniture.FurnitureDefinition == null || shop == null || selectedFurniture != null ||
             !CanStartPlacement())
         {
             return false;
@@ -674,16 +616,8 @@ public class FurniturePlacementController : MonoBehaviour
             {
                 float step = GridSize;
 
-                target =
-                    new Vector3(
-                        Mathf.Round(
-                            surfacePoint.x / step
-                        ) * step,
-                        surfacePoint.y,
-                        Mathf.Round(
-                            surfacePoint.z / step
-                        ) * step
-                    );
+                target = new Vector3(Mathf.Round(surfacePoint.x / step) * step, surfacePoint.y,
+                    Mathf.Round(surfacePoint.z / step) * step);
             }
             else
             {
@@ -703,16 +637,12 @@ public class FurniturePlacementController : MonoBehaviour
 
         if (placementVisualizer != null)
         {
-            placementVisualizer.UpdateFootprints(
-                selectedFurniture.transform,
-                CurrentBodyCenter,
-                CurrentBodyHalfExtents,
-                CurrentAccessCenter,
-                CurrentAccessHalfExtents,
-                CurrentRequiresOperationalAccess,
-                canPlace
-            );
-            
+            placementVisualizer.UpdateFootprints(selectedFurniture.transform, CurrentBodyCenter, CurrentBodyHalfExtents,
+                CurrentAccessCenter, CurrentAccessHalfExtents, CurrentRequiresOperationalAccess, canPlace);
+
+            placementVisualizer.UpdateStaffFootprint(selectedFurniture.transform, CurrentStaffAccessCenter,
+                CurrentStaffAccessHalfExtents, CurrentRequiresStaffAccess, canPlace);
+
             Vector3 snapPosition = IsMagneticallySnapped ? activeTargetSnapSocket.transform.position : Vector3.zero;
 
             placementVisualizer.UpdateSnapGuide(snapPosition, IsMagneticallySnapped, canPlace);
@@ -733,12 +663,8 @@ public class FurniturePlacementController : MonoBehaviour
 
     private Vector3 ApplyMagneticSocketSnap(Vector3 baseTarget, Quaternion selectedRotation)
     {
-        if (!magneticSnapEnabled ||
-            !IsStructuredPlacementActive ||
-            selectedFurniture == null ||
-            selectedSnapSockets == null ||
-            selectedSnapSockets.Length == 0 ||
-            snapSocketCandidates == null)
+        if (!magneticSnapEnabled || !IsStructuredPlacementActive || selectedFurniture == null ||
+            selectedSnapSockets == null || selectedSnapSockets.Length == 0 || snapSocketCandidates == null)
         {
             ClearActiveMagneticSnap();
             return baseTarget;
@@ -797,7 +723,8 @@ public class FurniturePlacementController : MonoBehaviour
         return true;
     }
 
-    private bool TryFindMagneticSnap(Vector3 baseTarget,
+    private bool TryFindMagneticSnap(
+        Vector3 baseTarget,
         Quaternion selectedRotation,
         out Vector3 snappedTarget,
         out FurnitureSnapSocket selectedSocket,
@@ -907,7 +834,8 @@ public class FurniturePlacementController : MonoBehaviour
         return angle <= maximumSocketFacingAngle;
     }
 
-    private Vector3 GetProjectedSelectedSocketPosition(FurnitureSnapSocket socket,
+    private Vector3 GetProjectedSelectedSocketPosition(
+        FurnitureSnapSocket socket,
         Vector3 baseTarget,
         Quaternion selectedRotation)
     {
@@ -916,7 +844,8 @@ public class FurniturePlacementController : MonoBehaviour
         return baseTarget + selectedRotation * localPosition;
     }
 
-    private Vector3 AlignRootToTargetSocket(FurnitureSnapSocket source,
+    private Vector3 AlignRootToTargetSocket(
+        FurnitureSnapSocket source,
         FurnitureSnapSocket target,
         Vector3 baseTarget,
         Quaternion selectedRotation)
@@ -947,29 +876,18 @@ public class FurniturePlacementController : MonoBehaviour
         }
     }
 
-    private bool ValidatePlacement(
-        Vector3 position,
-        Quaternion rotation)
+    private bool ValidatePlacement(Vector3 position, Quaternion rotation)
     {
         /*
          * Every placeable has a physical body.
          */
-        if (!buildArea.IsFootprintInside(
-                position,
-                rotation,
-                CurrentBodyCenter,
-                CurrentBodyHalfExtents,
+        if (!buildArea.IsFootprintInside(position, rotation, CurrentBodyCenter, CurrentBodyHalfExtents,
                 CurrentPlacementArea))
         {
             return false;
         }
 
-        if (OverlapsProtectedClearance(
-                position,
-                rotation,
-                CurrentBodyCenter,
-                CurrentBodyHalfExtents,
-                false))
+        if (OverlapsProtectedClearance(position, rotation, CurrentBodyCenter, CurrentBodyHalfExtents, false))
         {
             return false;
         }
@@ -979,59 +897,69 @@ public class FurniturePlacementController : MonoBehaviour
          * area, but its BODY still cannot occupy the
          * access area of functional furniture.
          */
-        if (OverlapsOtherFurnitureAccess(
-                position,
-                rotation))
+        if (OverlapsOtherFurnitureAccess(position, rotation))
         {
             return false;
         }
 
-        if (HasBlockingCollider(
-                position,
-                rotation,
-                CurrentBodyCenter,
-                CurrentBodyHalfExtents,
-                false))
+        if (HasBlockingCollider(position, rotation, CurrentBodyCenter, CurrentBodyHalfExtents, false))
         {
             return false;
         }
 
-        /*
-         * Front-access validation applies only to
-         * placeables whose definition actually needs
-         * operational access.
-         */
-        if (!CurrentRequiresOperationalAccess)
+        if (CurrentRequiresOperationalAccess)
         {
-            return true;
+            if (!buildArea.IsFootprintInside(position, rotation, CurrentAccessCenter, CurrentAccessHalfExtents,
+                    CurrentPlacementArea))
+            {
+                return false;
+            }
+
+            if (OverlapsProtectedClearance(position, rotation, CurrentAccessCenter, CurrentAccessHalfExtents, true))
+            {
+                return false;
+            }
+
+            if (HasBlockingCollider(position, rotation, CurrentAccessCenter, CurrentAccessHalfExtents, true))
+            {
+                return false;
+            }
         }
 
-        if (!buildArea.IsFootprintInside(
-                position,
-                rotation,
-                CurrentAccessCenter,
-                CurrentAccessHalfExtents,
+        if (CurrentRequiresStaffAccess)
+        {
+            if (!buildArea.IsFootprintInside(position, rotation, CurrentStaffAccessCenter,
+                    CurrentStaffAccessHalfExtents, CurrentPlacementArea))
+            {
+                return false;
+            }
+
+            if (OverlapsProtectedClearance(position, rotation, CurrentStaffAccessCenter, CurrentStaffAccessHalfExtents,
+                    true))
+            {
+                return false;
+            }
+
+            if (HasBlockingCollider(position, rotation, CurrentStaffAccessCenter, CurrentStaffAccessHalfExtents, true))
+            {
+                return false;
+            }
+        }
+
+        return true;
+
+        if (!buildArea.IsFootprintInside(position, rotation, CurrentAccessCenter, CurrentAccessHalfExtents,
                 CurrentPlacementArea))
         {
             return false;
         }
 
-        if (OverlapsProtectedClearance(
-                position,
-                rotation,
-                CurrentAccessCenter,
-                CurrentAccessHalfExtents,
-                true))
+        if (OverlapsProtectedClearance(position, rotation, CurrentAccessCenter, CurrentAccessHalfExtents, true))
         {
             return false;
         }
 
-        if (HasBlockingCollider(
-                position,
-                rotation,
-                CurrentAccessCenter,
-                CurrentAccessHalfExtents,
-                true))
+        if (HasBlockingCollider(position, rotation, CurrentAccessCenter, CurrentAccessHalfExtents, true))
         {
             return false;
         }
@@ -1039,15 +967,12 @@ public class FurniturePlacementController : MonoBehaviour
         return true;
     }
 
+
     private bool OverlapsOtherFurnitureAccess(Vector3 position, Quaternion rotation)
     {
-        if (furnitureCandidates == null)
-        {
-            return false;
-        }
+        if (furnitureCandidates == null) return false;
 
         Vector3 selectedBodyCenter = position + rotation * CurrentBodyCenter;
-
         Vector2 selectedBodyHalf = new(Mathf.Abs(CurrentBodyHalfExtents.x), Mathf.Abs(CurrentBodyHalfExtents.z));
 
         foreach (FurnitureIdentity candidate in furnitureCandidates)
@@ -1059,33 +984,47 @@ public class FurniturePlacementController : MonoBehaviour
 
             FurnitureDefinition definition = candidate.FurnitureDefinition;
 
-            if (definition == null ||
-                !definition.RequiresOperationalAccess ||
-                definition.PlacementArea != CurrentPlacementArea)
+            if (definition == null || definition.PlacementArea != CurrentPlacementArea)
             {
                 continue;
             }
 
             Transform candidateTransform = candidate.transform;
+            Vector3 scale = candidateTransform.lossyScale;
 
-            Vector3 candidateAccessCenter = candidateTransform.TransformPoint(definition.AccessCenter);
-
-            Vector3 candidateScale = candidateTransform.lossyScale;
-
-            Vector2 candidateAccessHalf = new(Mathf.Abs(definition.AccessHalfExtents.x * candidateScale.x),
-                Mathf.Abs(definition.AccessHalfExtents.z * candidateScale.z));
-
-            if (LayoutFootprintUtility.OverlapsHorizontal(selectedBodyCenter, rotation, selectedBodyHalf,
-                    candidateAccessCenter, candidateTransform.rotation, candidateAccessHalf))
+            if (definition.RequiresOperationalAccess)
             {
-                return true;
+                Vector3 center = candidateTransform.TransformPoint(definition.AccessCenter);
+                Vector2 halfExtents = new(Mathf.Abs(definition.AccessHalfExtents.x * scale.x),
+                    Mathf.Abs(definition.AccessHalfExtents.z * scale.z));
+
+                if (LayoutFootprintUtility.OverlapsHorizontal(selectedBodyCenter, rotation, selectedBodyHalf, center,
+                        candidateTransform.rotation, halfExtents))
+                {
+                    return true;
+                }
+            }
+
+            if (definition.RequiresStaffAccess)
+            {
+                Vector3 center = candidateTransform.TransformPoint(definition.StaffAccessCenter);
+                Vector2 halfExtents = new(Mathf.Abs(definition.StaffAccessHalfExtents.x * scale.x),
+                    Mathf.Abs(definition.StaffAccessHalfExtents.z * scale.z));
+
+                if (LayoutFootprintUtility.OverlapsHorizontal(selectedBodyCenter, rotation, selectedBodyHalf, center,
+                        candidateTransform.rotation, halfExtents))
+                {
+                    return true;
+                }
             }
         }
 
         return false;
     }
 
-    private bool OverlapsProtectedClearance(Vector3 position,
+
+    private bool OverlapsProtectedClearance(
+        Vector3 position,
         Quaternion rotation,
         Vector3 offset,
         Vector3 halfExtents,
@@ -1112,7 +1051,8 @@ public class FurniturePlacementController : MonoBehaviour
         return false;
     }
 
-    private bool HasBlockingCollider(Vector3 position,
+    private bool HasBlockingCollider(
+        Vector3 position,
         Quaternion rotation,
         Vector3 offset,
         Vector3 halfExtents,
@@ -1166,8 +1106,7 @@ public class FurniturePlacementController : MonoBehaviour
 
     private void CreateAccessOutline()
     {
-        if (!CurrentRequiresOperationalAccess ||
-            accessOutline != null)
+        if (!CurrentRequiresOperationalAccess || accessOutline != null)
         {
             return;
         }
@@ -1202,8 +1141,7 @@ public class FurniturePlacementController : MonoBehaviour
         accessOutline.sharedMaterial = outlineMaterial;
     }
 
-    private void UpdateAccessOutline(
-        Color color)
+    private void UpdateAccessOutline(Color color)
     {
         if (!CurrentRequiresOperationalAccess)
         {
@@ -1211,8 +1149,7 @@ public class FurniturePlacementController : MonoBehaviour
             return;
         }
 
-        if (accessOutline == null ||
-            selectedFurniture == null)
+        if (accessOutline == null || selectedFurniture == null)
         {
             return;
         }
@@ -1301,9 +1238,9 @@ public class FurniturePlacementController : MonoBehaviour
 
         bool wasNewFurniturePurchase = isNewFurniturePurchase;
         bool shouldRepeatPurchase = repeatPurchasedPlacement;
-        
+
         FurnitureShop purchaseShop = pendingPurchase;
-        
+
         float repeatYaw = previewYaw;
 
         if (wasNewFurniturePurchase)
@@ -1324,8 +1261,7 @@ public class FurniturePlacementController : MonoBehaviour
             layoutMode.MarkNavigationDirty();
         }
 
-        if (wasNewFurniturePurchase && shouldRepeatPurchase &&
-            definition != null && purchaseShop != null)
+        if (wasNewFurniturePurchase && shouldRepeatPurchase && definition != null && purchaseShop != null)
         {
             string repeatReason;
 
@@ -1343,7 +1279,7 @@ public class FurniturePlacementController : MonoBehaviour
 
         Debug.Log($"{furnitureName} placed. Save your game to keep the new layout.", this);
     }
-    
+
     public void CancelActivePlacement()
     {
         CancelPlacement();
@@ -1355,7 +1291,7 @@ public class FurniturePlacementController : MonoBehaviour
         {
             return;
         }
-        
+
         lastPlacementCancelledFrame = Time.frameCount;
 
         if (isNewFurniturePurchase)

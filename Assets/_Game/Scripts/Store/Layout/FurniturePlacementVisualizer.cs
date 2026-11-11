@@ -1,20 +1,23 @@
 using UnityEngine;
 
-[DisallowMultipleComponent]
-public class FurniturePlacementVisualizer : MonoBehaviour
+[DisallowMultipleComponent] public class FurniturePlacementVisualizer : MonoBehaviour
 {
-    [Header("Position")] 
+    [Header("Position")]
     [Min(0f)] [SerializeField] private float surfaceOffset = 0.045f;
 
-    [Header("Body")] 
+    [Header("Body")]
     [SerializeField] private Color validBodyColor = new Color32(111, 207, 151, 102);
     [SerializeField] private Color invalidBodyColor = new Color32(196, 107, 107, 128);
 
-    [Header("Front Access")] 
+    [Header("Front Access")]
     [SerializeField] private Color validAccessColor = new Color32(240, 201, 106, 102);
     [SerializeField] private Color invalidAccessColor = new Color32(196, 107, 107, 112);
 
-    [Header("Magnetic Snap Guide")] 
+    [Header("Staff Access")]
+    [SerializeField] private Color validStaffAccessColor = new Color32(122, 186, 225, 112);
+    [SerializeField] private Color invalidStaffAccessColor = new Color32(196, 107, 107, 112);
+
+    [Header("Magnetic Snap Guide")]
     [Min(0.05f)] [SerializeField] private float snapGuideSize = 0.18f;
     [Min(0.005f)] [SerializeField] private float snapGuideWidth = 0.035f;
     [Min(0f)] [SerializeField] private float snapGuideSurfaceOffset = 0.085f;
@@ -24,12 +27,14 @@ public class FurniturePlacementVisualizer : MonoBehaviour
     private GameObject visualRoot;
     private GameObject bodyVisual;
     private GameObject accessVisual;
+    private GameObject staffAccessVisual;
     private GameObject snapGuideObject;
 
     private Mesh unitQuad;
 
     private Material bodyMaterial;
     private Material accessMaterial;
+    private Material staffAccessMaterial;
     private Material snapGuideMaterial;
 
     private LineRenderer snapGuide;
@@ -41,7 +46,8 @@ public class FurniturePlacementVisualizer : MonoBehaviour
         Hide();
     }
 
-    public void UpdateFootprints(Transform furniture,
+    public void UpdateFootprints(
+        Transform furniture,
         Vector3 bodyCenter,
         Vector3 bodyHalfExtents,
         Vector3 accessCenter,
@@ -79,6 +85,30 @@ public class FurniturePlacementVisualizer : MonoBehaviour
         ApplyFootprint(accessVisual, furniture, accessCenter, accessHalfExtents, surfaceOffset + 0.005f);
 
         LayoutVisualUtility.SetMaterialColor(accessMaterial, canPlace ? validAccessColor : invalidAccessColor);
+    }
+
+    public void UpdateStaffFootprint(
+        Transform furniture,
+        Vector3 center,
+        Vector3 halfExtents,
+        bool showAccess,
+        bool canPlace)
+    {
+        if (staffAccessVisual == null) return;
+
+        staffAccessVisual.SetActive(showAccess);
+
+        if (!showAccess || furniture == null) return;
+
+        if (visualRoot != null && !visualRoot.activeSelf)
+        {
+            visualRoot.SetActive(true);
+        }
+
+        ApplyFootprint(staffAccessVisual, furniture, center, halfExtents, surfaceOffset + 0.01f);
+
+        LayoutVisualUtility.SetMaterialColor(staffAccessMaterial,
+            canPlace ? validStaffAccessColor : invalidStaffAccessColor);
     }
 
     public void UpdateSnapGuide(Vector3 worldPosition, bool active, bool canPlace)
@@ -146,11 +176,17 @@ public class FurniturePlacementVisualizer : MonoBehaviour
         accessMaterial =
             LayoutVisualUtility.CreateTransparentMaterial("FurnitureAccessFootprint_Runtime", validAccessColor);
 
+        staffAccessMaterial = LayoutVisualUtility.CreateTransparentMaterial(
+            "FurnitureStaffAccessFootprint_Runtime", validStaffAccessColor);
+
         snapGuideMaterial = LayoutVisualUtility.CreateTransparentMaterial("FurnitureSnapGuide_Runtime", snapGuideColor);
 
         bodyVisual = CreateFootprintObject("BodyFootprint", bodyMaterial, 10);
 
         accessVisual = CreateFootprintObject("AccessFootprint", accessMaterial, 11);
+
+        staffAccessVisual = CreateFootprintObject("StaffAccessFootprint", staffAccessMaterial, 12);
+        staffAccessVisual.SetActive(false);
 
         CreateSnapGuide();
     }
@@ -209,7 +245,8 @@ public class FurniturePlacementVisualizer : MonoBehaviour
         snapGuideObject.SetActive(false);
     }
 
-    private static void ApplyFootprint(GameObject visual,
+    private static void ApplyFootprint(
+        GameObject visual,
         Transform furniture,
         Vector3 center,
         Vector3 halfExtents,
@@ -251,6 +288,11 @@ public class FurniturePlacementVisualizer : MonoBehaviour
         if (accessMaterial != null)
         {
             Destroy(accessMaterial);
+        }
+
+        if (staffAccessMaterial != null)
+        {
+            Destroy(staffAccessMaterial);
         }
 
         if (snapGuideMaterial != null)

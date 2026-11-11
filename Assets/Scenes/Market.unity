@@ -15659,6 +15659,8 @@ MonoBehaviour:
   surfaceOffset: 0.04
   availableColor: {r: 0.9411765, g: 0.7882353, b: 0.41568628, a: 0.1882353}
   blockedColor: {r: 0.76862746, g: 0.41960785, b: 0.41960785, a: 0.5882353}
+  staffAvailableColor: {r: 0.47843137, g: 0.7294118, b: 0.88235295, a: 0.20392157}
+  IsStaff: 0
 --- !u!114 &1117834551
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -18827,6 +18829,8 @@ MonoBehaviour:
   invalidBodyColor: {r: 0.76862746, g: 0.41960785, b: 0.41960785, a: 0.5019608}
   validAccessColor: {r: 0.9411765, g: 0.7882353, b: 0.41568628, a: 0.4}
   invalidAccessColor: {r: 0.76862746, g: 0.41960785, b: 0.41960785, a: 0.4392157}
+  validStaffAccessColor: {r: 0.47843137, g: 0.7294118, b: 0.88235295, a: 0.4392157}
+  invalidStaffAccessColor: {r: 0.76862746, g: 0.41960785, b: 0.41960785, a: 0.4392157}
   snapGuideSize: 0.18
   snapGuideWidth: 0.035
   snapGuideSurfaceOffset: 0.085
