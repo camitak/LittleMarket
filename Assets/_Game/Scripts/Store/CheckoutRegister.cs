@@ -5,22 +5,22 @@ public class CheckoutRegister : MonoBehaviour, IInteractable, IFurnitureSellCons
 {
     [Header("Store References")]
     [SerializeField] private CheckoutQueue checkoutQueue;
-
     [SerializeField] private StoreEconomy storeEconomy;
     [SerializeField] private DailyStats dailyStats;
     [SerializeField] private CheckoutFeedback checkoutFeedback;
 
     [Header("Physical Checkout")]
     [SerializeField] private Transform scanPoint;
-
+    [Min(0.05f)] [SerializeField] private float scanDisplaySeconds = 0.12f;
     [SerializeField] private ShoppingBag shoppingBagPrefab;
     [SerializeField] private Transform bagPoint;
 
     [Header("Cashier Work Area")]
     [SerializeField] private CheckoutWorkArea checkoutWorkArea;
-
-    [Min(0.05f)] [SerializeField] private float scanDisplaySeconds = 0.12f;
-
+    
+    [Header("Conveyor")]
+    [SerializeField] private CheckoutConveyor checkoutConveyor;
+    
     private CustomerController activeCustomer;
     private ShoppingBag activeShoppingBag;
 
@@ -51,6 +51,11 @@ public class CheckoutRegister : MonoBehaviour, IInteractable, IFurnitureSellCons
         if (checkoutWorkArea == null)
         {
             checkoutWorkArea = GetComponent<CheckoutWorkArea>();
+        }
+        
+        if (checkoutConveyor == null)
+        {
+            checkoutConveyor = GetComponent<CheckoutConveyor>();
         }
 
         if (storeEconomy == null)
@@ -134,7 +139,7 @@ public class CheckoutRegister : MonoBehaviour, IInteractable, IFurnitureSellCons
 
         if (!HasValidPhysicalCheckout())
         {
-            return "Checkout bagging points not configured";
+            return "Checkout conveyor or bagging points not configured";
         }
 
         if (scanInProgress)
@@ -144,6 +149,18 @@ public class CheckoutRegister : MonoBehaviour, IInteractable, IFurnitureSellCons
 
         if (scannedItemCount < itemCount)
         {
+            PickupItem nextItem = customer.GetCarriedItem(scannedItemCount);
+
+            if (nextItem == null)
+            {
+                return "Checkout item missing";
+            }
+
+            if (!checkoutConveyor.IsPresented(nextItem))
+            {
+                return "Waiting for products to unload";
+            }
+
             ProductData nextProduct = customer.GetCarriedProductData(scannedItemCount);
 
             if (nextProduct == null)
@@ -268,7 +285,12 @@ public class CheckoutRegister : MonoBehaviour, IInteractable, IFurnitureSellCons
         {
             return;
         }
-
+        
+        if (!checkoutConveyor.IsPresented(item))
+        {
+            return;
+        }
+        
         scanInProgress = true;
         reservedScanItem = item;
         reservedScanIndex = scanIndex;
@@ -338,10 +360,13 @@ public class CheckoutRegister : MonoBehaviour, IInteractable, IFurnitureSellCons
          * scanning. CompleteCheckout() destroys it normally.
          */
         item.gameObject.SetActive(false);
-
+        
         activeShoppingBag.RegisterScannedItem();
 
+        checkoutConveyor.MarkScanned(item);
+
         ClearScanReservation();
+
     }
 
     private void EnsureShoppingBag()
@@ -395,6 +420,11 @@ public class CheckoutRegister : MonoBehaviour, IInteractable, IFurnitureSellCons
         {
             return;
         }
+        
+        if (checkoutConveyor != null)
+        {
+            checkoutConveyor.EndSession(true);
+        }
 
         /*
          * Ownership has moved to the customer.
@@ -417,6 +447,7 @@ public class CheckoutRegister : MonoBehaviour, IInteractable, IFurnitureSellCons
         ResetCheckoutSession();
     }
 
+    
     private void EnsureCheckoutSession(CustomerController customer)
     {
         if (customer == null)
@@ -432,23 +463,42 @@ public class CheckoutRegister : MonoBehaviour, IInteractable, IFurnitureSellCons
 
         StopAllCoroutines();
         ClearScanReservation();
+
+        if (checkoutConveyor != null)
+        {
+            checkoutConveyor.EndSession(false);
+        }
+
         DestroyActiveShoppingBag();
 
         activeCustomer = customer;
         scannedItemCount = 0;
         scannedTotal = 0f;
+
+        if (checkoutConveyor != null)
+        {
+            checkoutConveyor.BeginSession(customer);
+        }
     }
 
+    
     private void ResetCheckoutSession()
     {
         StopAllCoroutines();
         ClearScanReservation();
+
+        if (checkoutConveyor != null)
+        {
+            checkoutConveyor.EndSession(false);
+        }
+
         DestroyActiveShoppingBag();
 
         activeCustomer = null;
         scannedItemCount = 0;
         scannedTotal = 0f;
     }
+
 
     private void DestroyActiveShoppingBag()
     {
@@ -460,10 +510,14 @@ public class CheckoutRegister : MonoBehaviour, IInteractable, IFurnitureSellCons
         Destroy(activeShoppingBag.gameObject);
         activeShoppingBag = null;
     }
-
+   
     private bool HasValidPhysicalCheckout()
     {
-        return scanPoint != null && shoppingBagPrefab != null && bagPoint != null;
+        return scanPoint != null &&
+               shoppingBagPrefab != null &&
+               bagPoint != null &&
+               checkoutConveyor != null &&
+               checkoutConveyor.IsConfigured;
     }
 
     private void OnDrawGizmosSelected()

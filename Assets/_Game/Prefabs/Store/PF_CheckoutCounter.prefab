@@ -18,6 +18,7 @@ GameObject:
   - component: {fileID: 5612387723984810123}
   - component: {fileID: 2686587629025835775}
   - component: {fileID: 5900053237242098694}
+  - component: {fileID: 8676841471145432608}
   m_Layer: 0
   m_Name: PF_CheckoutCounter
   m_TagString: Untagged
@@ -98,10 +99,11 @@ MonoBehaviour:
   dailyStats: {fileID: 0}
   checkoutFeedback: {fileID: 7472617073244439004}
   scanPoint: {fileID: 4887745571044094096}
+  scanDisplaySeconds: 0.12
   shoppingBagPrefab: {fileID: 522564594587775003, guid: 44425077c5374c84f970965784a00175, type: 3}
   bagPoint: {fileID: 8143064119211590124}
   checkoutWorkArea: {fileID: 5900053237242098694}
-  scanDisplaySeconds: 0.12
+  checkoutConveyor: {fileID: 8676841471145432608}
 --- !u!114 &7472617073244439004
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -192,6 +194,23 @@ MonoBehaviour:
   cashierViewPoint: {fileID: 2483757692583847249}
   workingRadius: 0.75
   minimumStaffSideZ: 0.45
+--- !u!114 &8676841471145432608
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 613616828646612990}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e3e584e89e420ee41bacec0f6c6070a3, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CheckoutConveyor
+  beltSurface: {fileID: 1889749948584987197}
+  endPadding: 0.04
+  sidePadding: 0.025
+  productGap: 0.035
+  surfaceLift: 0.005
 --- !u!1 &1274817683706630338
 GameObject:
   m_ObjectHideFlags: 0
