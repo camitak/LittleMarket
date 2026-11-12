@@ -64,6 +64,7 @@ public class CheckoutRegister : MonoBehaviour, IInteractable, IFurnitureSellCons
         }
     }
 
+    
     public string GetInteractionPrompt(PlayerInteraction player)
     {
         if (player == null)
@@ -88,6 +89,18 @@ public class CheckoutRegister : MonoBehaviour, IInteractable, IFurnitureSellCons
             return positionPrompt;
         }
 
+        CashierWorkMode workMode = player.GetComponent<CashierWorkMode>();
+
+        if (workMode == null)
+        {
+            return "Cashier workstation controls not configured";
+        }
+
+        if (!workMode.IsWorkingAt(this))
+        {
+            return "[E] Work checkout";
+        }
+
         if (checkoutQueue == null)
         {
             return "Checkout not configured";
@@ -97,7 +110,7 @@ public class CheckoutRegister : MonoBehaviour, IInteractable, IFurnitureSellCons
 
         if (customer == null)
         {
-            return "No customers waiting";
+            return "Waiting for a customer...";
         }
 
         if (!customer.IsReadyForCheckout())
@@ -140,6 +153,8 @@ public class CheckoutRegister : MonoBehaviour, IInteractable, IFurnitureSellCons
         return $"[E] Take payment\nTOTAL £{scannedTotal:0.00}";
     }
 
+
+    
     public void Interact(PlayerInteraction player)
     {
         if (player == null || player.HasAnythingHeld || scanInProgress)
@@ -154,6 +169,19 @@ public class CheckoutRegister : MonoBehaviour, IInteractable, IFurnitureSellCons
 
         if (checkoutQueue == null || storeEconomy == null)
         {
+            return;
+        }
+
+        CashierWorkMode workMode = player.GetComponent<CashierWorkMode>();
+
+        if (workMode == null)
+        {
+            return;
+        }
+
+        if (!workMode.IsWorkingAt(this))
+        {
+            workMode.TryBegin(this);
             return;
         }
 
@@ -194,6 +222,7 @@ public class CheckoutRegister : MonoBehaviour, IInteractable, IFurnitureSellCons
 
         CompletePayment(customer, itemCount);
     }
+
 
     public void ResetForLoad()
     {

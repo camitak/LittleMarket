@@ -15,6 +15,9 @@ public class PauseMenuUI : MonoBehaviour
     [Header("Comfort Settings")]
     [SerializeField] private ComfortSettingsUI comfortSettingsUI;
 
+    [Header("Cashier Mode")]
+    [SerializeField] private CashierWorkMode cashierWorkMode;
+    
     [Header("Systems")]
     [SerializeField] private SaveManager saveManager;
     [SerializeField] private StoreLayoutModeController layoutMode;
@@ -55,6 +58,12 @@ public class PauseMenuUI : MonoBehaviour
         if (Keyboard.current == null) return;
 
         if (!Keyboard.current.escapeKey.wasPressedThisFrame) return;
+        
+        if (cashierWorkMode != null &&
+            (cashierWorkMode.IsWorking || cashierWorkMode.ConsumedEscapeThisFrame))
+        {
+            return;
+        }
 
         if (layoutMode != null && (layoutMode.IsActive || layoutMode.ConsumedEscapeThisFrame))
         {
@@ -96,6 +105,11 @@ public class PauseMenuUI : MonoBehaviour
     public void Open()
     {
         if (isOpen)
+        {
+            return;
+        }
+        
+        if (cashierWorkMode != null && cashierWorkMode.IsWorking)
         {
             return;
         }
