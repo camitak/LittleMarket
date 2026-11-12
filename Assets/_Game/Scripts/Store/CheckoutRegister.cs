@@ -88,6 +88,11 @@ public class CheckoutRegister : MonoBehaviour, IInteractable, IFurnitureSellCons
         {
             return positionPrompt;
         }
+        
+        if (checkoutWorkArea.CashierViewPoint == null)
+        {
+            return "Checkout camera viewpoint not configured";
+        }
 
         CashierWorkMode workMode = player.GetComponent<CashierWorkMode>();
 

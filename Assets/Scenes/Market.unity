@@ -3194,7 +3194,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!224 &268465380
 RectTransform:
   m_ObjectHideFlags: 0
@@ -3210,11 +3210,11 @@ RectTransform:
   - {fileID: 1807772356}
   m_Father: {fileID: 766562197}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
-  m_AnchorMin: {x: 0.5, y: 1}
-  m_AnchorMax: {x: 0.5, y: 1}
-  m_AnchoredPosition: {x: 0, y: -84}
-  m_SizeDelta: {x: 760, y: 108}
-  m_Pivot: {x: 0.5, y: 1}
+  m_AnchorMin: {x: 1, y: 0.5}
+  m_AnchorMax: {x: 1, y: 0.5}
+  m_AnchoredPosition: {x: -24, y: 350}
+  m_SizeDelta: {x: 400, y: 126}
+  m_Pivot: {x: 1, y: 0.5}
 --- !u!114 &268465381
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -18962,7 +18962,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::CashierWorkMode
   playerController: {fileID: 1349577614}
   playerInteraction: {fileID: 1349577615}
+  playerCamera: {fileID: 330585545}
   interactionUI: {fileID: 766562198}
+  enterTransitionSeconds: 0.45
+  exitTransitionSeconds: 0.35
 --- !u!1 &1355027751
 GameObject:
   m_ObjectHideFlags: 0
@@ -25430,8 +25433,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 1}
   m_AnchorMax: {x: 0, y: 1}
-  m_AnchoredPosition: {x: 20, y: -16}
-  m_SizeDelta: {x: 720, y: 78}
+  m_AnchoredPosition: {x: 16, y: -12}
+  m_SizeDelta: {x: 368, y: 102}
   m_Pivot: {x: 0, y: 1}
 --- !u!114 &1807772357
 MonoBehaviour:
@@ -25480,8 +25483,8 @@ MonoBehaviour:
   m_faceColor:
     serializedVersion: 2
     rgba: 4294967295
-  m_fontSize: 18
-  m_fontSizeBase: 18
+  m_fontSize: 16
+  m_fontSizeBase: 16
   m_fontWeight: 400
   m_enableAutoSizing: 0
   m_fontSizeMin: 18
