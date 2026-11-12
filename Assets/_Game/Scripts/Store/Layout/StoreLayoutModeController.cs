@@ -10,6 +10,9 @@ public class StoreLayoutModeController : MonoBehaviour
     [SerializeField] private CustomerFlow customerFlow;
     [SerializeField] private NavMeshSurface navMeshSurface;
     [SerializeField] private StoreBuildArea buildArea;
+    
+    [Header("Route Validation")]
+    [SerializeField] private StoreRouteAudit storeRouteAudit;
 
     [Header("Player")] 
     [SerializeField] private PlayerController playerController;
@@ -135,6 +138,11 @@ public class StoreLayoutModeController : MonoBehaviour
 
         isActive = true;
         navigationDirty = false;
+        
+        if (storeRouteAudit != null)
+        {
+            storeRouteAudit.DismissWarning();
+        }
 
         storeClock.SetLayoutSuspended(true);
 
@@ -203,12 +211,17 @@ public class StoreLayoutModeController : MonoBehaviour
         {
             furniturePlacementController.CancelActivePlacement();
         }
-
+        
         if (navigationDirty)
         {
             Physics.SyncTransforms();
 
             navMeshSurface.BuildNavMesh();
+
+            if (storeRouteAudit != null)
+            {
+                storeRouteAudit.CheckRoutes();
+            }
         }
 
         customerFlow.ResumeFromLayout();

@@ -3,7 +3,8 @@ using UnityEngine;
 
 public class CheckoutQueue : MonoBehaviour
 {
-    [Header("Queue")] [SerializeField] private Transform[] queuePoints;
+    [Header("Queue")]
+    [SerializeField] private Transform[] queuePoints;
 
     private List<CustomerController> customers = new();
 
@@ -17,6 +18,19 @@ public class CheckoutQueue : MonoBehaviour
         }
     }
 
+    public int QueuePointCount => queuePoints != null ? queuePoints.Length : 0;
+
+    public Transform GetQueuePoint(int index)
+    {
+        if (queuePoints == null || index < 0 || index >= queuePoints.Length)
+        {
+            return null;
+        }
+
+        return queuePoints[index];
+    }
+
+
     public bool TryJoinQueue(CustomerController customer)
     {
         if (customer == null) return false;
@@ -25,8 +39,7 @@ public class CheckoutQueue : MonoBehaviour
 
         if (!HasSpace) return false;
 
-        var nextPoint =
-            queuePoints[customers.Count];
+        var nextPoint = queuePoints[customers.Count];
 
         if (nextPoint == null) return false;
 
@@ -41,8 +54,7 @@ public class CheckoutQueue : MonoBehaviour
     {
         if (customer == null) return;
 
-        var removed =
-            customers.Remove(customer);
+        var removed = customers.Remove(customer);
 
         if (!removed) return;
 
@@ -55,7 +67,7 @@ public class CheckoutQueue : MonoBehaviour
 
         return customers[0];
     }
-    
+
     public void ClearForLoad()
     {
         customers.Clear();
@@ -66,19 +78,15 @@ public class CheckoutQueue : MonoBehaviour
     {
         for (var i = 0; i < customers.Count; i++)
         {
-            var customer =
-                customers[i];
+            var customer = customers[i];
 
-            var queuePoint =
-                queuePoints[i];
+            var queuePoint = queuePoints[i];
 
             if (customer == null) continue;
 
             if (queuePoint == null) continue;
 
-            customer.SetQueueDestination(
-                queuePoint
-            );
+            customer.SetQueueDestination(queuePoint);
         }
     }
 }

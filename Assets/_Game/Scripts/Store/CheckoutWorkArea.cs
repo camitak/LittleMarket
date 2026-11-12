@@ -7,6 +7,8 @@ using UnityEngine;
     [Min(0.1f)] [SerializeField] private float workingRadius = 0.75f;
     [Min(0f)] [SerializeField] private float minimumStaffSideZ = 0.45f;
 
+    public Transform CashierStandPoint => cashierStandPoint;
+    
     public bool CanServeFrom(Vector3 playerWorldPosition)
     {
         if (cashierStandPoint == null) return false;
