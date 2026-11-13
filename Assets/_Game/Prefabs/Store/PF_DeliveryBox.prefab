@@ -104,7 +104,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::DeliveryBox
   productData: {fileID: 0}
   quantity: 0
-  boxCapacity: 4
+  boxCapacity: 12
   spawnPoint: {fileID: 176057893149285258}
   placementAnchor: {fileID: 5185967794750618611}
   heldViewOffset: {x: 0, y: -0.62, z: 1.05}

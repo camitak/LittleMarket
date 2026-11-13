@@ -9826,7 +9826,7 @@ MonoBehaviour:
   productRowPrefab: {fileID: 6733967698380456992, guid: 4bd2e8f8b5e55b5489ee4ff377400a59, type: 3}
   storeProgression: {fileID: 1117834535}
   storeStockOverview: {fileID: 1117834540}
-  quantityPerBox: 4
+  quantityPerBox: 12
   deliveryBoxPrefab: {fileID: 2451739325236826120, guid: d6fd02bc723a5674ebd36140829485fc, type: 3}
   deliveryZone: {fileID: 43201577}
   supplierDeliveryQueue: {fileID: 43201578}
