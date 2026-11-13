@@ -1,9 +1,10 @@
 
 using UnityEngine;
+using UnityEngine.AI;
 using UnityEngine.InputSystem;
 
 [DisallowMultipleComponent]
-[RequireComponent(typeof(PlayerController), typeof(PlayerInteraction))]
+[RequireComponent(typeof(PlayerController), typeof(PlayerInteraction), typeof(CharacterController))]
 public sealed class CashierWorkMode : MonoBehaviour
 {
     private enum CameraTransition
@@ -25,13 +26,15 @@ public sealed class CashierWorkMode : MonoBehaviour
     [Min(0.05f)] [SerializeField] private float enterTransitionSeconds = 0.45f;
     [Min(0.05f)] [SerializeField] private float exitTransitionSeconds = 0.35f;
 
+    private CharacterController characterController;
     private CheckoutRegister activeCheckout;
+
     private bool isWorking;
     private int enteredFrame = -1;
     private int escapeConsumedFrame = -1;
 
-    private Vector3 originalCameraLocalPosition;
-    private Quaternion originalCameraLocalRotation;
+    private Vector3 normalCameraLocalPosition;
+    private Quaternion normalCameraLocalRotation;
 
     private Vector3 transitionStartPosition;
     private Quaternion transitionStartRotation;
@@ -60,6 +63,8 @@ public sealed class CashierWorkMode : MonoBehaviour
         {
             playerCamera = GetComponentInChildren<Camera>(true);
         }
+
+        characterController = GetComponent<CharacterController>();
     }
 
     public bool IsWorkingAt(CheckoutRegister checkout)
@@ -71,7 +76,8 @@ public sealed class CashierWorkMode : MonoBehaviour
     {
         if (isWorking || checkout == null || !checkout.isActiveAndEnabled ||
             playerController == null || playerInteraction == null ||
-            playerCamera == null || interactionUI == null)
+            playerCamera == null || interactionUI == null ||
+            characterController == null)
         {
             return false;
         }
@@ -87,20 +93,49 @@ public sealed class CashierWorkMode : MonoBehaviour
 
         CheckoutWorkArea workArea = checkout.GetComponent<CheckoutWorkArea>();
 
-        if (workArea == null || workArea.CashierViewPoint == null)
+        if (workArea == null ||
+            workArea.CashierStandPoint == null ||
+            workArea.CashierViewPoint == null)
         {
             return false;
         }
 
-        originalCameraLocalPosition = playerCamera.transform.localPosition;
-        originalCameraLocalRotation = playerCamera.transform.localRotation;
+        if (!TryFindWorkPosition(workArea, out Vector3 workPosition))
+        {
+            Debug.LogWarning(
+                "Cannot enter cashier mode: the cashier standing area is blocked. " +
+                "Clear the staff-side space and try again.",
+                checkout);
+            return false;
+        }
+
+        Vector3 startingCameraPosition = playerCamera.transform.position;
+        Quaternion startingCameraRotation = playerCamera.transform.rotation;
+
+        normalCameraLocalPosition = playerCamera.transform.localPosition;
+
+        playerController.enabled = false;
+        playerInteraction.enabled = false;
+
+        // Move the actual player body to the safe cashier position.
+        // The camera's previous WORLD pose is restored immediately afterward
+        // so the player only perceives the existing smooth camera transition.
+        bool wasControllerEnabled = characterController.enabled;
+        characterController.enabled = false;
+
+        transform.position = workPosition;
+        playerController.AlignLookToWorldDirection(workArea.CashierViewPoint.forward);
+        normalCameraLocalRotation = playerCamera.transform.localRotation;
+
+        characterController.enabled = wasControllerEnabled;
+
+        playerCamera.transform.SetPositionAndRotation(
+            startingCameraPosition, startingCameraRotation);
 
         activeCheckout = checkout;
         isWorking = true;
         enteredFrame = Time.frameCount;
 
-        playerController.enabled = false;
-        playerInteraction.enabled = false;
         playerController.ReleaseCursor();
 
         StartCameraTransition(
@@ -113,6 +148,106 @@ public sealed class CashierWorkMode : MonoBehaviour
         return true;
     }
 
+    private bool TryFindWorkPosition(CheckoutWorkArea workArea, out Vector3 position)
+    {
+        position = Vector3.zero;
+
+        Transform standPoint = workArea.CashierStandPoint;
+        Vector3 centre = standPoint.position;
+
+        // The centre is preferred. Small nearby fallbacks avoid rejecting
+        // workstation entry just because another character is close by.
+        Vector3[] candidates =
+        {
+            centre,
+            centre + workArea.transform.right * 0.25f,
+            centre - workArea.transform.right * 0.25f,
+            centre + workArea.transform.forward * 0.25f
+        };
+
+        foreach (Vector3 candidate in candidates)
+        {
+            if (!workArea.CanServeFrom(candidate))
+            {
+                continue;
+            }
+
+            if (!IsStandingPositionClear(candidate))
+            {
+                continue;
+            }
+
+            position = candidate;
+            return true;
+        }
+
+        return false;
+    }
+
+    private bool IsStandingPositionClear(Vector3 destination)
+    {
+        if (characterController == null)
+        {
+            return false;
+        }
+
+        float radius = Mathf.Max(
+            0.05f,
+            characterController.radius - characterController.skinWidth * 0.5f);
+
+        float halfSegment = Mathf.Max(
+            0f,
+            characterController.height * 0.5f - radius);
+
+        Vector3 capsuleCentre = destination + transform.TransformVector(characterController.center);
+        Vector3 bottom = capsuleCentre + Vector3.down * halfSegment;
+        Vector3 top = capsuleCentre + Vector3.up * halfSegment;
+
+        Collider[] overlapping = Physics.OverlapCapsule(
+            bottom, top, radius, ~0, QueryTriggerInteraction.Ignore);
+
+        foreach (Collider other in overlapping)
+        {
+            if (other == null || other.transform.IsChildOf(transform))
+            {
+                continue;
+            }
+
+            // The authored player capsule is centred at local Y = 0.
+            // Ignore the supporting floor, but not counter geometry.
+            if (other.bounds.max.y <= destination.y + 0.15f)
+            {
+                continue;
+            }
+
+            return false;
+        }
+
+        // NavMeshAgents may not have physics colliders. Avoid placing the
+        // player body directly over a customer who is already standing here.
+        NavMeshAgent[] agents = FindObjectsByType<NavMeshAgent>(FindObjectsSortMode.None);
+
+        foreach (NavMeshAgent agent in agents)
+        {
+            if (agent == null || !agent.isActiveAndEnabled)
+            {
+                continue;
+            }
+
+            Vector3 separation = agent.transform.position - destination;
+            separation.y = 0f;
+
+            float minimumDistance = characterController.radius + agent.radius;
+
+            if (separation.sqrMagnitude < minimumDistance * minimumDistance)
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
     private void Update()
     {
         if (!isWorking)
@@ -120,7 +255,6 @@ public sealed class CashierWorkMode : MonoBehaviour
             return;
         }
 
-        // A modal screen has taken control of gameplay.
         if (Time.timeScale <= 0f ||
             playerController == null || playerInteraction == null ||
             playerController.enabled || playerInteraction.enabled)
@@ -202,15 +336,10 @@ public sealed class CashierWorkMode : MonoBehaviour
             return;
         }
 
-        Transform cameraParent = playerCamera.transform.parent;
-
-        Vector3 targetPosition = cameraParent != null
-            ? cameraParent.TransformPoint(originalCameraLocalPosition)
-            : originalCameraLocalPosition;
-
-        Quaternion targetRotation = cameraParent != null
-            ? cameraParent.rotation * originalCameraLocalRotation
-            : originalCameraLocalRotation;
+        // The camera returns to normal first-person height and look angle,
+        // but the PLAYER remains at the cashier standing position.
+        Vector3 targetPosition = transform.TransformPoint(normalCameraLocalPosition);
+        Quaternion targetRotation = transform.rotation * normalCameraLocalRotation;
 
         StartCameraTransition(
             targetPosition,
@@ -229,10 +358,8 @@ public sealed class CashierWorkMode : MonoBehaviour
     {
         transitionStartPosition = playerCamera.transform.position;
         transitionStartRotation = playerCamera.transform.rotation;
-
         transitionTargetPosition = targetPosition;
         transitionTargetRotation = targetRotation;
-
         transitionElapsed = 0f;
         transitionDuration = Mathf.Max(0.05f, duration);
         cameraTransition = nextTransition;
@@ -274,7 +401,7 @@ public sealed class CashierWorkMode : MonoBehaviour
 
     private void FinishExit()
     {
-        RestoreOriginalCamera();
+        RestoreNormalCamera();
         ClearWorkingState();
 
         if (interactionUI != null)
@@ -299,7 +426,7 @@ public sealed class CashierWorkMode : MonoBehaviour
 
     private void RelinquishToAnotherScreen()
     {
-        RestoreOriginalCamera();
+        RestoreNormalCamera();
         ClearWorkingState();
 
         if (interactionUI != null)
@@ -307,18 +434,18 @@ public sealed class CashierWorkMode : MonoBehaviour
             interactionUI.HidePrompt();
         }
 
-        // The other screen owns the cursor and player controls.
+        // Another screen owns the cursor and movement controls.
     }
 
-    private void RestoreOriginalCamera()
+    private void RestoreNormalCamera()
     {
         if (playerCamera == null)
         {
             return;
         }
 
-        playerCamera.transform.localPosition = originalCameraLocalPosition;
-        playerCamera.transform.localRotation = originalCameraLocalRotation;
+        playerCamera.transform.localPosition = normalCameraLocalPosition;
+        playerCamera.transform.localRotation = normalCameraLocalRotation;
     }
 
     private void ClearWorkingState()

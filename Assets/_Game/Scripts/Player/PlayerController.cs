@@ -9,16 +9,15 @@ public class PlayerController : MonoBehaviour
 
     [Header("Mouse Look")]
     [SerializeField] private Camera playerCamera;
-
     [SerializeField] private float mouseSensitivity = 0.15f;
-    
+
     public float MouseSensitivity => mouseSensitivity;
 
     public void SetMouseSensitivity(float sensitivity)
     {
         mouseSensitivity = Mathf.Max(0.001f, sensitivity);
     }
-    
+
     private CharacterController characterController;
 
     private float verticalVelocity;
@@ -102,5 +101,29 @@ public class PlayerController : MonoBehaviour
         cameraPitch = Mathf.Clamp(cameraPitch, -80f, 80f);
 
         playerCamera.transform.localRotation = Quaternion.Euler(cameraPitch, 0f, 0f);
+    }
+    
+    public void AlignLookToWorldDirection(Vector3 worldDirection)
+    {
+        if (playerCamera == null || worldDirection.sqrMagnitude < 0.0001f)
+        {
+            return;
+        }
+
+        Vector3 forward = worldDirection.normalized;
+        Vector3 horizontalForward = Vector3.ProjectOnPlane(forward, Vector3.up);
+
+        if (horizontalForward.sqrMagnitude < 0.0001f)
+        {
+            return;
+        }
+
+        transform.rotation = Quaternion.LookRotation(horizontalForward.normalized, Vector3.up);
+
+        float desiredPitch = Mathf.Asin(Mathf.Clamp(-forward.y, -1f, 1f)) * Mathf.Rad2Deg;
+        cameraPitch = Mathf.Clamp(desiredPitch, -80f, 80f);
+
+        playerCamera.transform.localRotation = Quaternion.Euler(cameraPitch, 0f, 0f);
+        verticalVelocity = 0f;
     }
 }

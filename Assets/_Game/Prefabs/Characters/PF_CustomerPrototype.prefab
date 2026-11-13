@@ -192,7 +192,6 @@ GameObject:
   - component: {fileID: 1166267122858013691}
   - component: {fileID: 542806855801772028}
   - component: {fileID: 8519733831714110736}
-  - component: {fileID: 576835291254729647}
   m_Layer: 0
   m_Name: Eye_right
   m_TagString: Untagged
@@ -272,27 +271,6 @@ MeshRenderer:
   m_SortingOrder: 0
   m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
---- !u!135 &576835291254729647
-SphereCollider:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2592076586706660532}
-  m_Material: {fileID: 0}
-  m_IncludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_ExcludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_LayerOverridePriority: 0
-  m_IsTrigger: 0
-  m_ProvidesContacts: 0
-  m_Enabled: 1
-  serializedVersion: 3
-  m_Radius: 0.5
-  m_Center: {x: 0, y: 0, z: 0}
 --- !u!1 &2599349677635650199
 GameObject:
   m_ObjectHideFlags: 0
@@ -383,6 +361,7 @@ MonoBehaviour:
   shelfTurnDegreesPerSecond: 360
   shelfLeanDegrees: 10
   layoutRelocationRadius: 4
+  layoutRecoveryVerticalTolerance: 0.5
 --- !u!114 &7286726194657894436
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -473,12 +452,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ae83baf9044129248b931fd9ffeb513f, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::CustomerLayoutPresentation
-  visibilityRoots:
-  - {fileID: 5696178109681276074}
-  - {fileID: 7279372988479505635}
-  - {fileID: 5922845108665904575}
-  - {fileID: 1350903068309145706}
-  - {fileID: 6198429103013572156}
 --- !u!1 &3331872740172664456
 GameObject:
   m_ObjectHideFlags: 0
@@ -953,7 +926,6 @@ GameObject:
   - component: {fileID: 1873447458645004570}
   - component: {fileID: 8421637469407449181}
   - component: {fileID: 8694888109277778084}
-  - component: {fileID: 8234391628015058403}
   m_Layer: 0
   m_Name: Eye_left
   m_TagString: Untagged
@@ -1033,24 +1005,3 @@ MeshRenderer:
   m_SortingOrder: 0
   m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
---- !u!135 &8234391628015058403
-SphereCollider:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 7423864628731471432}
-  m_Material: {fileID: 0}
-  m_IncludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_ExcludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_LayerOverridePriority: 0
-  m_IsTrigger: 0
-  m_ProvidesContacts: 0
-  m_Enabled: 1
-  serializedVersion: 3
-  m_Radius: 0.5
-  m_Center: {x: 0, y: 0, z: 0}
