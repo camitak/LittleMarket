@@ -26,9 +26,16 @@ public sealed class CheckoutConveyor : MonoBehaviour
         public bool OriginallyActive;
 
         public GameObject Slot;
-        public float Width;
-        public float RightOffset;
+        public float RelativeMinX;
+        public float RelativeMaxX;
+        public float RelativeMinZ;
+        public float RelativeMaxZ;
+        public float MinX;
+        public float MaxX;
+        public float MinZ;
+        public float MaxZ;
         public bool Scanned;
+        public bool Oversized;
     }
 
     private readonly List<PresentedItem> presentedItems = new();
@@ -39,17 +46,10 @@ public sealed class CheckoutConveyor : MonoBehaviour
 
     public void BeginSession(CustomerController nextCustomer)
     {
-        if (customer == nextCustomer)
-        {
-            return;
-        }
+        if (customer == nextCustomer) return;
 
         EndSession(false);
-
-        if (nextCustomer == null || !IsConfigured)
-        {
-            return;
-        }
+        if (nextCustomer == null || !IsConfigured) return;
 
         customer = nextCustomer;
         nextItemIndex = 0;
@@ -60,10 +60,7 @@ public sealed class CheckoutConveyor : MonoBehaviour
     {
         foreach (PresentedItem entry in presentedItems)
         {
-            if (entry.Item == item && !entry.Scanned)
-            {
-                return true;
-            }
+            if (entry.Item == item && !entry.Scanned) return true;
         }
 
         return false;
@@ -73,15 +70,13 @@ public sealed class CheckoutConveyor : MonoBehaviour
     {
         foreach (PresentedItem entry in presentedItems)
         {
-            if (entry.Item != item || entry.Scanned)
-            {
-                continue;
-            }
+            if (entry.Item != item || entry.Scanned) continue;
 
             entry.Scanned = true;
             DestroySlot(entry);
 
-            RepositionWaitingItems();
+            // Existing products keep their positions for now. Fill the free
+            // rectangles with waiting real products; animation comes later.
             FillAvailableSpace();
             return;
         }
@@ -91,11 +86,7 @@ public sealed class CheckoutConveyor : MonoBehaviour
     {
         foreach (PresentedItem entry in presentedItems)
         {
-            if (!completed)
-            {
-                RestoreItem(entry);
-            }
-
+            if (!completed) RestoreItem(entry);
             DestroySlot(entry);
         }
 
@@ -106,35 +97,22 @@ public sealed class CheckoutConveyor : MonoBehaviour
 
     private void FillAvailableSpace()
     {
-        if (customer == null || !IsConfigured)
-        {
-            return;
-        }
+        if (customer == null || !IsConfigured || HasOversizedWaitingItem()) return;
 
         GetBeltLimits(out float leftEdge, out float rightEdge,
-            out float centerZ, out float halfDepth, out float topY);
+            out float nearEdge, out float farEdge, out float topY);
 
-        float nextRightEdge = GetNextRightEdge(rightEdge);
         int itemCount = customer.GetCarriedItemCount();
 
         while (nextItemIndex < itemCount)
         {
             PickupItem item = customer.GetCarriedItem(nextItemIndex);
-
-            if (item == null)
-            {
-                // Missing items must not be silently skipped and charged for.
-                break;
-            }
+            if (item == null) break;
 
             PresentedItem entry = CaptureItem(item);
-
             GameObject slot = new($"CheckoutBeltItem_{nextItemIndex:00}");
             slot.transform.SetParent(transform, false);
-
-            slot.transform.localPosition = new Vector3(
-                (leftEdge + rightEdge) * 0.5f, topY, centerZ);
-
+            slot.transform.localPosition = new Vector3(0f, topY, 0f);
             slot.transform.localRotation = Quaternion.identity;
             slot.transform.localScale = Vector3.one;
             entry.Slot = slot;
@@ -145,123 +123,141 @@ public sealed class CheckoutConveyor : MonoBehaviour
             MeasureItem(entry, out float minX, out float maxX,
                 out float minZ, out float maxZ);
 
-            entry.Width = Mathf.Max(0.01f, maxX - minX);
-            entry.RightOffset = maxX - slot.transform.localPosition.x;
+            // Measurements are in checkout-local space, relative to the slot.
+            entry.RelativeMinX = minX;
+            entry.RelativeMaxX = maxX;
+            entry.RelativeMinZ = minZ;
+            entry.RelativeMaxZ = maxZ;
 
-            // Correct visual pivot offsets so items share a belt centreline.
-            float centerCorrectionZ = centerZ - (minZ + maxZ) * 0.5f;
-            slot.transform.localPosition += new Vector3(0f, 0f, centerCorrectionZ);
+            bool fits = TryFindPosition(entry, leftEdge, rightEdge,
+                nearEdge, farEdge, out float slotX, out float slotZ);
 
-            float desiredX = nextRightEdge - entry.RightOffset;
-            float itemLeft = desiredX + (minX - slot.transform.localPosition.x);
-
-            bool itemFitsLength = itemLeft >= leftEdge;
-            bool itemFitsDepth = (maxZ - minZ) <= halfDepth * 2f;
-            bool hasWaitingItem = HasWaitingItem();
-
-            if ((!itemFitsLength || !itemFitsDepth) && hasWaitingItem)
+            if (!fits && HasWaitingItem())
             {
-                // No space yet. The actual product goes back to its owner.
                 RestoreItem(entry);
                 DestroySlot(entry);
                 break;
             }
 
-            if (!itemFitsLength || !itemFitsDepth)
+            if (!fits)
             {
-                // A large item may use the belt alone rather than jam it.
-                desiredX = (leftEdge + rightEdge) * 0.5f -
-                           (minX + maxX) * 0.5f +
-                           slot.transform.localPosition.x;
+                // A product larger than the usable belt must not deadlock
+                // checkout. Display only that product, centred and unscaled.
+                slotX = (leftEdge + rightEdge - minX - maxX) * 0.5f;
+                slotZ = (nearEdge + farEdge - minZ - maxZ) * 0.5f;
+                entry.Oversized = true;
 
-                Debug.LogWarning(
-                    $"'{item.GetItemName()}' is larger than the checkout belt's available space. " +
+                Debug.LogWarning($"'{item.GetItemName()}' exceeds the checkout belt. " +
                     "Showing it alone until scanned.", item);
             }
 
-            slot.transform.localPosition = new Vector3(
-                desiredX,
-                slot.transform.localPosition.y,
-                slot.transform.localPosition.z);
+            slot.transform.localPosition = new Vector3(slotX, topY, slotZ);
+            entry.MinX = slotX + minX;
+            entry.MaxX = slotX + maxX;
+            entry.MinZ = slotZ + minZ;
+            entry.MaxZ = slotZ + maxZ;
 
             presentedItems.Add(entry);
             nextItemIndex++;
 
-            nextRightEdge = desiredX +
-                            (minX - (leftEdge + rightEdge) * 0.5f) -
-                            productGap;
-
-            if (!itemFitsLength || !itemFitsDepth)
-            {
-                break;
-            }
+            if (entry.Oversized) break;
         }
     }
 
-    private float GetNextRightEdge(float rightEdge)
+    private bool TryFindPosition(PresentedItem entry, float leftEdge, float rightEdge,
+        float nearEdge, float farEdge, out float slotX, out float slotZ)
     {
-        float current = rightEdge;
+        slotX = 0f;
+        slotZ = 0f;
+        bool found = false;
+        float bestX = float.NegativeInfinity;
+        float bestZ = float.PositiveInfinity;
 
-        foreach (PresentedItem entry in presentedItems)
+        // Candidate X positions: against the scanner-side edge, or just
+        // left of an occupied item's rectangle. Candidate Z positions:
+        // against the customer-side edge, or behind an occupied rectangle.
+        // No fixed grid, row count or item count is required.
+        for (int xCandidate = -1; xCandidate < presentedItems.Count; xCandidate++)
         {
-            if (entry.Scanned || entry.Slot == null)
+            if (xCandidate >= 0 && !IsOccupyingSpace(presentedItems[xCandidate])) continue;
+
+            float right = xCandidate < 0 ? rightEdge : presentedItems[xCandidate].MinX - productGap;
+            float x = right - entry.RelativeMaxX;
+            float itemMinX = x + entry.RelativeMinX;
+            float itemMaxX = x + entry.RelativeMaxX;
+
+            if (itemMinX < leftEdge - 0.0001f || itemMaxX > rightEdge + 0.0001f) continue;
+
+            for (int zCandidate = -1; zCandidate < presentedItems.Count; zCandidate++)
             {
-                continue;
+                if (zCandidate >= 0 && !IsOccupyingSpace(presentedItems[zCandidate])) continue;
+
+                float near = zCandidate < 0 ? nearEdge : presentedItems[zCandidate].MaxZ + productGap;
+                float z = near - entry.RelativeMinZ;
+                float itemMinZ = z + entry.RelativeMinZ;
+                float itemMaxZ = z + entry.RelativeMaxZ;
+
+                if (itemMinZ < nearEdge - 0.0001f || itemMaxZ > farEdge + 0.0001f) continue;
+                if (OverlapsWaitingItem(itemMinX, itemMaxX, itemMinZ, itemMaxZ)) continue;
+
+                // Prefer positions nearest the scanner, then customer side.
+                if (!found || x > bestX + 0.0001f ||
+                    (Mathf.Abs(x - bestX) <= 0.0001f && z < bestZ))
+                {
+                    found = true;
+                    bestX = x;
+                    bestZ = z;
+                }
             }
-
-            float left = entry.Slot.transform.localPosition.x +
-                         entry.RightOffset - entry.Width;
-
-            current = Mathf.Min(current, left - productGap);
         }
 
-        return current;
+        if (!found) return false;
+
+        slotX = bestX;
+        slotZ = bestZ;
+        return true;
+    }
+
+    private bool OverlapsWaitingItem(float minX, float maxX, float minZ, float maxZ)
+    {
+        foreach (PresentedItem entry in presentedItems)
+        {
+            if (!IsOccupyingSpace(entry)) continue;
+
+            bool overlapsX = minX < entry.MaxX + productGap && maxX > entry.MinX - productGap;
+            bool overlapsZ = minZ < entry.MaxZ + productGap && maxZ > entry.MinZ - productGap;
+            if (overlapsX && overlapsZ) return true;
+        }
+
+        return false;
+    }
+
+    private static bool IsOccupyingSpace(PresentedItem entry)
+    {
+        return !entry.Scanned && entry.Slot != null;
     }
 
     private bool HasWaitingItem()
     {
         foreach (PresentedItem entry in presentedItems)
         {
-            if (!entry.Scanned)
-            {
-                return true;
-            }
+            if (IsOccupyingSpace(entry)) return true;
         }
 
         return false;
     }
 
-    private void RepositionWaitingItems()
+    private bool HasOversizedWaitingItem()
     {
-        if (!IsConfigured)
-        {
-            return;
-        }
-
-        GetBeltLimits(out _, out float rightEdge, out _, out _, out _);
-        float nextRightEdge = rightEdge;
-
         foreach (PresentedItem entry in presentedItems)
         {
-            if (entry.Scanned || entry.Slot == null)
-            {
-                continue;
-            }
-
-            Transform slot = entry.Slot.transform;
-
-            float x = nextRightEdge - entry.RightOffset;
-
-            Vector3 position = slot.localPosition;
-            position.x = x;
-            slot.localPosition = position;
-
-            nextRightEdge = x + entry.RightOffset -
-                            entry.Width - productGap;
+            if (IsOccupyingSpace(entry) && entry.Oversized) return true;
         }
+
+        return false;
     }
 
-    private PresentedItem CaptureItem(PickupItem item)
+    private static PresentedItem CaptureItem(PickupItem item)
     {
         Transform itemTransform = item.transform;
 
@@ -278,12 +274,9 @@ public sealed class CheckoutConveyor : MonoBehaviour
         };
     }
 
-    private void RestoreItem(PresentedItem entry)
+    private static void RestoreItem(PresentedItem entry)
     {
-        if (entry.Item == null)
-        {
-            return;
-        }
+        if (entry.Item == null) return;
 
         PickupItem item = entry.Item;
         item.gameObject.SetActive(entry.OriginallyActive);
@@ -291,64 +284,47 @@ public sealed class CheckoutConveyor : MonoBehaviour
         if (entry.OriginalParent != null)
         {
             item.PickUpForCustomer(entry.OriginalParent);
-
             item.transform.localPosition = entry.OriginalLocalPosition;
             item.transform.localRotation = entry.OriginalLocalRotation;
             item.transform.localScale = entry.OriginalLocalScale;
         }
         else
         {
-            item.RestoreAsLooseWorldItem(
-                entry.OriginalWorldPosition,
-                entry.OriginalWorldRotation);
-
+            item.RestoreAsLooseWorldItem(entry.OriginalWorldPosition, entry.OriginalWorldRotation);
             item.transform.localScale = entry.OriginalLocalScale;
         }
     }
 
     private void DestroySlot(PresentedItem entry)
     {
-        if (entry.Slot == null)
-        {
-            return;
-        }
+        if (entry.Slot == null) return;
 
         Destroy(entry.Slot);
         entry.Slot = null;
     }
 
     private void GetBeltLimits(out float leftEdge, out float rightEdge,
-        out float centerZ, out float halfDepth, out float topY)
+        out float nearEdge, out float farEdge, out float topY)
     {
-        Vector3 low = transform.InverseTransformPoint(
+        Vector3 left = transform.InverseTransformPoint(
             beltSurface.TransformPoint(new Vector3(-0.5f, 0f, 0f)));
-
-        Vector3 high = transform.InverseTransformPoint(
+        Vector3 right = transform.InverseTransformPoint(
             beltSurface.TransformPoint(new Vector3(0.5f, 0f, 0f)));
-
         Vector3 near = transform.InverseTransformPoint(
             beltSurface.TransformPoint(new Vector3(0f, 0f, -0.5f)));
-
         Vector3 far = transform.InverseTransformPoint(
             beltSurface.TransformPoint(new Vector3(0f, 0f, 0.5f)));
-
         Vector3 top = transform.InverseTransformPoint(
             beltSurface.TransformPoint(new Vector3(0f, 0.5f, 0f)));
 
-        leftEdge = Mathf.Min(low.x, high.x) + endPadding;
-        rightEdge = Mathf.Max(low.x, high.x) - endPadding;
-
-        centerZ = (near.z + far.z) * 0.5f;
-
-        halfDepth = Mathf.Max(
-            0f,
-            Mathf.Abs(far.z - near.z) * 0.5f - sidePadding);
-
+        leftEdge = Mathf.Min(left.x, right.x) + endPadding;
+        rightEdge = Mathf.Max(left.x, right.x) - endPadding;
+        nearEdge = Mathf.Min(near.z, far.z) + sidePadding;
+        farEdge = Mathf.Max(near.z, far.z) - sidePadding;
         topY = top.y + surfaceLift;
     }
 
-    private void MeasureItem(PresentedItem entry,
-        out float minX, out float maxX,
+    private void MeasureItem(PresentedItem entry, out float minX, out float maxX,
         out float minZ, out float maxZ)
     {
         minX = float.PositiveInfinity;
@@ -360,16 +336,12 @@ public sealed class CheckoutConveyor : MonoBehaviour
 
         foreach (Renderer renderer in renderers)
         {
-            if (renderer == null || !renderer.enabled ||
-                !renderer.gameObject.activeInHierarchy)
-            {
-                continue;
-            }
+            if (renderer == null || !renderer.enabled || !renderer.gameObject.activeInHierarchy) continue;
 
-            Bounds bounds = renderer.bounds;
+            // Renderer.bounds is world-axis-aligned. Using its corners would
+            // overestimate dimensions when the entire checkout is rotated.
+            Bounds bounds = renderer.localBounds;
 
-            // Convert renderer bounds into checkout-local coordinates.
-            // This also works when the entire fixture has been rotated.
             for (int x = -1; x <= 1; x += 2)
             {
                 for (int y = -1; y <= 1; y += 2)
@@ -378,28 +350,25 @@ public sealed class CheckoutConveyor : MonoBehaviour
                     {
                         Vector3 corner = bounds.center +
                             Vector3.Scale(bounds.extents, new Vector3(x, y, z));
+                        Vector3 worldCorner = renderer.transform.TransformPoint(corner);
+                        Vector3 checkoutCorner = transform.InverseTransformPoint(worldCorner);
 
-                        Vector3 localCorner = transform.InverseTransformPoint(corner);
-
-                        minX = Mathf.Min(minX, localCorner.x);
-                        maxX = Mathf.Max(maxX, localCorner.x);
-                        minZ = Mathf.Min(minZ, localCorner.z);
-                        maxZ = Mathf.Max(maxZ, localCorner.z);
+                        minX = Mathf.Min(minX, checkoutCorner.x);
+                        maxX = Mathf.Max(maxX, checkoutCorner.x);
+                        minZ = Mathf.Min(minZ, checkoutCorner.z);
+                        maxZ = Mathf.Max(maxZ, checkoutCorner.z);
                     }
                 }
             }
         }
 
-        if (float.IsPositiveInfinity(minX))
-        {
-            // Geometry fallback, not a product-count limit.
-            Vector3 center = entry.Slot.transform.localPosition;
+        if (!float.IsPositiveInfinity(minX)) return;
 
-            minX = center.x - 0.1f;
-            maxX = center.x + 0.1f;
-            minZ = center.z - 0.1f;
-            maxZ = center.z + 0.1f;
-        }
+        // Keep checkout operable even when an item has no visible renderer.
+        minX = -0.1f;
+        maxX = 0.1f;
+        minZ = -0.1f;
+        maxZ = 0.1f;
     }
 
     private void OnDestroy()
