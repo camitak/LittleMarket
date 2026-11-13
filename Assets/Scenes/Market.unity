@@ -30341,6 +30341,10 @@ PrefabInstance:
       propertyPath: moneyFeedbackUI
       value: 
       objectReference: {fileID: 766562200}
+    - target: {fileID: 8676841471145432608, guid: ad8cf3f9be0906e4e9a34b2a1e816c09, type: 3}
+      propertyPath: logPackingDiagnostics
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 8838122403649170138, guid: ad8cf3f9be0906e4e9a34b2a1e816c09, type: 3}
       propertyPath: dailyStats
       value: 

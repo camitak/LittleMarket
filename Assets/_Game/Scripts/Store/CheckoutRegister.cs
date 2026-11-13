@@ -87,13 +87,6 @@ public class CheckoutRegister : MonoBehaviour, IInteractable, IFurnitureSellCons
             return "Checkout cashier work area not configured";
         }
 
-        string positionPrompt = checkoutWorkArea.GetPositionPrompt(player.transform.position);
-
-        if (!string.IsNullOrEmpty(positionPrompt))
-        {
-            return positionPrompt;
-        }
-        
         if (checkoutWorkArea.CashierViewPoint == null)
         {
             return "Checkout camera viewpoint not configured";
@@ -184,7 +177,7 @@ public class CheckoutRegister : MonoBehaviour, IInteractable, IFurnitureSellCons
             return;
         }
 
-        if (checkoutWorkArea == null || !checkoutWorkArea.CanServeFrom(player.transform.position))
+        if (checkoutWorkArea == null || checkoutWorkArea.CashierViewPoint == null)
         {
             return;
         }

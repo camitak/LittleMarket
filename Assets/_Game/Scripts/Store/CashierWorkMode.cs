@@ -87,9 +87,7 @@ public sealed class CashierWorkMode : MonoBehaviour
 
         CheckoutWorkArea workArea = checkout.GetComponent<CheckoutWorkArea>();
 
-        if (workArea == null ||
-            workArea.CashierViewPoint == null ||
-            !workArea.CanServeFrom(transform.position))
+        if (workArea == null || workArea.CashierViewPoint == null)
         {
             return false;
         }

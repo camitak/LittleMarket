@@ -13,7 +13,10 @@ public sealed class CheckoutConveyor : MonoBehaviour
     [Min(0f)] [SerializeField] private float sidePadding = 0.025f;
     [Min(0f)] [SerializeField] private float productGap = 0.035f;
     [Min(0f)] [SerializeField] private float surfaceLift = 0.005f;
-
+    
+    [Header("Diagnostics")]
+    [SerializeField] private bool logPackingDiagnostics;
+    
     private sealed class PresentedItem
     {
         public PickupItem Item;
@@ -53,6 +56,14 @@ public sealed class CheckoutConveyor : MonoBehaviour
 
         customer = nextCustomer;
         nextItemIndex = 0;
+        
+        if (logPackingDiagnostics)
+        {
+            Debug.Log(
+                $"Checkout conveyor started with {customer.GetCarriedItemCount()} actual customer products.",
+                this);
+        }
+        
         FillAvailableSpace();
     }
 
@@ -131,6 +142,22 @@ public sealed class CheckoutConveyor : MonoBehaviour
 
             bool fits = TryFindPosition(entry, leftEdge, rightEdge,
                 nearEdge, farEdge, out float slotX, out float slotZ);
+            
+            if (!fits && logPackingDiagnostics)
+            {
+                float itemWidth = maxX - minX;
+                float itemDepth = maxZ - minZ;
+                float beltWidth = rightEdge - leftEdge;
+                float beltDepth = farEdge - nearEdge;
+
+                Debug.Log(
+                    $"Conveyor could not fit item {nextItemIndex + 1}/{itemCount} " +
+                    $"({item.GetItemName()}). " +
+                    $"Item footprint: {itemWidth:0.00}m × {itemDepth:0.00}m. " +
+                    $"Usable belt: {beltWidth:0.00}m × {beltDepth:0.00}m. " +
+                    "This can also be caused by occupied space or the packing order.",
+                    this);
+            }
 
             if (!fits && HasWaitingItem())
             {

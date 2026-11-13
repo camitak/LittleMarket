@@ -211,6 +211,7 @@ MonoBehaviour:
   sidePadding: 0.025
   productGap: 0.035
   surfaceLift: 0.005
+  logPackingDiagnostics: 0
 --- !u!1 &1274817683706630338
 GameObject:
   m_ObjectHideFlags: 0
